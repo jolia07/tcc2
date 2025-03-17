@@ -239,13 +239,9 @@ app.post('/login', async (req, res) => {
 app.post('/cadastro', async (req, res) => {
   const { nome, email, senha, telefone, tipo } = req.body;
 
-  if (!['docente', 'adm'].includes(tipo)) {
-    return res.status(400).json({ message: "Tipo inválido! Use 'docente' ou 'adm'." });
-  if (!['docente', 'adm'].includes(tipo)) {
-    return res.status(400).json({ message: "Tipo inválido! Use 'docente' ou 'adm'." });
+  if (!['docente', 'adm', 'aula'].includes(tipo)) {
+    return res.status(400).json({ message: "Tipo inválido! Use 'docente', 'adm' ou 'aula'." });
   }
-  }
-
 
   try {
     const [checkUser] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
@@ -512,18 +508,16 @@ app.post('/aulas', async (req, res) => {
 
 //Rota da planilha(montagem)
 app.get('/exportar-excel', async (req, res) => {
-  const [rows] = await pool.query("SELECT * FROM aula");
+  const [rows] = await pool.query("SELECT a.*, m.uc AS nomeMateria FROM aula a JOIN materia m ON a.materia_id = m.id WHERE a.usuario_id = ?");
 
   const workbook = new excelJS.Workbook();
   const worksheet = workbook.addWorksheet('Aulas');
 
+
   const horariosDia = [
-    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
+    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
     "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00",
   ];
-
-
 
   // Linha 1 - Cabeçalhos Mesclados e Personalizados
   worksheet.mergeCells('B1:F1'); // Mescla "Dados do Docente/Administrador"
@@ -532,76 +526,47 @@ app.get('/exportar-excel', async (req, res) => {
   worksheet.mergeCells('B4:F4'); //Mescla "Tel1.:"
   worksheet.mergeCells('B5:F5'); //Mescla "Tel2.:"
 
-
-
   worksheet.mergeCells('T1:T6'); // Mescla COLUNA pras fazer uma divisão
   worksheet.mergeCells('A6:S6'); // Mescla LINHAS pras fazer uma divisão
 
-
-
   worksheet.mergeCells('A9:H9');
-  worksheet.mergeCells('A8:H8');
-
-
-  worksheet.mergeCells('A8:H8');
-
-
 
 
   worksheet.getCell('B1').value = "Dados do Docente";
   worksheet.getCell('A9').value = "Janeiro";
-  worksheet.getCell('A8').value = "Cronograma do período letivo"
- 
-  worksheet.getCell('A8').value = "Cronograma do período letivo"
- 
+  
   worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
   worksheet.getCell('A9').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A8').alignment = { horizontal: 'center', vertical: 'middle' };
-
-  worksheet.getCell('A8').alignment = { horizontal: 'center', vertical: 'middle' };
-
 
   const meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
   meses.forEach((mes, index) => {
     worksheet.getCell(1, index + 8).value = mes;
   });
 
-
-
   // Aplicando cor de fundo para toda a linha 1
   worksheet.getRow(1).eachCell((cell) => {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4682B4' },
-      fgColor: { argb: 'FF4682B4' }
+      fgColor: { argb: 'FF4682B4' } 
     };
     cell.font = {
       bold: true,
-      color: { argb: 'FFFFFFFF' },
-      color: { argb: 'FFFFFFFF' }
+      color: { argb: 'FFFFFFFF' } 
     };
   });
  
-
- 
-
 
   worksheet.getCell('A2').value = "Docente:";
   worksheet.getCell('A3').value = "E-mail:";
   worksheet.getCell('A4').value = "Tel.1:";
   worksheet.getCell('A5').value = "Tel.2:";
 
-
-
   worksheet.getCell('G2').value = "Dias Úteis:";
   worksheet.getCell('G3').value = "Horas Úteis:";
   worksheet.getCell('G4').value = "Horas Alocadas:";
 
-
-  ["A1", "G1", "T1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
-
-  ["A1", "G1", "T1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
+  ["A1","G1", "T1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
     const cell = worksheet.getCell(cellAddress);
     cell.fill = {
       type: 'pattern',
@@ -612,13 +577,9 @@ app.get('/exportar-excel', async (req, res) => {
       bold: true,
       color: { argb: 'FFFFFFFF' }
     };
-  })
   });
 
-
-  ["A8", "A9"].forEach(cellAddress => {
-
-  ["A8", "A9"].forEach(cellAddress => {
+  ["A9"].forEach(cellAddress => {
     const cell = worksheet.getCell(cellAddress);
     cell.fill = {
       type: 'pattern',
@@ -629,10 +590,7 @@ app.get('/exportar-excel', async (req, res) => {
       bold: true,
       color: { argb: 'FFFFFFFF' }
     };
-  })
   });
-
-
 
   const janeiro = worksheet.addRow(["","Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]);
   janeiro.eachCell((cell) => {
@@ -647,12 +605,8 @@ app.get('/exportar-excel', async (req, res) => {
     };
   });
 
-
-
   // Cabeçalho da tabela (sem a coluna "Dias")
   const tableHeaderRow = worksheet.addRow(["Horário"]);
-
-
 
   tableHeaderRow.eachCell((cell) => {
     cell.fill = {
@@ -666,40 +620,12 @@ app.get('/exportar-excel', async (req, res) => {
     };
   });
 
-
-
   // Preenchendo os horários e dados
   horariosDia.forEach(horario => {
     const aulaNoHorario = rows.filter(row => {
-      if (!row.horarios || typeof row.horarios !== 'string') {
-        return false;
-      }
-     
-      if (!row.horarios || typeof row.horarios !== 'string') {
-        return false;
-      }
-     
       const horarios = row.horarios.split(', ').map(h => h.trim());
       return horarios.includes(horario);
     });
-
-
-    rows.forEach((row, index) => {
-      if (typeof row.horarios !== 'string') {
-        console.warn(`Registro com horários inválidos (index ${index}):`, row);
-      }
-    });
-   
-
-
-
-    rows.forEach((row, index) => {
-      if (typeof row.horarios !== 'string') {
-        console.warn(`Registro com horários inválidos (index ${index}):`, row);
-      }
-    });
-   
-
 
     if (aulaNoHorario.length > 0) {
       aulaNoHorario.forEach(aula => {
@@ -709,8 +635,6 @@ app.get('/exportar-excel', async (req, res) => {
       worksheet.addRow([horario, "", "", "", ""]);
     }
   });
-
-
 
   // Ajustar automaticamente a largura das colunas
   worksheet.columns.forEach((column) => {
@@ -722,12 +646,11 @@ app.get('/exportar-excel', async (req, res) => {
     column.width = maxLength + 5;
   });
 
-
-
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=Aulas.xlsx');
   await workbook.xlsx.write(res);
   res.end();
+
 });
 
 
