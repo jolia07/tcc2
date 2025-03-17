@@ -15,12 +15,62 @@
         </div>
     </div>
 
+    <button id="btnCadastrarCurso" onclick="openModal('modalCurso')">Cadastrar Curso</button>
+    <button id="btnCadastrarTurma" onclick="openModal('modalTurma')">Cadastrar Turma</button>
+    <button id="btnCadastrarlaboratorio" onclick="openModal('modalLaboratorio')">Cadastrar Laboratório</button>
     <button id="btnCadastrarMateria" onclick="openModal('modalMateria')">Cadastrar Matéria</button>
     <button id="btnCadastrarAula" onclick="openModal('modalAula')">Cadastrar Aula</button>
     <button onclick="exportarParaExcel()">Exportar para Excel</button>
-    <button id="btnMostrarAula" onclick="openModal('modalMostrarAulas')">Mostrar Aulas</button>
-    <button id="btnPerfil">Acessar Perfil</button>
+    <button onclick="perfil()">Acessar Perfil</button>
     <button onclick="sair()">Sair</button>
+
+    <div id="modalCurso" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modalCurso')">&times;</span>
+            <h2>Cadastrar Curso</h2>
+            <form id="cursoForm">
+                <label for="nome">Nome do Curso:</label>
+                <input type="text" id="nome" name="nome" required><br><br>
+
+                <button type="submit">Salvar Curso</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalTurma" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modalTurma')">&times;</span>
+            <h2>Cadastrar Turma</h2>
+            <form id="turmaForm">
+                <label for="nome">Nome da Turma:</label>
+                <input type="text" id="nome" name="nome" required><br><br>
+
+                <label for="curso">Curso:</label>
+                <select id="curso" name="curso" required></select><br><br>
+
+                <button type="submit">Salvar Turma</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalLaboratorio" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modalLaboratorio')">&times;</span>
+            <h2>Cadastrar Laboratorio</h2>
+            <form id="laboratorioForm">
+                <label for="cimatec">Cimatec:</label>
+                <input type="number" id="cimatec" name="cimatec" required><br><br>
+
+                <label for="andar">Andar:</label>
+                <input type="number" id="andar" name="andar" required><br><br>
+
+                <label for="sala">Laboratório:</label>
+                <input type="text" id="sala" name="sala" required><br><br>
+
+                <button type="submit">Salvar Laboratório</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Modal de Cadastro de Matérias -->
     <div id="modalMateria" class="modal">
@@ -33,6 +83,9 @@
 
                 <label for="ch">Carga Horária:</label>
                 <input type="number" id="ch" name="ch" required><br><br>
+
+                <label for="curso">Curso:</label>
+                <select id="curso" name="curso" required></select><br><br>
 
                 <button type="submit">Salvar Matéria</button>
             </form>
@@ -48,11 +101,16 @@
                 <label for="materia">Matéria:</label>
                 <select id="materia" name="materia" required></select><br><br>
 
+                <label for="curso">Curso:</label>
+                <select id="curso" name="curso" required></select><br><br>
+
                 <label for="turma">Turma:</label>
-                <input type="text" id="turma" name="turma" required><br><br>
+                <select id="turma" name="turma" required></select><br><br>
 
                 <label for="laboratorio">Laboratório:</label>
-                <input type="text" id="laboratorio" name="laboratorio" required><br><br>
+                <select id="cimatec" name="cimatec" required></select><br><br>
+                <select id="andar" name="andar" required></select><br><br>
+                <select id="sala" name="sala" required></select><br><br>
 
                 <label for="turno">Turno:</label>
                 <select id="turno" name="turno" required>
@@ -119,24 +177,25 @@
         //JS DE MATERIA
         async function carregarMaterias() {
             try {
-        const response = await fetch('http://localhost:5505/materias');
-        const materias = await response.json();
+         const response = await fetch('http://localhost:5505/materias');
+         const materias = await response.json();
         
-        const selects = document.querySelectorAll('#materia, #materiaSelect'); // Seleciona os dois selects
-        selects.forEach(select => {
+         const selects = document.querySelectorAll('#materia, #materiaSelect'); // Seleciona os dois selects
+         selects.forEach(select => {
             select.innerHTML = materias.map(m => `<option value="${m.uc}">${m.uc}</option>`).join('');
-        });
-
-    } catch (error) {
-        console.error('Erro ao carregar matérias:', error);
-    }
+         });
+ 
+         } catch (error) {
+         console.error('Erro ao carregar matérias:', error);
+         }
         }
 
         document.getElementById('materiaForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = {
                 uc: document.getElementById('uc').value,
-                ch: document.getElementById('ch').value
+                ch: document.getElementById('ch').value,
+                curso_id: document.getElementById('curso').value
             };
 
             const response = await fetch('http://localhost:5505/materias', {
@@ -149,6 +208,133 @@
                 alert('Matéria cadastrada!');
                 closeModal('modalMateria');
                 carregarMaterias();
+            }
+        });
+
+        async function carregarCurso() {
+            try {
+         const response = await fetch('http://localhost:5505/curso');
+         const curso = await response.json();
+        
+         const selects = document.querySelectorAll('#curso, #cursoSelect'); // Seleciona os dois selects
+         selects.forEach(select => {
+            select.innerHTML = curso.map(m => `<option value="${c.id}">${c.nome}</option>`).join('');
+         });
+ 
+         } catch (error) {
+         console.error('Erro ao carregar curso:', error);
+         }
+        }
+        document.getElementById('cursoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = {
+                nome: document.getElementById('nome').value
+            };
+
+            const response = await fetch('http://localhost:5505/curso', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Curso cadastrado!');
+                closeModal('Curso');
+                carregarCurso();
+            }
+        });
+
+        async function mostrarCursos() {
+          try {
+         const response = await fetch('http://localhost:5505/curso'); // Busca os cursos cadastrados
+         const cursos = await response.json();
+
+         const selectCurso = document.getElementById('curso');
+         selectCurso.innerHTML = '<option value="">Selecione um Curso</option>'; // Limpa antes de preencher
+
+         cursos.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id; // O ID do curso será enviado ao backend
+            option.textContent = c.nome; // Nome do curso para exibição
+            selectCurso.appendChild(option);
+         });
+
+         } catch (error) {
+         console.error('Erro ao carregar cursos:', error);
+         }
+        }
+         // Carregar cursos ao abrir o modal de Turma
+         document.getElementById('modalTurma').addEventListener('click', carregarCursos);
+
+
+        async function carregarTurma() {
+            try {
+         const response = await fetch('http://localhost:5505/turma');
+         const turma = await response.json();
+        
+         const selects = document.querySelectorAll('#turma, #turmaSelect'); // Seleciona os dois selects
+         selects.forEach(select => {
+            select.innerHTML = turma.map(m => `<option value="${t.nome}">${t.nome}</option>`).join('');
+         });
+ 
+         } catch (error) {
+         console.error('Erro ao carregar turma:', error);
+         }
+        }
+        document.getElementById('turmaForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = {
+                nome: document.getElementById('nome').value,
+                curso_id: document.getElementById('curso').value
+            };
+
+            const response = await fetch('http://localhost:5505/turma', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Turma cadastrada!');
+                closeModal('modalTurma');
+                carregarTurma();
+            }
+        });
+
+        async function carregarLaboratorio() {
+            try {
+         const response = await fetch('http://localhost:5505/laboratorio');
+         const laboratorio = await response.json();
+        
+         const selects = document.querySelectorAll('#laboratorio, #laboratorioSelect'); // Seleciona os dois selects
+         selects.forEach(select => {
+            select.innerHTML = laboratorio.map(m => `<option value="${l.cimatec}">${l.cimatec}</option>`).join('');
+            select.innerHTML = laboratorio.map(m => `<option value="${l.andar}">${l.andar}</option>`).join('');
+            select.innerHTML = laboratorio.map(m => `<option value="${l.sala}">${l.sala}</option>`).join('');
+         });
+ 
+         } catch (error) {
+         console.error('Erro ao carregar laboratório:', error);
+         }
+        }
+        document.getElementById('laboratorioForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = {
+                cimatec: document.getElementById('cimatec').value,
+                andar: document.getElementById('andar').value,
+                sala: document.getElementById('sala').value
+            };
+
+            const response = await fetch('http://localhost:5505/laboratorio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Laboratório cadastrado!');
+                closeModal('modalLabratorio');
+                carregarLaboratorio();
             }
         });
 
@@ -184,25 +370,13 @@
          }
         });
 
-        //JS DE PERFIL
-        document.getElementById('btnPerfil').addEventListener('click', async () => {
-         try {
-          const response = await fetch('/getUserData'); // Rota que retorna os dados do usuário logado
-          const data = await response.json();
-
-          if (response.ok) {
-            window.location.href = `/perfil.html?id=${data.id}`; // Redireciona com o ID do usuário
-          } else {
-            alert('Você precisa estar logado para acessar o perfil!');
-          }
-            } catch (error) {
-             console.error('Erro ao obter sessão do usuário:', error);
-            }
-        });
-
         //JS DE PLANILHA
         function exportarParaExcel() {
             window.location.href = 'http://localhost:5505/exportar-excel';
+        }
+
+        function perfil() {
+            window.location.href = 'http://localhost:5505/perfil.html';
         }
 
         //JS DE LOGOUT
@@ -223,54 +397,12 @@
         function openModal(id) { document.getElementById(id).style.display = 'block'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        async function mostrarAulas() {
-    const materiaNome = document.getElementById('materiaSelect').value;
-    
-    if (!materiaNome) {
-        alert('Por favor, selecione uma matéria.');
-        return;
-    }
-
-    try {
-        const response = await fetch(`http://localhost:5505/mostrarAulas?materiaNome=${encodeURIComponent(materiaNome)}`);
-        if (!response.ok) throw new Error('Erro ao buscar aulas.');
-
-        const aulas = await response.json();
-        const container = document.getElementById('aulasContainer');
-        container.innerHTML = ''; // Limpa os resultados anteriores
-
-        if (aulas.length === 0) {
-            container.innerHTML = '<p>Nenhuma aula encontrada para essa matéria.</p>';
-            return;
-        }
-
-        aulas.forEach(aula => {
-            const aulaDiv = document.createElement('div');
-            aulaDiv.classList.add('aula-item');
-            aulaDiv.innerHTML = `
-                <h3>${aula.turma} - ${aula.laboratorio}</h3>
-                <p><strong>Turno:</strong> ${aula.turno}</p>
-                <p><strong>Dias:</strong> ${aula.diasSemana.join(', ')}</p>
-                <p><strong>Data de Início:</strong> ${new Date(aula.dataInicio).toLocaleDateString()}</p>
-            `;
-            container.appendChild(aulaDiv);
-        });
-
-        openModal('modalMostrarAulas'); // Abre o modal após carregar os dados
-
-    } catch (error) {
-        console.error('Erro ao carregar aulas:', error);
-        alert('Erro ao carregar aulas.');
-    }
-}
-
-
-
-
         carregarMaterias();
         carregarDadosUsuario(); 
-        mostrarAulas();
-        
+        carregarCurso();
+        carregarLaboratorio();
+        carregarTurma();      
+        mostrarCurso();
     </script>
 
 </body>

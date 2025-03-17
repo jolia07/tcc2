@@ -473,19 +473,130 @@ app.get('/getUserData', verificarAutenticacao, async (req, res) => {
   }
 });
 
+//Rota ´para cadastrar curso
+app.post('/curso', async (req, res) => {
+  try {
+      const { nome } = req.body;
+
+      if (!nome) {
+          return res.status(400).json({ error: "O nome do curso é obrigatório." });
+      }
+
+      await pool.query("INSERT INTO curso (nome) VALUES (?)", [nome]);
+      res.json({ message: "Curso cadastrado com sucesso!" });
+
+  } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ error: "Já existe um curso com esse nome." });
+      }
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar o curso." });
+  }
+});
+
+app.get('/curso', async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM curso");
+    res.json(rows);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar cursos." });
+}
+});
+
+//Rota para cadastrar turma
+app.post('/turma', async (req, res) => {
+  try {
+      const { nome, curso_id } = req.body;
+
+      if (!nome || !curso_id) {
+          return res.status(400).json({ error: "Nome da turma e curso_id são obrigatórios." });
+      }
+
+      const [curso] = await pool.query("SELECT id FROM curso WHERE id = ?", [curso_id]);
+      if (curso.length === 0) {
+          return res.status(400).json({ error: "O curso especificado não existe." });
+      }
+
+      await pool.query("INSERT INTO turma (nome, curso_id) VALUES (?, ?)", [nome, curso_id]);
+      res.json({ message: "Turma cadastrada com sucesso!" });
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar a turma." });
+  }
+});
+
+app.get('/turma', async (req, res) => {
+  try {
+      const [rows] = await pool.query(`
+          SELECT turma.id, turma.nome AS turma, curso.nome AS curso 
+          FROM turma 
+          JOIN curso ON turma.curso_id = curso.id
+      `);
+      res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erro ao buscar turmas." });
+    }
+});
+
+//Rota para cadastrar laboratorio
+app.post('/laboratorio', async (req, res) => {
+  try {
+      const { cimatec, andar, sala } = req.body;
+
+      if (!cimatec || !andar || !sala) {
+          return res.status(400).json({ error: "Os campos cimatec, andar e sala são obrigatórios." });
+      }
+
+      // Impede duplicação de laboratório no mesmo local
+      const [existingLab] = await pool.query(
+          "SELECT id FROM laboratorio WHERE cimatec = ? AND andar = ? AND sala = ?", 
+          [cimatec, andar, sala]
+      );
+
+      if (existingLab.length > 0) {
+          return res.status(400).json({ error: "Já existe um laboratório cadastrado nesse local." });
+      }
+
+      await pool.query("INSERT INTO laboratorio (cimatec, andar, sala) VALUES (?, ?, ?)", 
+                       [cimatec, andar, sala]);
+      res.json({ message: "Laboratório cadastrado com sucesso!" });
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar o laboratório." });
+  }
+});
+
+app.get('/laboratorio', async (req, res) => {
+  try {
+      const [rows] = await pool.query("SELECT * FROM laboratorio");
+      res.json(rows);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao buscar laboratórios." });
+  }
+});
 
 // Rota para cadastrar matéria
 app.post('/materias', async (req, res) => {
-  const { uc, ch } = req.body;
-  await pool.query("INSERT INTO materia (uc, ch) VALUES (?, ?)", [uc, ch]);
+  const { uc, ch, curso_id } = req.body;
+  await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
   res.json({ message: "Matéria cadastrada com sucesso!" });
 });
 
 
 // Rota para buscar matérias
 app.get('/materias', async (req, res) => {
-  const [rows] = await pool.query("SELECT * FROM materia");
-  res.json(rows);
+  try {
+    const [rows] = await pool.query("SELECT * FROM materia");
+    res.json(rows);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar matérias." });
+}
 });
 
 
@@ -500,24 +611,72 @@ app.post('/aulas', async (req, res) => {
       return res.status(400).json({ error: "Horários não selecionados" });
   }
 
-
   await pool.query("INSERT INTO aula (materia_id, turma, laboratorio, turno, diasSemana, horarios) VALUES (?, ?, ?, ?, ?, ?)",
       [materia_id, turma, laboratorio, turno, diasSemana.join(', '), horarios.join(', ')]);
   res.json({ message: "Aula cadastrada!" });
 });
 
+app.get('/aulas', async(req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM aula");
+    res.json(rows);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar aulas." });
+}
+})
+
 //Rota da planilha(montagem)
 app.get('/exportar-excel', async (req, res) => {
-  const [rows] = await pool.query("SELECT a.*, m.uc AS nomeMateria FROM aula a JOIN materia m ON a.materia_id = m.id WHERE a.usuario_id = ?");
+  const [rows] = await pool.query("SELECT * FROM aula");
+
 
   const workbook = new excelJS.Workbook();
   const worksheet = workbook.addWorksheet('Aulas');
 
 
   const horariosDia = [
-    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+    "Horários","07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
     "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00",
   ];
+  // Adicionando os horários para cada mês (JAN à DEZ)
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(11 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(31 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(51 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(71 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(91 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(111 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(131 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(151 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(171 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(191 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(211 + index, 1).value = horario;
+  });
+  horariosDia.forEach((horario, index) => {
+    worksheet.getCell(231 + index, 1).value = horario;
+  });
+
 
   // Linha 1 - Cabeçalhos Mesclados e Personalizados
   worksheet.mergeCells('B1:F1'); // Mescla "Dados do Docente/Administrador"
@@ -526,52 +685,103 @@ app.get('/exportar-excel', async (req, res) => {
   worksheet.mergeCells('B4:F4'); //Mescla "Tel1.:"
   worksheet.mergeCells('B5:F5'); //Mescla "Tel2.:"
 
+
   worksheet.mergeCells('T1:T6'); // Mescla COLUNA pras fazer uma divisão
   worksheet.mergeCells('A6:S6'); // Mescla LINHAS pras fazer uma divisão
 
+  // Colunas mescladas do meses (JAN à DEZ)
   worksheet.mergeCells('A9:H9');
+  worksheet.mergeCells('A8:H8');
+  worksheet.mergeCells('A29:H29');
+  worksheet.mergeCells('A49:H49');
+  worksheet.mergeCells('A69:H69');
+  worksheet.mergeCells('A89:H89');
+  worksheet.mergeCells('A109:H109');
+  worksheet.mergeCells('A129:H129');
+  worksheet.mergeCells('A149:H149');
+  worksheet.mergeCells('A169:H169');
+  worksheet.mergeCells('A189:H189');
+  worksheet.mergeCells('A209:H209');
+  worksheet.mergeCells('A229:H229');
+  worksheet.mergeCells('A249:H249');
+
 
 
   worksheet.getCell('B1').value = "Dados do Docente";
+
+  // Celulas dos meses
   worksheet.getCell('A9').value = "Janeiro";
-  
+  worksheet.getCell('A29').value = "Fevereiro";
+  worksheet.getCell('A49').value = "Março";
+  worksheet.getCell('A69').value = "Abril";
+  worksheet.getCell('A89').value = "Maio";
+  worksheet.getCell('A109').value = "Junho";
+  worksheet.getCell('A129').value = "Julho";
+  worksheet.getCell('A149').value = "Agosto";
+  worksheet.getCell('A169').value = "Setembro";
+  worksheet.getCell('A189').value = "Outubro";
+  worksheet.getCell('A209').value = "Novembro";
+  worksheet.getCell('A229').value = "Dezembro";
+
+
+  worksheet.getCell('A8').value = "Cronograma do período letivo"
+ 
   worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Alinhando as mesclagens dos meses (JAN à DEZ) no centro
   worksheet.getCell('A9').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A8').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A29').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A49').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A69').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A89').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A109').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A129').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A149').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A169').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A189').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A209').alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getCell('A229').alignment = { horizontal: 'center', vertical: 'middle' };
+
 
   const meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
   meses.forEach((mes, index) => {
     worksheet.getCell(1, index + 8).value = mes;
   });
 
+
   // Aplicando cor de fundo para toda a linha 1
   worksheet.getRow(1).eachCell((cell) => {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4682B4' } 
+      fgColor: { argb: 'FF1E3A5F' }
     };
     cell.font = {
       bold: true,
-      color: { argb: 'FFFFFFFF' } 
+      color: { argb: 'FFFFFFFF' }
     };
   });
  
+
 
   worksheet.getCell('A2').value = "Docente:";
   worksheet.getCell('A3').value = "E-mail:";
   worksheet.getCell('A4').value = "Tel.1:";
   worksheet.getCell('A5').value = "Tel.2:";
 
+
   worksheet.getCell('G2').value = "Dias Úteis:";
   worksheet.getCell('G3').value = "Horas Úteis:";
   worksheet.getCell('G4').value = "Horas Alocadas:";
 
-  ["A1","G1", "T1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
+// Adionando cor aos merge's dos meses (JAN à DEZ)
+  ["A9", "A29", "A49", "A69", "A89", "A109", "A129", "A149", "A169", "A189", "A209", "A229"].forEach(cellAddress => {
     const cell = worksheet.getCell(cellAddress);
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4682B4' }
+      fgColor: { argb: 'FF33658A' }
     };
     cell.font = {
       bold: true,
@@ -579,12 +789,13 @@ app.get('/exportar-excel', async (req, res) => {
     };
   });
 
-  ["A9"].forEach(cellAddress => {
+
+  ["A8", "T1", "A1", "G1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
     const cell = worksheet.getCell(cellAddress);
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF3465a4' }
+      fgColor: { argb: 'FF1E3A5F' }
     };
     cell.font = {
       bold: true,
@@ -592,49 +803,61 @@ app.get('/exportar-excel', async (req, res) => {
     };
   });
 
-  const janeiro = worksheet.addRow(["","Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]);
-  janeiro.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4682B4' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' }
-    };
+
+  const diasDaSemana = ["","Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+  // Linha de dias da semana sendo adicionadas após o Mês (JAN à DEZ)
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(10, index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(30, index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(50 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(70 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(90 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(110 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(130 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(150 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(170 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(190 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(210 , index + 1).value = dia;
+  });
+  diasDaSemana.forEach((dia, index) => {
+    worksheet.getCell(230 , index + 1).value = dia;
   });
 
-  // Cabeçalho da tabela (sem a coluna "Dias")
-  const tableHeaderRow = worksheet.addRow(["Horário"]);
-
-  tableHeaderRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4682B4' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' }
-    };
-  });
-
-  // Preenchendo os horários e dados
-  horariosDia.forEach(horario => {
-    const aulaNoHorario = rows.filter(row => {
-      const horarios = row.horarios.split(', ').map(h => h.trim());
-      return horarios.includes(horario);
+  [10, 30, 50, 70, 90, 110, 130, 150, 170, 190, 210, 230].forEach((linha) => {
+    worksheet.getRow(linha).eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF5A7D9A' }
+      };
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
     });
-
-    if (aulaNoHorario.length > 0) {
-      aulaNoHorario.forEach(aula => {
-        worksheet.addRow([horario, aula.materia_id, aula.turma, aula.laboratorio, aula.turno]);
-      });
-    } else {
-      worksheet.addRow([horario, "", "", "", ""]);
-    }
   });
+  
 
   // Ajustar automaticamente a largura das colunas
   worksheet.columns.forEach((column) => {
@@ -646,16 +869,12 @@ app.get('/exportar-excel', async (req, res) => {
     column.width = maxLength + 5;
   });
 
+
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=Aulas.xlsx');
   await workbook.xlsx.write(res);
   res.end();
-
 });
-
-
-
-
 
 
 // Rota de logout
@@ -666,7 +885,6 @@ app.post('/logout', (req, res) => {
       res.redirect('/'); // Redireciona para a página inicial
   });
 });
-
 
 // Inicializar servidor
 app.listen(5505, () => {

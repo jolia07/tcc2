@@ -38,7 +38,9 @@ async function criarTabelas() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS laboratorio (
           id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
-          nome VARCHAR(255) NOT NULL UNIQUE
+          cimatec int not null,
+          andar int not null,
+          sala varchar(50) not null
       );
     `);
     console.log("Tabela 'laboratorio' pronta!");
@@ -92,7 +94,9 @@ async function criarTabelas() {
               turma_id int not null,
               foreign key (turma_id) references turma(id) on delete cascade,
               laboratorio_id int,
-              foreign key (laboratorio_id) references laboratorio(id) on delete cascade
+              foreign key (laboratorio_id) references laboratorio(id) on delete cascade,
+              curso_id int not null,
+              foreign key (curso_id) references curso(id) on delete cascade
           );
     `);
     console.log("Tabela 'aula' pronta!");
