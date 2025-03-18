@@ -122,7 +122,7 @@
                 </div>
 
                 <div class="wrap-input100 validate-input" data-validate="Telefone é obrigatório">
-                    <input class="input100 input-telefone" type="text" name="telefone" id="register-text" placeholder="Telefone" required>
+                    <input class="input100 input-telefone" type="text" name="telefone1" id="register-text" placeholder="Telefone" required>
                     <span class="focus-input100"></span>
                     <span class="symbol-input100">
                         <i class="fa fa-lock" aria-hidden="true"></i>
@@ -269,22 +269,22 @@
            const nome = document.getElementById('name').value;
            const email = document.getElementById('register-email').value;
            const senha = document.getElementById('register-password').value;
-           const telefone = document.getElementById('register-text').value;
+           const telefone1 = document.getElementById('register-text').value;
            const tipo = document.getElementById('tipo').value;
 
-          if (!nome || !email || !senha || !telefone || !tipo ) {
+          if (!nome || !email || !senha || !telefone1 || !tipo ) {
            alert("Por favor, preencha todos os campos.");
            return;
           }
 
-          console.log('Dados enviados:', { nome, email, senha, telefone });
+          console.log('Dados enviados:', { nome, email, senha, telefone1 });
 
           fetch('/cadastro', {
            method: 'POST',
            headers: {
             'Content-Type': 'application/json',
            },
-           body: JSON.stringify({ nome, email, senha, telefone, tipo }),
+           body: JSON.stringify({ nome, email, senha, telefone1, tipo }),
           })
           .then(response => {
              if (response.ok) {
@@ -348,7 +348,7 @@
          const nome = this.querySelector('input[type="text"]').value;
          const email = this.querySelector('input[type="email"]').value;
          const senha = this.querySelector('input[type="password"]').value;
-         const telefone = this.querySelector('input[type="text"]').value;
+         const telefone1 = this.querySelector('input[type="text"]').value;
          const tipo = this.querySelector('select').value;
    
          fetch('/cadastro', {
@@ -356,7 +356,7 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ nome, email, senha, telefone, tipo }),
+            body: JSON.stringify({ nome, email, senha, telefone1, tipo }),
          })
          .then(response => {
             if (response.ok) {

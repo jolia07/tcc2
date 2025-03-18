@@ -62,7 +62,8 @@ async function criarTabelas() {
               nome VARCHAR(255) NOT NULL,
               email VARCHAR(255) UNIQUE NOT NULL,
               senha VARCHAR(255) NOT NULL,
-              telefone VARCHAR(20) NULL,
+              telefone1 VARCHAR(20) NULL,
+              telefone2 VARCHAR(20) NULL,
               profilePic VARCHAR(255),
               tipo ENUM('docente', 'adm', 'pendente') NOT NULL
           );

@@ -15,11 +15,18 @@
         </nav>
     </header>
 
-    <div id="popup" class="popup">
+    <div id="popupTelefones" class="popup">
+        <h2>Digite seu(s) telefone(s):</h2>
+        <input type="text" id="telefone1Input" placeholder="Digite seu telefone">
+        <input type="text" id="telefone2Input" placeholder="Digite seu segundo telefone">
+        <button onclick="definirTelefones()">Salvar</button>
+    </div>
+
+    <div id="popupTipo" class="popup">
         <h2>Escolha seu tipo de conta</h2>
         <button onclick="definirTipo('docente')">Docente</button>
-        <button onclick="definirTipo('adm')">Adm</button>
-      </div>
+        <button onclick="definirTipo('adm')">Administrador</button>
+    </div>
 
     <div class="container">
         <div id="profile">
@@ -46,7 +53,12 @@
                 </div>
                 <div class="info-item">
                     <label>Telefone:</label>
-                    <span id="userTelefone">Não informado</span>
+                    <span id="userTelefone1">Não informado</span>
+                </div>
+                <div class="info-item">
+                    <label>Telefone2:</label>
+                    <span id="userTelefone2">Não informado</span>
+                    <button onclick="atualizarTelefone2()">Salvar</button>
                 </div>
                 <div class="info-item">
                     <label>Tipo:</label>
@@ -83,29 +95,95 @@
     </div>
 
     <script>
-        async function carregarDados() {
-            try {
+
+            async function carregarDados() {
+             try {
                 const response = await fetch('/getUserData');
                 const data = await response.json();
 
                 // Atualizar informações
                 document.getElementById('userName').textContent = data.nome || 'Não informado';
                 document.getElementById('userEmail').textContent = data.email || 'Não informado';
-                document.getElementById('userTelefone').textContent = data.telefone || 'Não informado';
+                document.getElementById('userTelefone1').textContent = data.telefone1 || 'Não informado';
+                document.getElementById('userTelefone2').textContent = data.telefone2 || 'Não informado';
                 document.getElementById('userRole').textContent = data.tipo || 'Não informado';
                 
                 // Atualizar foto
                 const profilePic = document.getElementById('profilePic');
-                if (data.profilePic) {
-                    profilePic.src = `/img/${data.profilePic}?${Date.now()}`; // Forçar atualização
+                if (data.profilePic && profilePic) { 
+                profilePic.src = `/img/${data.profilePic}?${Date.now()}`;
                 } else {
-                    profilePic.src = '/img/default.png';
+                profilePic.src = '/img/default.png';
                 }
 
-            } catch (error) {
+                } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 alert('Erro ao carregar perfil.');
+                }
             }
+
+            function definirTipo(tipo) {
+           fetch("/definirTipo", {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({ tipo })
+            }).then(res => res.json()).then(data => {
+             if (data.success) {
+               document.getElementById("popupTipo").style.display = "none";
+               location.reload(); // Atualiza a página após definir o tipo
+              }
+             });
+        }
+
+        function definirTelefones() {
+         const telefone1 = document.getElementById("telefone1Input").value.trim();
+         const telefone2 = document.getElementById("telefone2Input").value.trim();
+
+         if (!telefone1) {
+         alert("O primeiro telefone é obrigatório!");
+         return;
+         }
+
+         fetch("/definirTelefones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telefone1, telefone2 })
+          })
+          .then(res => res.json())
+         .then(data => {
+         if (data.success) {
+            document.getElementById("popupTelefones").style.display = "none";
+            location.reload(); // Atualiza a página após salvar os telefones
+         } else {
+            alert("Erro ao salvar os telefones.");
+         }
+         })
+         .catch(error => console.error("Erro:", error));
+        }
+
+        function atualizarTelefone2() {
+         const telefone2 = prompt("Digite o segundo telefone:");
+
+         if (!telefone2) {
+         alert("O telefone não pode estar vazio.");
+         return;
+         }
+
+         fetch("/atualizarTelefone2", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ telefone2 })
+         })
+         .then(res => res.json())
+         .then(data => {
+         if (data.success) {
+            document.getElementById("userTelefone2").textContent = telefone2;
+            alert("Telefone2 atualizado com sucesso!");
+         } else {
+            alert("Erro ao atualizar Telefone2.");
+         }
+        })
+        .catch(error => console.error("Erro:", error));
         }
 
         function uploadImage() {
@@ -151,19 +229,6 @@
               }
            });
         });
-
-        function definirTipo(tipo) {
-           fetch("/definirTipo", {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({ tipo })
-            }).then(res => res.json()).then(data => {
-             if (data.success) {
-               document.getElementById("popup").style.display = "none";
-               location.reload(); // Atualiza a página após definir o tipo
-              }
-             });
-        }
 
         async function changePassword(e) {
             e.preventDefault();
