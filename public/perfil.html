@@ -20,12 +20,14 @@
         <input type="text" id="telefone1Input" placeholder="Digite seu telefone">
         <input type="text" id="telefone2Input" placeholder="Digite seu segundo telefone">
         <button onclick="definirTelefones()">Salvar</button>
+        <button class="close-btn" onclick="fecharPopup('popupTelefones')">Fechar</button>
     </div>
 
     <div id="popupTipo" class="popup">
         <h2>Escolha seu tipo de conta</h2>
         <button onclick="definirTipo('docente')">Docente</button>
         <button onclick="definirTipo('adm')">Administrador</button>
+        <button class="close-btn" onclick="fecharPopup('popupTipo')">Fechar</button>
     </div>
 
     <div class="container">
@@ -121,6 +123,41 @@
                 alert('Erro ao carregar perfil.');
                 }
             }
+
+            function fecharPopup(id) {
+            document.getElementById(id).style.display = "none";
+            }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+         console.log("Página carregada, verificando usuário...");
+
+         try {
+         const response = await fetch("/acessandoUsuario");
+         const user = await response.json();
+
+          console.log("Dados do usuário:", user);
+
+          if (user.authenticated) {
+         if (user.user.tipo === "pendente") {
+         document.getElementById("popupTipo").style.display = "block";
+         } else {
+         // Primeiro, carregamos os dados do usuário
+         await carregarDados();
+
+         // Agora verificamos os dados atualizados para decidir se mostramos o popup de telefone
+         const telefone1 = document.getElementById("userTelefone1").textContent;
+         if (telefone1 === "Não informado") {
+            setTimeout(() => {
+                document.getElementById("popupTelefones").style.display = "block";
+            }, 500);
+         }
+         }
+         }
+         } catch (error) {
+           console.error("Erro ao verificar usuário:", error);
+         }
+        });
+
 
             function definirTipo(tipo) {
            fetch("/definirTipo", {
@@ -218,16 +255,6 @@
             } finally {
                 statusElement.textContent = "";
             }
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
-          fetch("/acessandoUsuario")
-          .then(res => res.json())
-          .then(user => {
-              if (user.authenticated && user.user.tipo === "pendente") {
-                 document.getElementById("popup").style.display = "block";
-              }
-           });
         });
 
         async function changePassword(e) {

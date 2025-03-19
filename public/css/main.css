@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Krona+One&display=swap');
 
 
 
@@ -151,14 +152,19 @@ iframe {
 /*//////////////////////////////////////////////////////////////////
 [ login ]*/
 .sepa-title {
+  font-family: 'Krona One', sans-serif;
   display: block;
   text-align: center;
-  font-size: 28px; /* Ajuste conforme necessário */
+  font-size: 20px; /* Ajuste conforme necessário */
   font-weight: bold;
   color: #ffffff; /* Escolha uma cor apropriada */
   margin-bottom: 20px;
-  margin-top: -100px;
-  font-family: 'Poppins', sans-serif; /* Ajuste para a fonte usada no seu projeto */
+  position: absolute;
+  top: 320px; /* Ajuste para a posição vertical desejada */
+  left: 50%; /* Centraliza o título horizontalmente */
+  transform: translateX(-50%); /* Garante que o título fique exatamente no centro */
+  /* font-family: 'Poppins', sans-serif; Ajuste para a fonte usada no seu projeto */
+
 }
 
 .limiter {
@@ -178,16 +184,21 @@ iframe {
   justify-content: center;
   align-items: center;
   padding: 15px;
-  background: #9bd4fa;
+  /* background: linear-gradient(-135deg, #e4e2e4, #a7c8e8); */
+  background: linear-gradient(-135deg, #e4e2e4, #a7c8e8); /* Gradiente suave entre um cinza claro e azul bebê */
+
+
+
+  /* background: #9bd4fa;
   background: -webkit-linear-gradient(-135deg, #f1f0f1, #6dadd8);
   background: -o-linear-gradient(-135deg, #e2e0e2, #9bd4fa);
   background: -moz-linear-gradient(-135deg, #ffffff, #b5d4fc);
-  background: linear-gradient(-135deg, #e4e2e4, #9bd4fa);
+  background: linear-gradient(-135deg, #e4e2e4, #9bd4fa); */
 }
 
 .wrap-login100 {
   width: 960px;
-  background: #0a0a0a;
+  background: #6c8a9e;
   border-radius: 10px;
   overflow: hidden;
 
@@ -352,14 +363,14 @@ iframe {
   align-items: center;
   padding: 0 25px;
 
-  -webkit-transition: all 0.4s;
-  -o-transition: all 0.4s;
-  -moz-transition: all 0.4s;
-  transition: all 0.4s;
+  -webkit-transition: all 1.5s;
+  -o-transition: all 1.5s;
+  -moz-transition: all 1.5s;
+  /* transition: all 0.4s; */
 }
 
 .login100-form-btn:hover {
-  background: #92e64e;
+  background: #76cbe0;
   color: #000000;
 }
 

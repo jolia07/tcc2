@@ -106,6 +106,7 @@ input[type="password"] {
     }
 }
 
+/* Estilizando os popups */
 .popup {
     display: none;
     position: fixed;
@@ -114,7 +115,46 @@ input[type="password"] {
     transform: translate(-50%, -50%);
     background: white;
     padding: 20px;
-    border: 1px solid black;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-  }
-  
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    z-index: 1000;
+}
+
+.popup h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.popup input, .popup button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+.popup input {
+    border: 1px solid #ccc;
+}
+
+.popup button {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.popup button:hover {
+    background: #0056b3;
+}
+
+.popup .close-btn {
+    background: #ff4d4d;
+    margin-top: 10px;
+}
+
+.popup .close-btn:hover {
+    background: #cc0000;
+}

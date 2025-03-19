@@ -28,7 +28,9 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        const token = decodeURIComponent(urlParams.get('token')); // Decodifica caracteres especiais
+        console.log('Token recebido:', token); // Adicione este log
+
 
         document.getElementById('resetForm').addEventListener('submit', async (e) => {
             e.preventDefault();

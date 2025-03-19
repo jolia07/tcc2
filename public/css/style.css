@@ -19,8 +19,7 @@ h2.titulo{
 }
 
 header {
-    background: linear-gradient(90deg, rgb(255, 255, 255) 5%, rgb(205, 235, 255) 30%, rgb(170, 218, 250));
-    background: white;
+    background: linear-gradient(90deg, #e4e2e4 5%, #6c8a9e 40%, #a7c8e8);
     padding: 40px 4%;
     display: flex;
     justify-content: space-between;  
@@ -30,6 +29,8 @@ header {
 .logo {
     width: 162px;
     height: 57.5px;
+    padding: 5px;
+    margin-top: -15px;
 }
 
 .navigation {
@@ -124,6 +125,7 @@ button:hover, form .btn-enviar input{
 
 header{
     padding: 40px 4%;
+    height: 100px;
 }
 
 header .interface{
@@ -219,11 +221,13 @@ header nav ul li{
     color: #757575;
     font-size: 16px;
     border: 1px solid #dcdcdc;
-    padding: 10px 20px;
+    padding: 10px 50px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     transition: 0.3s ease;
+    margin-left: 5px;
+
   }
 
   #googleLoginBtn img {

@@ -170,12 +170,24 @@ app.get('/auth/google/callback',
   }
 );
 
-//Rota para 
-app.get('/acessandoUsuario', (req, res) => {
-  if (!req.session.user) {
-    return res.json({ authenticated: false });
-  }
-  res.json({ authenticated: true, user: req.session.user });
+//Rota para acessar inf. dos usuarios c/Google
+  app.get('/acessandoUsuario', (req, res) => {
+    if (!req.session.user) {
+        return res.json({ authenticated: false });
+    }
+
+    res.json({
+        authenticated: true,
+        user: {
+            id: req.session.user.id,
+            nome: req.session.user.nome,
+            email: req.session.user.email,
+            telefone1: req.session.user.telefone1 || "Não informado",
+            telefone2: req.session.user.telefone2 || "Não informado",
+            tipo: req.session.user.tipo || "pendente",
+            googleUser: req.session.user.googleUser || false // Flag para login pelo Google
+        }
+    });
 });
 
 //Rota para usuario com Google escolher o tipo de usuário
@@ -291,8 +303,8 @@ app.post('/login', async (req, res) => {
 app.post('/cadastro', async (req, res) => {
   const { nome, email, senha, telefone1, tipo } = req.body;
 
-  if (!['docente', 'adm', 'aula'].includes(tipo)) {
-    return res.status(400).json({ message: "Tipo inválido! Use 'docente', 'adm' ou 'aula'." });
+  if (!['docente', 'adm'].includes(tipo)) {
+    return res.status(400).json({ message: "Tipo inválido! Use 'docente' ou 'adm'." });
   }
 
   try {
@@ -395,10 +407,11 @@ app.post('/solicitar-redefinicao', async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 3600000); // 1 hora
     const resetLink = `http://localhost:5505/redefinir-senha.html?token=${token}`;    
-        await pool.query(
+    await pool.query(
       'INSERT INTO reset_tokens (user_id, token, expires) VALUES (?, ?, ?)',
-      [user[0].id, token, expires]
+      [user[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL
     );
+
     console.log('Token inserido:', token); // Log para depuração
 
     // Configuração do e-mail
@@ -440,13 +453,13 @@ app.post('/redefinir-senha', async (req, res) => {
       `SELECT * FROM reset_tokens 
       WHERE token = ? 
       AND used = FALSE 
-      AND expires > NOW()`, // Usar UTC para evitar problemas de fuso
+      AND expires > UTC_TIMESTAMP()`, // Usar UTC para evitar problemas de fuso
       [token]
     );
 
-      if (!tokenData.length) {
-          return res.status(400).json({ message: 'Link inválido ou expirado' });
-      }
+    if (!tokenData || tokenData.length === 0) {
+      return res.status(400).json({ message: 'Link inválido ou expirado' });
+    }
 
       const senhaCriptografada = await bcrypt.hash(newPassword, 10);
       await pool.query('UPDATE usuarios SET senha = ? WHERE id = ?', 
@@ -455,10 +468,11 @@ app.post('/redefinir-senha', async (req, res) => {
       await pool.query('UPDATE reset_tokens SET used = TRUE WHERE token = ?', [token]);
       
       res.json({ message: 'Senha redefinida com sucesso! Você pode fazer login agora.' });
-  } catch (err) {
-      console.error('Erro:', err);
-      res.status(500).send('Erro no servidor');
+  }catch (err) {
+    console.error('Erro detalhado:', err.message); // Log detalhado
+    res.status(500).send('Erro no servidor');
   }
+  
 });
 
 
