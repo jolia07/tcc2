@@ -65,7 +65,7 @@ async function criarTabelas() {
               telefone1 VARCHAR(20) NULL,
               telefone2 VARCHAR(20) NULL,
               profilePic VARCHAR(255),
-              tipo ENUM('docente', 'adm', 'pendente') NOT NULL
+              tipo ENUM('docente', 'adm') NOT NULL
           );
     `);
     console.log("Tabela 'usuarios' pronta!");

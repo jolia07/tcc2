@@ -15,19 +15,11 @@
         </nav>
     </header>
 
-    <div id="popupTelefones" class="popup">
-        <h2>Digite seu(s) telefone(s):</h2>
-        <input type="text" id="telefone1Input" placeholder="Digite seu telefone">
+    <div id="popupTelefone" class="popup" style="display: none;">
+        <h2>Digite seu segundo telefone:</h2>
         <input type="text" id="telefone2Input" placeholder="Digite seu segundo telefone">
-        <button onclick="definirTelefones()">Salvar</button>
-        <button class="close-btn" onclick="fecharPopup('popupTelefones')">Fechar</button>
-    </div>
-
-    <div id="popupTipo" class="popup">
-        <h2>Escolha seu tipo de conta</h2>
-        <button onclick="definirTipo('docente')">Docente</button>
-        <button onclick="definirTipo('adm')">Administrador</button>
-        <button class="close-btn" onclick="fecharPopup('popupTipo')">Fechar</button>
+        <button onclick="salvarTelefone2()">Salvar</button>
+        <button class="close-btn" onclick="fecharPopup('popupTelefone')">Fechar</button>
     </div>
 
     <div class="container">
@@ -60,7 +52,7 @@
                 <div class="info-item">
                     <label>Telefone2:</label>
                     <span id="userTelefone2">Não informado</span>
-                    <button onclick="atualizarTelefone2()">Salvar</button>
+                    <button onclick="definirTelefone2()">Adicionar</button>
                 </div>
                 <div class="info-item">
                     <label>Tipo:</label>
@@ -79,6 +71,22 @@
                         <span class="material-symbols-rounded">lock_reset</span>
                         Atualizar Senha
                     </button>
+                </form>
+            </div>
+
+            <div id="recuperarSenhaContainer">
+                <h2>Recuperar Senha</h2>
+                <form id="recuperarSenhaForm" onsubmit="return recuperarSenha(event)">
+                    <label>Email:</label>
+                    <input type="email" id="emailRecuperacao" required>
+                    
+                    <label>Nova Senha:</label>
+                    <input type="password" id="novaSenha" required>
+                    
+                    <label>Confirmar Nova Senha:</label>
+                    <input type="password" id="confirmarSenha" required>
+            
+                    <button type="submit">Redefinir Senha</button>
                 </form>
             </div>
 
@@ -124,183 +132,152 @@
                 }
             }
 
+            function definirTelefone2() {
+             document.getElementById("popupTelefone").style.display = "block";
+            }
+
+            async function salvarTelefone2() {
+            const telefone2 = document.getElementById("telefone2Input").value.trim();
+                if (!telefone2) {
+                    alert("O telefone não pode estar vazio.");
+                    return;
+                }
+            
+                try {
+                    // Atualiza a sessão do usuário antes de enviar ao backend
+                    const response = await fetch("/definirTelefone2", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ telefone2 })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById("userTelefone2").textContent = telefone2;
+                        alert("Telefone2 atualizado com sucesso!");
+                        // Fechar popup após salvar
+                         fecharPopup("popupTelefone");
+                    } else {
+                        alert("Erro ao atualizar Telefone2.");
+                    }
+                } catch (err) {
+                    console.log("Erro:", error);
+                }
+            }
+
             function fecharPopup(id) {
-            document.getElementById(id).style.display = "none";
+                document.getElementById(id).style.display = "none";
+            } 
+    
+            function uploadImage() {
+                document.getElementById("upload-input").click();
             }
 
-        document.addEventListener("DOMContentLoaded", async () => {
-         console.log("Página carregada, verificando usuário...");
+            document.getElementById("upload-input").addEventListener("change", async function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
 
-         try {
-         const response = await fetch("/acessandoUsuario");
-         const user = await response.json();
+                const formData = new FormData();
+                formData.append('profilePic', file);
+                const statusElement = document.getElementById("uploadStatus");
 
-          console.log("Dados do usuário:", user);
+                try {
+                    statusElement.textContent = "Enviando...";
+                    const response = await fetch('/upload-profile-image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert(data.message);
+                        document.getElementById("profilePic").src = `/img/${data.filename}?${Date.now()}`;
+                    } else {
+                        alert('Falha no upload: ' + (data.message || 'Erro desconhecido'));
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Houve um erro ao atualizar a foto.');
+                } finally {
+                    statusElement.textContent = "";
+                }
+            });
 
-          if (user.authenticated) {
-         if (user.user.tipo === "pendente") {
-         document.getElementById("popupTipo").style.display = "block";
-         } else {
-         // Primeiro, carregamos os dados do usuário
-         await carregarDados();
+            async function changePassword(e) {
+                e.preventDefault();
+                const current = document.getElementById('currentPassword').value;
+                const newPass = document.getElementById('newPassword').value;
+                const confirm = document.getElementById('confirmPassword').value;
 
-         // Agora verificamos os dados atualizados para decidir se mostramos o popup de telefone
-         const telefone1 = document.getElementById("userTelefone1").textContent;
-         if (telefone1 === "Não informado") {
-            setTimeout(() => {
-                document.getElementById("popupTelefones").style.display = "block";
-            }, 500);
-         }
-         }
-         }
-         } catch (error) {
-           console.error("Erro ao verificar usuário:", error);
-         }
-        });
+                if (newPass !== confirm) {
+                    alert("As senhas não coincidem!");
+                    return;
+                }
 
+                try {
+                    const response = await fetch('/atualizarSenha', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: document.getElementById('userEmail').textContent,
+                            newPassword: newPass
+                        })
+                    });
 
-            function definirTipo(tipo) {
-           fetch("/definirTipo", {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({ tipo })
-            }).then(res => res.json()).then(data => {
-             if (data.success) {
-               document.getElementById("popupTipo").style.display = "none";
-               location.reload(); // Atualiza a página após definir o tipo
-              }
-             });
-        }
-
-        function definirTelefones() {
-         const telefone1 = document.getElementById("telefone1Input").value.trim();
-         const telefone2 = document.getElementById("telefone2Input").value.trim();
-
-         if (!telefone1) {
-         alert("O primeiro telefone é obrigatório!");
-         return;
-         }
-
-         fetch("/definirTelefones", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telefone1, telefone2 })
-          })
-          .then(res => res.json())
-         .then(data => {
-         if (data.success) {
-            document.getElementById("popupTelefones").style.display = "none";
-            location.reload(); // Atualiza a página após salvar os telefones
-         } else {
-            alert("Erro ao salvar os telefones.");
-         }
-         })
-         .catch(error => console.error("Erro:", error));
-        }
-
-        function atualizarTelefone2() {
-         const telefone2 = prompt("Digite o segundo telefone:");
-
-         if (!telefone2) {
-         alert("O telefone não pode estar vazio.");
-         return;
-         }
-
-         fetch("/atualizarTelefone2", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({ telefone2 })
-         })
-         .then(res => res.json())
-         .then(data => {
-         if (data.success) {
-            document.getElementById("userTelefone2").textContent = telefone2;
-            alert("Telefone2 atualizado com sucesso!");
-         } else {
-            alert("Erro ao atualizar Telefone2.");
-         }
-        })
-        .catch(error => console.error("Erro:", error));
-        }
-
-        function uploadImage() {
-            document.getElementById("upload-input").click();
-        }
-
-        document.getElementById("upload-input").addEventListener("change", async function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('profilePic', file);
-            const statusElement = document.getElementById("uploadStatus");
-
-            try {
-                statusElement.textContent = "Enviando...";
-                const response = await fetch('/upload-profile-image', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
+                    const data = await response.json();
                     alert(data.message);
-                    document.getElementById("profilePic").src = `/img/${data.filename}?${Date.now()}`;
-                } else {
-                    alert('Falha no upload: ' + (data.message || 'Erro desconhecido'));
+                    if (data.success) {
+                        document.getElementById('changePasswordForm').reset();
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Falha ao atualizar senha.');
                 }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Houve um erro ao atualizar a foto.');
-            } finally {
-                statusElement.textContent = "";
-            }
-        });
-
-        async function changePassword(e) {
-            e.preventDefault();
-            const current = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirm = document.getElementById('confirmPassword').value;
-
-            if (newPass !== confirm) {
-                alert("As senhas não coincidem!");
-                return;
             }
 
-            try {
-                const response = await fetch('/atualizarSenha', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: document.getElementById('userEmail').textContent,
-                        newPassword: newPass
-                    })
-                });
+            async function recuperarSenha(event) {
+                event.preventDefault();
 
-                const data = await response.json();
-                alert(data.message);
-                if (data.success) {
-                    document.getElementById('changePasswordForm').reset();
+                const email = document.getElementById("emailRecuperacao").value.trim();
+                const novaSenha = document.getElementById("novaSenha").value.trim();
+                const confirmarSenha = document.getElementById("confirmarSenha").value.trim();
+
+                if (novaSenha !== confirmarSenha) {
+                    alert("As senhas não coincidem!");
+                    return;
                 }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Falha ao atualizar senha.');
+
+                try {
+                    const response = await fetch("/redefinirSenhaDireta", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, novaSenha })
+                    });
+
+                    const data = await response.json();
+                    alert(data.message);
+
+                    if (data.success) {
+                        window.location.href = "/"; //redireciona para a página principal
+                    }
+                } catch (error) {
+                    console.error("Erro:", error);
+                    alert("Erro ao redefinir senha.");
+                }
             }
-        }
 
-        function logout() {
-            fetch('/logout', { method: 'POST' })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                }
-            })
-            .catch(error => console.error('Erro no logout:', error));
-        }
+            function logout() {
+                fetch('/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    }
+                })
+                .catch(error => console.error('Erro no logout:', error));
+            }
 
-        // Carregar dados ao iniciar
-        carregarDados();
+            // Carregar dados ao iniciar
+            carregarDados();
     </script>
 </body>
 </html>

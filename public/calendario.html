@@ -43,7 +43,7 @@
             <h2>Cadastrar Turma</h2>
             <form id="turmaForm">
                 <label for="nome">Nome da Turma:</label>
-                <input type="text" id="nome" name="nome" required><br><br>
+                <input type="text" id="nomeTurma" name="nome" required><br><br>
 
                 <label for="curso">Curso:</label>
                 <select id="curso" name="curso" required></select><br><br>
@@ -108,9 +108,7 @@
                 <select id="turma" name="turma" required></select><br><br>
 
                 <label for="laboratorio">Laboratório:</label>
-                <select id="cimatec" name="cimatec" required></select><br><br>
-                <select id="andar" name="andar" required></select><br><br>
-                <select id="sala" name="sala" required></select><br><br>
+                <select id="laboratorio" name="laboratorio" required></select><br><br>
 
                 <label for="turno">Turno:</label>
                 <select id="turno" name="turno" required>
@@ -148,8 +146,6 @@
     </div>
 
     <script>
-        
-
         async function carregarDadosUsuario() {
             try {
                 const response = await fetch('/getUserData');
@@ -164,9 +160,11 @@
                     document.getElementById('profilePic').src = '/img/default.png'; 
                 }
                 //Verifica o tipo de usuário
-                const btnCadastrarMateria = document.getElementById('btnCadastrarMateria');
-                  if (data.tipo !== 'adm') {
-                    btnCadastrarMateria.style.display = 'none'; // Esconder o botão para usuários não administradores
+                if (data.tipo !== 'adm') {
+                 document.getElementById('btnCadastrarMateria').style.display = 'none';
+                 document.getElementById('btnCadastrarCurso').style.display = 'none';
+                 document.getElementById('btnCadastrarTurma').style.display = 'none';
+                 document.getElementById('btnCadastrarlaboratorio').style.display = 'none';
                 }
                 } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
@@ -176,73 +174,198 @@
 
         async function carregarCursos() {
             try {
-         const response = await fetch('http://localhost:5505/curso');
-         const cursos = await response.json();
-        
-         const selects = document.querySelectorAll('#curso, #cursoSelect'); // Seleciona os dois selects
-         selects.forEach(select => {
-            select.innerHTML = cursos.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-         });
- 
-         } catch (error) {
-         console.error('Erro ao carregar cursos:', error);
-         }
+                const response = await fetch('http://localhost:5505/curso');
+                if (!response.ok) {
+                    throw new Error("Erro ao carregar cursos");
+                }
+                const curso = await response.json();
+                console.log("Cursos carregados:", curso); // 🔍 Veja se os cursos aparecem no console
+
+                // Atualiza todos os selects de curso
+                const selectsCurso = document.querySelectorAll('select[id="curso"]');
+                selectsCurso.forEach(select => {
+                    select.innerHTML = '<option value="">Selecione um curso</option>';
+                    curso.forEach(curso => {
+                        const option = document.createElement('option');
+                        option.value = curso.id;
+                        option.textContent = curso.nome;
+                        select.appendChild(option);
+                   });
+                });
+            } catch (error) {
+                console.error('Erro ao carregar cursos:', error);
+            }
         }
 
         document.getElementById('cursoForm').addEventListener('submit', async function(event) {
             event.preventDefault();
-            const formData = {
-                nome: document.getElementById('nome').value,
-            };
+            console.log("Formulário de curso enviado!");
 
-            const response = await fetch('http://localhost:5505/cursos', {
+            const nomeCurso = document.getElementById('nome').value;
+
+            const response = await fetch('http://localhost:5505/curso', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ nome: nomeCurso })
             });
 
             if (response.ok) {
                 alert('Curso cadastrado!');
                 closeModal('modalCurso');
                 carregarCursos();
+            }else {
+                const errorData = await response.json();
+                console.error("Erro ao cadastrar curso:", errorData);
             }
         });
 
-        //JS DE MATERIA
+        document.getElementById('btnCadastrarTurma').addEventListener('click', carregarCursos);
+        document.getElementById('btnCadastrarMateria').addEventListener('click', carregarCursos);
+        document.getElementById('btnCadastrarAula').addEventListener('click', carregarCursos);
+
+        async function carregarTurmas() {
+            try {
+                const response = await fetch('http://localhost:5505/turma');
+                if (!response.ok) throw new Error("Erro ao carregar turmas");
+
+                const turmas = await response.json();
+                const selectTurma = document.getElementById('turma');
+
+                selectTurma.innerHTML = '<option value="">Selecione uma turma</option>';
+                turmas.forEach(turma => {
+                    const option = document.createElement('option');
+                    option.value = turma.id;
+                    option.textContent = turma.nome;
+                    selectTurma.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar turmas:', error);
+            }
+        }
+
+        document.getElementById('turmaForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const nome = document.getElementById('nomeTurma').value;
+            const cursoId = document.getElementById('curso').value;
+
+            const response = await fetch('http://localhost:5505/turma', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, curso_id: cursoId })
+            });
+
+            if (response.ok) {
+                alert('Turma cadastrada!');
+                closeModal('modalTurma');
+                carregarTurmas();
+            } else {
+                const errorData = await response.json();
+                console.error("Erro ao cadastrar turma:", errorData);
+            }
+        });
+
+        document.getElementById('btnCadastrarAula').addEventListener('click', carregarTurmas);
+
+        async function carregarLaboratorios() {
+            try {
+                const response = await fetch('http://localhost:5505/laboratorio');
+                if (!response.ok) throw new Error("Erro ao carregar laboratório");
+
+                const laboratorio = await response.json();
+                const selectLaboratorio = document.getElementById('laboratorio');
+
+                selectLaboratorio.innerHTML = '<option value="">Selecione um laboratório</option>';
+                laboratorio.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.id;
+                    option.textContent = `Cimatec ${lab.cimatec} - Andar ${lab.andar} - Sala ${lab.sala}`;
+                    selectLaboratorio.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar laboratório:', error);
+            }
+        }
+
+        document.getElementById('laboratorioForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            console.log("Formulário de laboratório enviado!");
+
+            const cimatec = document.getElementById('cimatec').value;
+            const andar = document.getElementById('andar').value;
+            const sala = document.getElementById('sala').value;
+
+
+            const response = await fetch('http://localhost:5505/laboratorio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cimatec, andar, sala })
+            });
+
+            if (response.ok) {
+                alert('Laboratório cadastrada!');
+                closeModal('modalLaboratorio');
+                carregarLaboratorios();
+            }else {
+                const errorData = await response.json();
+                console.error("Erro ao cadastrar laboratório:", errorData);
+            }
+        });
+
+        document.getElementById('btnCadastrarAula').addEventListener('click', carregarLaboratorios);
+
         async function carregarMaterias() {
             try {
-         const response = await fetch('http://localhost:5505/materias');
-         const materias = await response.json();
-        
-         const selects = document.querySelectorAll('#materia, #materiaSelect'); // Seleciona os dois selects
-         selects.forEach(select => {
-            select.innerHTML = materias.map(m => `<option value="${m.uc}">${m.uc}</option>`).join('');
-         });
- 
-         } catch (error) {
-         console.error('Erro ao carregar matérias:', error);
-         }
+                const response = await fetch('http://localhost:5505/materia');
+                if (!response.ok) throw new Error("Erro ao carregar matérias");
+
+                const materias = await response.json();
+                const selectMateria = document.getElementById('materia');
+
+                selectMateria.innerHTML = '<option value="">Selecione uma matéria</option>';
+                materias.forEach(materia => {
+                    const option = document.createElement('option');
+                    option.value = materia.id;
+                    option.textContent = materia.uc;
+                    selectMateria.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar matérias:', error);
+            }
         }
 
         document.getElementById('materiaForm').addEventListener('submit', async function(event) {
             event.preventDefault();
-            const formData = {
-                uc: document.getElementById('uc').value,
-                ch: document.getElementById('ch').value,
-                curso_id: document.getElementById('curso').value
-            };
 
-            const response = await fetch('http://localhost:5505/materias', {
+            const uc = document.getElementById('uc').value;
+            const ch = document.getElementById('ch').value;
+            const cursoId = document.getElementById('curso').value;
+
+            console.log("Enviando dados:", { uc, ch, curso_id: cursoId }); 
+
+            const response = await fetch('http://localhost:5505/materia', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ uc, ch, curso_id: cursoId })
             });
 
             if (response.ok) {
                 alert('Matéria cadastrada!');
                 closeModal('modalMateria');
                 carregarMaterias();
+            } else {
+                const errorData = await response.json();
+                console.error("Erro ao cadastrar matéria:", errorData);
             }
+        });
+
+        document.getElementById('btnCadastrarAula').addEventListener('click', carregarMaterias);
+
+        //carrega as informações dos modais para seleção e cadastro de aulas
+        document.getElementById('btnCadastrarAula').addEventListener('click', () => {
+         carregarCursos();
+         carregarMaterias();
+         carregarTurmas();
+         carregarLaboratorios();
         });
 
         //JS DE AULA

@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -8,8 +7,6 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto'); 
 const excelJS = require('exceljs');
 const nodemailer = require('nodemailer');
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const mysql = require('mysql2/promise'); // Usando mysql2
 const app = express();
 
@@ -48,67 +45,19 @@ app.use(session({
   }
 }));
 
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  auth: {
-    user: 'sepa.suporte@gmail.com',
-    pass: 'zbyi lwxw hkrv mduu'
-  },
-  tls: {
-    rejectUnauthorized: false // Adicione esta linha para ambiente local
-  }
+
+// Rota protegida - Página inicial
+app.get('/calendario', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'calendario.html'));
 });
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID:  process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:5505/auth/google/callback",
-      scope: ["profile", "email"],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails[0].value;
-        const nome = profile.displayName;
-  
-        // Verifica se o usuário já existe no banco de dados
-        const [rows] = await pool.query("SELECT * FROM usuarios WHERE email = ?", [email]);
-  
-        let usuario;
-        if (rows.length === 0) {
-          // Gerando uma senha aleatória para evitar erro de "NULL"
-          const randomPassword = crypto.randomBytes(16).toString('hex');
-
-          // Insere novo usuário com senha aleatória
-          const [result] = await pool.query(
-            "INSERT INTO usuarios (nome, email, senha, telefone1, tipo) VALUES (?, ?, ?, ?, ?)",
-            [nome, email, randomPassword, null, 'pendente']
-          );
-          usuario = { id: result.insertId, nome, email, tipo: 'pendente' };
-        } else {
-          usuario = rows[0];
-        }
-  
-        return done(null, usuario);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
-
-passport.serializeUser((user, done) => {
-  done(null, user.id);
+ // Rota para perfil do usuário
+app.get('/perfil', verificarAutenticacao, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
 });
 
-passport.deserializeUser(async (id, done) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM usuarios WHERE id = ?", [id]);
-    done(null, rows[0]);
-  } catch (error) {
-    done(error, null);
-  }
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/home.html'); 
 });
 
 const storage = multer.diskStorage({
@@ -147,96 +96,8 @@ function verificarAutenticacao(req, res, next) {
   }
 }
 
-//Inicializando o login e autenticação com o Google
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Rota inicial
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/home.html'));
-});
-
-app.get('/auth/google', passport.authenticate('google', 
-  { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/' }),
-  async (req, res) => {
-    if (!req.user) {
-      return res.redirect('/');
-    }
-    req.session.user = req.user; // Armazena os dados do usuário na sessão
-    res.redirect('/perfil.html'); // Redireciona para a página principal
-  }
-);
-
-//Rota para acessar inf. dos usuarios c/Google
-  app.get('/acessandoUsuario', (req, res) => {
-    if (!req.session.user) {
-        return res.json({ authenticated: false });
-    }
-
-    res.json({
-        authenticated: true,
-        user: {
-            id: req.session.user.id,
-            nome: req.session.user.nome,
-            email: req.session.user.email,
-            telefone1: req.session.user.telefone1 || "Não informado",
-            telefone2: req.session.user.telefone2 || "Não informado",
-            tipo: req.session.user.tipo || "pendente",
-            googleUser: req.session.user.googleUser || false // Flag para login pelo Google
-        }
-    });
-});
-
-//Rota para usuario com Google escolher o tipo de usuário
-app.post('/definirTipo', async (req, res) => {
-  const { tipo } = req.body;
-  if (!req.session.user) return res.status(401).json({ error: "Usuário não autenticado" });
-
-  try {
-    await pool.query("UPDATE usuarios SET tipo = ? WHERE id = ?", [tipo, req.session.user.id]);
-    req.session.user.tipo = tipo; // Atualiza a sessão
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao definir o tipo" });
-  }
-});
-
-//Rota para defini rambos telefones(serve com ou sem Google)
-app.post('/definirTelefones', async (req, res) => {
-  const { telefone1, telefone2 } = req.body;
-  
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Usuário não autenticado" });
-  }
-
-  try {
-    await pool.query(
-      "UPDATE usuarios SET telefone1 = ?, telefone2 = ? WHERE id = ?", 
-      [telefone1, telefone2 || null, req.session.user.id]
-    );
-
-    req.session.user.telefone1 = telefone1;
-    req.session.user.telefone2 = telefone2 || null;
-
-    req.session.save(err => {
-      if (err) {
-        console.error("Erro ao salvar sessão:", err);
-        return res.status(500).json({ error: "Erro ao salvar sessão" });
-      }
-      res.json({ success: true });
-    });
-
-  } catch (error) {
-    console.error("Erro ao definir os telefones:", error);
-    res.status(500).json({ error: "Erro ao definir os telefones" });
-  }
-});
-
 //Rota para segundo telefone
-app.post('/atualizarTelefone2', async (req, res) => {
+app.post('/definirTelefone2', async (req, res) => {
   const { telefone2 } = req.body;
 
   if (!req.session.user) {
@@ -249,6 +110,7 @@ app.post('/atualizarTelefone2', async (req, res) => {
           [telefone2 || null, req.session.user.id]
       );
 
+      // Atualiza a sessão do usuário com o novo telefone
       req.session.user.telefone2 = telefone2 || null;
 
       req.session.save(err => {
@@ -259,12 +121,10 @@ app.post('/atualizarTelefone2', async (req, res) => {
           res.json({ success: true });
       });
 
-  } catch (error) {
-      console.error("Erro ao atualizar Telefone2:", error);
-      res.status(500).json({ error: "Erro ao atualizar Telefone2" });
+  } catch (err) {
+      console.log("Erro ao atualizar Telefone2:", error);
   }
 });
-
 
 // Rota de login do sistema
 app.post('/login', async (req, res) => {
@@ -372,6 +232,27 @@ app.post('/atualizarSenha', async (req, res) => {
   }
 });
 
+app.post('/redefinirSenhaDireta', async (req, res) => {
+  const { email, novaSenha } = req.body;
+
+  try {
+      const [rows] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+      if (rows.length === 0) {
+          return res.json({ success: false, message: 'E-mail não encontrado.' });
+      }
+
+      const senhaCriptografada = await bcrypt.hash(novaSenha, 10);
+      await pool.query('UPDATE usuarios SET senha = ? WHERE email = ?', [senhaCriptografada, email]);
+
+      res.json({ success: true, message: 'Senha redefinida com sucesso!' });
+
+  } catch (err) {
+      console.error('Erro ao redefinir senha:', err);
+      res.status(500).send('Erro no servidor.');
+  }
+});
+
+
 // Rota para atualizar perfil
 app.post('/atualizarPerfil', verificarAutenticacao, async (req, res) => {
   const { nome, email, senha } = req.body;
@@ -388,106 +269,6 @@ app.post('/atualizarPerfil', verificarAutenticacao, async (req, res) => {
     console.error('Erro ao atualizar perfil:', err);
     res.status(500).send('Erro no servidor.');
   }
-});
-
-// Rota para solicitar redefinição de senha (app.js)
-app.post('/solicitar-redefinicao', async (req, res) => {
-  const { email } = req.body;
-  
-  try {
-    console.log('Solicitação de redefinição recebida para:', email);
-    
-    const [user] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
-    if (!user.length) {
-      console.log('E-mail não encontrado:', email);
-      return res.status(200).json({ message: 'Se existir uma conta com este email, um link foi enviado.' });
-    }
-
-    // Geração do token e link
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600000); // 1 hora
-    const resetLink = `http://localhost:5505/redefinir-senha.html?token=${token}`;    
-    await pool.query(
-      'INSERT INTO reset_tokens (user_id, token, expires) VALUES (?, ?, ?)',
-      [user[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL
-    );
-
-    console.log('Token inserido:', token); // Log para depuração
-
-    // Configuração do e-mail
-    const mailOptions = {
-      from: 'Suporte SEPA <sepa.suporte@gmail.com>',
-      to: email,
-      subject: 'Redefinição de Senha',
-      html: `
-        <h2>Redefinição de Senha</h2>
-        <p>Clique no link: <a href="${resetLink}">${resetLink}</a></p>
-      `
-    };
-
-    console.log('Enviando e-mail para:', email);
-    const info = await transporter.sendMail(mailOptions);
-    console.log('E-mail enviado:', info.messageId);
-    
-    res.json({ message: 'Um email com instruções foi enviado!' });
-  } catch (err) {
-    console.error('Erro completo:', err);
-    res.status(500).send('Erro no servidor');
-  }
-});
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.log('Erro na configuração do e-mail:', error);
-  } else {
-    console.log('Servidor de e-mail configurado corretamente');
-  }
-});
-
-// Rota para redefinir a senha
-app.post('/redefinir-senha', async (req, res) => {
-  const { token, newPassword } = req.body;
-
-  try {
-    const [tokenData] = await pool.query(
-      `SELECT * FROM reset_tokens 
-      WHERE token = ? 
-      AND used = FALSE 
-      AND expires > UTC_TIMESTAMP()`, // Usar UTC para evitar problemas de fuso
-      [token]
-    );
-
-    if (!tokenData || tokenData.length === 0) {
-      return res.status(400).json({ message: 'Link inválido ou expirado' });
-    }
-
-      const senhaCriptografada = await bcrypt.hash(newPassword, 10);
-      await pool.query('UPDATE usuarios SET senha = ? WHERE id = ?', 
-          [senhaCriptografada, tokenData[0].user_id]);
-
-      await pool.query('UPDATE reset_tokens SET used = TRUE WHERE token = ?', [token]);
-      
-      res.json({ message: 'Senha redefinida com sucesso! Você pode fazer login agora.' });
-  }catch (err) {
-    console.error('Erro detalhado:', err.message); // Log detalhado
-    res.status(500).send('Erro no servidor');
-  }
-  
-});
-
-
-// Rota protegida - Página inicial
-app.get('/calendario', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'calendario.html'));
-});
-
- // Rota para perfil do usuário
-app.get('/perfil', verificarAutenticacao, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
-});
-
-app.get('/home', (req, res) => {
-  res.sendFile(__dirname + '/public/home.html'); 
 });
 
 
@@ -542,8 +323,13 @@ app.post('/curso', async (req, res) => {
 });
 
 app.get('/curso', async (req, res) => {
-    const [rows] = await pool.query("SELECT * FROM curso");
-    res.json(rows);
+  try {
+      const [rows] = await pool.query("SELECT * FROM curso");
+      res.json(rows);
+  } catch (error) {
+      console.error("Erro ao buscar cursos:", error);
+      res.status(500).json({ error: "Erro ao buscar cursos." });
+  }
 });
 
 //Rota para cadastrar turma
@@ -555,27 +341,29 @@ app.post('/turma', async (req, res) => {
           return res.status(400).json({ error: "Nome da turma e curso_id são obrigatórios." });
       }
 
-      const [curso] = await pool.query("SELECT id FROM curso WHERE id = ?", [curso_id]);
-      if (curso.length === 0) {
-          return res.status(400).json({ error: "O curso especificado não existe." });
-      }
-
       await pool.query("INSERT INTO turma (nome, curso_id) VALUES (?, ?)", [nome, curso_id]);
       res.json({ message: "Turma cadastrada com sucesso!" });
-
   } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ error: "Já existe uma turma com esse nome." });
+      }
       console.error(error);
       res.status(500).json({ error: "Erro ao cadastrar a turma." });
   }
 });
 
 app.get('/turma', async (req, res) => {
-      const [rows] = await pool.query(`
-          SELECT turma.id, turma.nome AS turma, curso.nome AS curso 
-          FROM turma 
-          JOIN curso ON turma.curso_id = curso.id
-      `);
-      res.json(rows);
+  try {
+    const [rows] = await pool.query(`
+        SELECT turma.id, turma.nome AS nome, curso.nome AS curso 
+        FROM turma 
+        JOIN curso ON turma.curso_id = curso.id
+    `);
+    res.json(rows);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar turmas." });
+}
 });
 
 //Rota para cadastrar laboratorio
@@ -584,23 +372,11 @@ app.post('/laboratorio', async (req, res) => {
       const { cimatec, andar, sala } = req.body;
 
       if (!cimatec || !andar || !sala) {
-          return res.status(400).json({ error: "Os campos cimatec, andar e sala são obrigatórios." });
+          return res.status(400).json({ error: "Todos os campos do laboratório são obrigatórios." });
       }
 
-      // Impede duplicação de laboratório no mesmo local
-      const [existingLab] = await pool.query(
-          "SELECT id FROM laboratorio WHERE cimatec = ? AND andar = ? AND sala = ?", 
-          [cimatec, andar, sala]
-      );
-
-      if (existingLab.length > 0) {
-          return res.status(400).json({ error: "Já existe um laboratório cadastrado nesse local." });
-      }
-
-      await pool.query("INSERT INTO laboratorio (cimatec, andar, sala) VALUES (?, ?, ?)", 
-                       [cimatec, andar, sala]);
+      await pool.query("INSERT INTO laboratorio (cimatec, andar, sala) VALUES (?, ?, ?)", [cimatec, andar, sala]);
       res.json({ message: "Laboratório cadastrado com sucesso!" });
-
   } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erro ao cadastrar o laboratório." });
@@ -613,40 +389,77 @@ app.get('/laboratorio', async (req, res) => {
 });
 
 // Rota para cadastrar matéria
-app.post('/materias', async (req, res) => {
-  const { uc, ch, curso_id } = req.body;
-  await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
-  res.json({ message: "Matéria cadastrada com sucesso!" });
+app.post('/materia', async (req, res) => {
+  try {
+      const { uc, ch, curso_id } = req.body;
+
+      if (!uc || !ch || !curso_id) {
+          return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
+      }
+
+      await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
+      res.json({ message: "Matéria cadastrada com sucesso!" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar a matéria." });
+  }
 });
 
-
-// Rota para buscar matérias
-app.get('/materias', async (req, res) => {
-    const [rows] = await pool.query("SELECT * FROM materia");
-    res.json(rows);
+app.get('/materia', async (req, res) => {
+  try {
+      const [rows] = await pool.query(`
+          SELECT materia.id, materia.uc, materia.ch, curso.nome AS curso
+          FROM materia
+          JOIN curso ON materia.curso_id = curso.id
+      `);
+      res.json(rows);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao buscar matérias." });
+  }
 });
-
 
 // Rota para cadastrar aulas
-app.post('/aulas', async (req, res) => {
-  const { materia_id, turma, laboratorio, turno, diasSemana, horarios } = req.body;
- 
-  // Verifique se horarios não está undefined
-  console.log(horarios); // Isso deve ser um array de horários ou uma string
- 
-  if (!horarios || horarios.length === 0) {
-      return res.status(400).json({ error: "Horários não selecionados" });
-  }
+app.post('/materias', async (req, res) => {
+  try {
+      const { uc, ch, curso_id } = req.body;
 
-  await pool.query("INSERT INTO aula (materia_id, turma, laboratorio, turno, diasSemana, horarios) VALUES (?, ?, ?, ?, ?, ?)",
-      [materia_id, turma, laboratorio, turno, diasSemana.join(', '), horarios.join(', ')]);
-  res.json({ message: "Aula cadastrada!" });
+      if (!uc || !ch || !curso_id) {
+          return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
+      }
+
+      await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
+      res.json({ message: "Matéria cadastrada com sucesso!" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar a matéria." });
+  }
+});
+
+// Rota para cadastrar aula
+app.post('/aulas', async (req, res) => {
+  try {
+      const { curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio } = req.body;
+
+      if (!curso_id || !materia_id || !turma_id || !laboratorio_id || !turno || !diasSemana || !dataInicio) {
+          return res.status(400).json({ error: "Todos os campos da aula são obrigatórios." });
+      }
+
+      await pool.query(
+          "INSERT INTO aula (curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana.join(','), dataInicio]
+      );
+      res.json({ message: "Aula cadastrada com sucesso!" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar a aula." });
+  }
 });
 
 app.get('/aulas', async(req, res) => {
     const [rows] = await pool.query("SELECT * FROM aula");
     res.json(rows);
-})
+});
 
 //Rota da planilha(montagem)
 app.get('/exportar-excel', async (req, res) => {
