@@ -16,8 +16,8 @@ const pool = mysql.createPool({
   host: 'metro.proxy.rlwy.net',
   user: 'root', // Substitua pelo usuário do MySQL
   database: 'railway',
-  password: 'rgqWvFdLQYylJOeBffxARDNTEZvrlIPu', // Substitua pela senha do MySQL
-  port: 22537 , // Porta padrão do MySQL
+  password: 'itTNpCtsLLOhDqNPuOsaWyYrnbIFvjdP', // Substitua pela senha do MySQL
+  port: 42235 , // Porta padrão do MySQL
   ssl: {
     rejectUnauthorized: false, // Necessário para conexões seguras no Tembo
   },
@@ -725,4 +725,3 @@ app.post('/logout', (req, res) => {
 app.listen(5505, () => {
   console.log('Servidor rodando na porta 5505');
 });
-

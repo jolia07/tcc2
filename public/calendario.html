@@ -5,8 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Aulas</title>
     <link rel="stylesheet" href="css/calendario.css">
+     <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="calend.css">
+    <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js" defer></script>
 </head>
 <body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-layout" style="display: flex; flex: 1;">
+        <div class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="calendario.html" class="active" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
+                    <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                </div>
+            </nav>
+        </div>
+
+        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
+            <div class="controles-calendario">
+                <div class="filtro-topo">
+                    <div class="filtro-grupo">
+                        <label for="calendario">Período:</label>
+                        <select id="calendario">
+                            <option value="2025R1">2025 - 1º Semestre</option>
+                            <option value="2024R2">2024 - 2º Semestre</option>
+                            <option value="2024R1">2024 - 1º Semestre</option>
+                        </select>
+                    </div>
+                    <div class="filtro-grupo">
+                        <label for="tipo-evento">Tipo:</label>
+                        <select id="tipo-evento">
+                            <option value="TODOS">Todos</option>
+                            <option value="AULA">Aulas</option>
+                            <option value="EVENTO">Eventos</option>
+                            <option value="FERIADO">Feriados</option>
+                            <option value="PROVA">Provas</option>
+                        </select>
+                    </div>
+                    <div class="filtro-grupo">
+                        <label for="pesquisa-evento">Pesquisar:</label>
+                        <div class="pesquisa-container">
+                            <input type="text" id="pesquisa-evento" placeholder="Buscar eventos...">
+                            <button id="btn-pesquisar"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
     <div id="profile-container">
         <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
         <div>
@@ -15,14 +76,14 @@
         </div>
     </div>
 
+    <div class="button-container">
     <button id="btnCadastrarCurso" onclick="openModal('modalCurso')">Cadastrar Curso</button>
     <button id="btnCadastrarTurma" onclick="openModal('modalTurma')">Cadastrar Turma</button>
     <button id="btnCadastrarlaboratorio" onclick="openModal('modalLaboratorio')">Cadastrar Laboratório</button>
     <button id="btnCadastrarMateria" onclick="openModal('modalMateria')">Cadastrar Matéria</button>
     <button id="btnCadastrarAula" onclick="openModal('modalAula')">Cadastrar Aula</button>
     <button onclick="exportarParaExcel()">Exportar para Excel</button>
-    <button onclick="perfil()">Acessar Perfil</button>
-    <button onclick="sair()">Sair</button>
+</div>
 
     <div id="modalCurso" class="modal">
         <div class="modal-content">
