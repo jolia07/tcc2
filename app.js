@@ -151,7 +151,9 @@ app.post('/login', async (req, res) => {
     };
 
     console.log('Usuário logado:', req.session.user);
-    res.redirect('perfil');
+    req.session.save(() => {
+      res.redirect('perfil');
+    });
 
   } catch (err) {
     console.error('Erro ao fazer login:', err);
@@ -393,8 +395,15 @@ app.post('/materia', async (req, res) => {
   try {
       const { uc, ch, curso_id } = req.body;
 
+      console.log("Dados recebidos no backend:", req.body); 
+
       if (!uc || !ch || !curso_id) {
           return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
+      }
+
+      const [materiaExistente] = await pool.query("SELECT * FROM materia WHERE uc = ? AND curso_id = ?", [uc, curso_id]);
+      if (materiaExistente.length > 0) {
+          return res.status(400).json({ error: "Esta matéria já está cadastrada para este curso!" });
       }
 
       await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
@@ -419,35 +428,25 @@ app.get('/materia', async (req, res) => {
   }
 });
 
-// Rota para cadastrar aulas
-app.post('/materias', async (req, res) => {
-  try {
-      const { uc, ch, curso_id } = req.body;
-
-      if (!uc || !ch || !curso_id) {
-          return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
-      }
-
-      await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
-      res.json({ message: "Matéria cadastrada com sucesso!" });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao cadastrar a matéria." });
-  }
-});
-
 // Rota para cadastrar aula
 app.post('/aulas', async (req, res) => {
   try {
-      const { curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio } = req.body;
+        if (!req.session.user || !req.session.user.id) {
+          return res.status(401).json({ error: "Usuário não autenticado." });
+      }
+      
+      const {curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio } = req.body;
+      const usuario_id = req.session.user.id;
+
+      console.log("Recebido no backend:", req.body);
 
       if (!curso_id || !materia_id || !turma_id || !laboratorio_id || !turno || !diasSemana || !dataInicio) {
           return res.status(400).json({ error: "Todos os campos da aula são obrigatórios." });
       }
 
       await pool.query(
-          "INSERT INTO aula (curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana.join(','), dataInicio]
+          "INSERT INTO aula (usuario_id, curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [usuario_id ,curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana.join(','), dataInicio]
       );
       res.json({ message: "Aula cadastrada com sucesso!" });
   } catch (error) {
@@ -456,9 +455,29 @@ app.post('/aulas', async (req, res) => {
   }
 });
 
-app.get('/aulas', async(req, res) => {
-    const [rows] = await pool.query("SELECT * FROM aula");
+app.get('/aulas', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        aula.id, 
+        curso.nome AS curso, 
+        materia.uc AS materia, 
+        turma.nome AS turma, 
+        laboratorio.cimatec AS laboratorio, 
+        aula.turno, 
+        aula.diasSemana, 
+        aula.dataInicio
+      FROM aula
+      JOIN curso ON aula.curso_id = curso.id
+      JOIN materia ON aula.materia_id = materia.id
+      JOIN turma ON aula.turma_id = turma.id
+      JOIN laboratorio ON aula.laboratorio_id = laboratorio.id
+    `);
     res.json(rows);
+  } catch (error) {
+    console.error("Erro ao buscar aulas:", error);
+    res.status(500).json({ error: "Erro ao buscar aulas." });
+  }
 });
 
 //Rota da planilha(montagem)

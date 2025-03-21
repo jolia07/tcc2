@@ -85,19 +85,19 @@ async function criarTabelas() {
     await pool.query(`
           CREATE TABLE IF NOT EXISTS aula (
               id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
-              turno varchar(255) not null,
-              dataInicio date not null,
-              diasSemana varchar(255) NOT NULL,
-              materia_id int,
-              foreign key (materia_id) references materia(id) on delete cascade,
               usuario_id int,
               foreign key (usuario_id) references usuarios(id) on delete cascade,
+              curso_id int not null,
+              foreign key (curso_id) references curso(id) on delete cascade,
+              materia_id int,
+              foreign key (materia_id) references materia(id) on delete cascade,
               turma_id int not null,
               foreign key (turma_id) references turma(id) on delete cascade,
               laboratorio_id int,
               foreign key (laboratorio_id) references laboratorio(id) on delete cascade,
-              curso_id int not null,
-              foreign key (curso_id) references curso(id) on delete cascade
+              turno varchar(255) not null,
+              diasSemana varchar(255) NOT NULL,
+              dataInicio date not null
           );
     `);
     console.log("Tabela 'aula' pronta!");

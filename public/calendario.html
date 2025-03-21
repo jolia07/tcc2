@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/calendario.css">
      <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-    <link rel="stylesheet" href="calend.css">
     <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js" defer></script>
 </head>
 <body>
@@ -194,18 +193,6 @@
         </div>
     </div>
 
-    <div id="modalMostrarAulas" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalMostrarAulas')">&times;</span>
-            <h2>Mostrar Aulas</h2>
-                <label for="materiaSelecionar">Matéria:</label>
-                <select id="materiaSelecionar" name="materia" required></select><br><br>
-
-                <button onclick="mostrarAulas()">Buscar Aulas</button>
-                <div id="aulasContainer"></div>
-        </div>
-    </div>
-
     <script>
         async function carregarDadosUsuario() {
             try {
@@ -239,24 +226,30 @@
                 if (!response.ok) {
                     throw new Error("Erro ao carregar cursos");
                 }
-                const curso = await response.json();
-                console.log("Cursos carregados:", curso); // 🔍 Veja se os cursos aparecem no console
+                const cursos = await response.json();
+                console.log("Cursos carregados:", cursos); // 🔍 Veja se os cursos aparecem no console
 
                 // Atualiza todos os selects de curso
                 const selectsCurso = document.querySelectorAll('select[id="curso"]');
                 selectsCurso.forEach(select => {
                     select.innerHTML = '<option value="">Selecione um curso</option>';
-                    curso.forEach(curso => {
+                    cursos.forEach(curso => {
                         const option = document.createElement('option');
                         option.value = curso.id;
                         option.textContent = curso.nome;
                         select.appendChild(option);
-                   });
+                    });
+
+                    select.addEventListener('change', function() {
+                        console.log("Curso selecionado:", this.value); // Mostra o ID do curso selecionado
+                    });
                 });
             } catch (error) {
                 console.error('Erro ao carregar cursos:', error);
             }
         }
+
+
 
         document.getElementById('cursoForm').addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -373,20 +366,19 @@
         });
 
         document.getElementById('btnCadastrarAula').addEventListener('click', carregarLaboratorios);
-
+        
         async function carregarMaterias() {
             try {
                 const response = await fetch('http://localhost:5505/materia');
-                if (!response.ok) throw new Error("Erro ao carregar matérias");
-
                 const materias = await response.json();
-                const selectMateria = document.getElementById('materia');
 
-                selectMateria.innerHTML = '<option value="">Selecione uma matéria</option>';
+                const selectMateria = document.getElementById('materia');
+                selectMateria.innerHTML = '<option value="">Selecione uma Matéria</option>'; // Limpa antes de adicionar
+
                 materias.forEach(materia => {
                     const option = document.createElement('option');
-                    option.value = materia.id;
-                    option.textContent = materia.uc;
+                    option.value = materia.id;  // Supondo que o ID da matéria esteja vindo do backend
+                    option.textContent = materia.uc;  // Nome da matéria
                     selectMateria.appendChild(option);
                 });
             } catch (error) {
@@ -394,73 +386,128 @@
             }
         }
 
+        document.addEventListener("DOMContentLoaded", function () {
+        carregarCursos();
+            document.getElementById("materiaForm").addEventListener("submit", function (event) {
+             event.preventDefault();
+             enviarMateria();
+            });
+        });
+
+        function enviarMateria() {
+            let formData = new FormData(document.getElementById("materiaForm"));
+            let dadosMateria = {
+                uc: formData.get("uc"),
+                ch: formData.get("ch"),
+                curso_id: formData.get("curso")
+            };
+
+            fetch("/materia", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(dadosMateria)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Matéria cadastrada com sucesso!");
+                document.getElementById("materiaForm").reset();
+            })
+            .catch(error => console.error("Erro ao cadastrar matéria:", error));
+        }
+
         document.getElementById('materiaForm').addEventListener('submit', async function(event) {
             event.preventDefault();
 
             const uc = document.getElementById('uc').value;
             const ch = document.getElementById('ch').value;
-            const cursoId = document.getElementById('curso').value;
+            const curso_id = document.getElementById('curso').value;
 
-            console.log("Enviando dados:", { uc, ch, curso_id: cursoId }); 
+            try {
+                const response = await fetch('http://localhost:5505/materia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uc, ch, curso_id })
+                });
 
-            const response = await fetch('http://localhost:5505/materia', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uc, ch, curso_id: cursoId })
-            });
-
-            if (response.ok) {
-                alert('Matéria cadastrada!');
-                closeModal('modalMateria');
-                carregarMaterias();
-            } else {
-                const errorData = await response.json();
-                console.error("Erro ao cadastrar matéria:", errorData);
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    document.getElementById('materiaForm').reset();
+                    closeModal('modalMateria');
+                } else {
+                    console.error("Erro ao cadastrar matéria:", data.error);
+                    alert("Erro ao cadastrar matéria.");
+                }
+            } catch (error) {
+                console.error("Erro ao cadastrar matéria:", error);
             }
         });
 
         document.getElementById('btnCadastrarAula').addEventListener('click', carregarMaterias);
 
         //carrega as informações dos modais para seleção e cadastro de aulas
-        document.getElementById('btnCadastrarAula').addEventListener('click', () => {
-         carregarCursos();
-         carregarMaterias();
-         carregarTurmas();
-         carregarLaboratorios();
+        document.addEventListener("DOMContentLoaded", function () {
+            carregarCursos();
+            carregarMaterias();
+            carregarTurmas();
+            carregarLaboratorios();
+
+            document.getElementById("aulaForm").addEventListener("submit", async function (event) {
+                event.preventDefault();
+                enviarAula();
+            });
         });
 
-        //JS DE AULA
-        document.getElementById('aulaForm').addEventListener('submit', async function(event) {
-         event.preventDefault();
-         const diasSelecionados = Array.from(document.querySelectorAll('input[name="diasSemana"]:checked'))
-         .map(el => el.value);
- 
-          if (diasSelecionados.length === 0) {
-          alert("Selecione pelo menos um dia da semana.");
-          return;
-          }
+        async function enviarAula() {
+            let formData = new FormData(document.getElementById("aulaForm"));
 
-         const formData = {
-         curso_id: document.getElementById('curso').value,
-         materia_id: document.getElementById('materia').value,
-         turma_id: document.getElementById('turma').value,
-         laboratorio_id: document.getElementById('laboratorio').value,
-         turno: document.getElementById('turno').value,
-         diasSemana: diasSelecionados,
-         dataInicio: document.getElementById('dataInicio').value
-         };
+            // Capturando os dias selecionados corretamente
+            let diasSelecionados = Array.from(document.querySelectorAll('input[name="diasSemana"]:checked'))
+                .map(el => el.value);
 
-         const response = await fetch('http://localhost:5505/aulas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-         });
+            // Criando o objeto de dados
+            let dadosAula = {
+                curso_id: formData.get("curso"),
+                materia_id: formData.get("materia"),
+                turma_id: formData.get("turma"),
+                laboratorio_id: formData.get("laboratorio"),
+                turno: formData.get("turno"),
+                diasSemana: diasSelecionados,
+                dataInicio: formData.get("dataInicio")
+            };
 
-         if (response.ok) {
-          alert('Aula cadastrada!');
-          closeModal('modalAula');
-         }
-        });
+            // Verificando no console antes de enviar
+            console.log("Dados da aula antes do envio:", dadosAula);
+
+            // Validação: Todos os campos obrigatórios
+            if (!dadosAula.curso_id || !dadosAula.materia_id || !dadosAula.turma_id || 
+                !dadosAula.laboratorio_id || !dadosAula.turno || dadosAula.diasSemana.length === 0 || !dadosAula.dataInicio) {
+                alert("Todos os campos devem ser preenchidos corretamente!");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:5505/aulas", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dadosAula)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert("Aula cadastrada com sucesso!");
+                    document.getElementById("aulaForm").reset();
+                    closeModal("modalAula");
+                } else {
+                    console.error("Erro ao cadastrar aula:", data.error);
+                    alert("Erro ao cadastrar aula.");
+                }
+            } catch (error) {
+                console.error("Erro ao cadastrar aula:", error);
+            }
+        }
 
         //JS DE PLANILHA
         function exportarParaExcel() {
