@@ -1,0 +1,330 @@
+.navigation .btnLogin-popup {
+    width: 130px;
+    height: 50px;
+    background: transparent;
+    border: 2px solid white;
+    outline: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: white;
+    font-weight: 500;
+    margin-left: 1350px; /* 40px? */
+    transition: .5s;
+}
+
+
+/* .input-box {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    border-bottom: 2px solid #162938;
+    margin: 30px 0;
+} */
+
+
+.navigation .btnLogin-popup:hover {
+    background: white;
+    color: #162938;
+}
+
+
+.wrapper {
+    position: fixed; /* relative? */
+    width: 400px;
+    height: auto;
+    max-height: 600px;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, .5);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 30px rgba(0, 0, 0, .5);
+    display: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+    /* justify-content: center;
+    align-items: center */
+}
+
+
+.show {
+    display: flex;
+}
+
+
+.show .overlay {
+    display: block; /* flex?*/
+}
+
+
+.form-box {
+    display: none;
+    width: 100%;
+    height: auto;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+
+.form-box.login {
+    display: block;
+}
+
+
+.form-box.register {
+    transition: all 0.3s ease;
+}
+
+
+.opcoes-conta {
+    width: 100%;
+    height: 45px;
+    background: transparent;
+    border: 2px solid white;
+    outline: none;
+    border-radius: 6px;
+    font-size: 1em;
+    color: white;
+    font-weight: 500;
+    padding: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+    appearance: none; /* Remove o estilo padrão do select */
+}
+
+
+/* Estilo quando o select é focado */
+.opcoes-conta:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #4682B4;
+}
+
+
+/* Cor do texto das opções */
+.opcoes-conta option {
+    background: #162938;
+    color: white;
+    font-size: 1em;
+    padding: 10px;
+}
+
+/* OPacidade */
+.opcoes-conta:hover {
+    background: rgba(255, 255, 255, 0.8); /* Reduz um pouco a intensidade do branco */
+    color: #162938;
+    opacity: 0.8;
+}
+
+/* Seta personalizada */
+.opcoes-conta::-ms-expand {
+    display: none;
+}
+
+.opcoes-conta::after {
+    content: "▼";
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1em;
+    color: white;
+    pointer-events: none;
+}
+
+
+.wrapper.active-popup {
+    transform: scale(1);
+}
+
+.wrapper.active {
+    height: auto;
+}
+
+.wrapper .icon-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    background: #4682B4;
+    font-size: 2em;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom-left-radius: 20px;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.wrapper .icon-back {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 45px;
+    height: 45px;
+    background: #4682B4;
+    font-size: 2em;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.form-box h2 {
+    font-size: 2em;
+    color: white;
+    text-align: center;
+}
+
+.input-box {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    border-bottom: 2px solid #162938;
+    margin: 30px 0;
+}
+
+.input-box label {
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+    font-size: 1em;
+    color: white;
+    font-weight: 500;
+    pointer-events: none;
+    transition: .5s;
+}
+
+.input-box input:focus~label,
+.input-box input:valid~label {
+    top: -5px;
+}
+
+.input-box input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 1em;
+    color: white;
+    font-weight: 600;
+    padding: 0 35px 5px;
+}
+
+.input-box .icon {
+    position: absolute;
+    right: 8px;
+    font-size: 1.2em;
+    color: white;
+    line-height: 57px;
+}
+
+.lembrar-esquecer {
+    font-size: .9em;
+    color: white;
+    font-weight: 500;
+    margin: -15px 0 15px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.lembrar-esquecer label input {
+    accent-color: black;
+    margin-right: 3px;
+}
+
+.lembrar-esquecer a {
+    color: white;
+    text-decoration: none;
+}
+
+.lembrar-esquecer a:hover {
+    text-decoration: underline;
+}
+
+.btn {
+    width: 100%;
+    height: 45px;
+    background: #4682B4;
+    border: none;
+    outline: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    color: white;
+    font-weight: 500;
+}
+
+.login-register {
+    font-size: .9em;
+    color: white;
+    text-align: center;
+    font-weight: 500;
+    margin: 25px 0 10px;
+}
+
+.login-register p a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-register p a:hover {
+    text-decoration: underline;
+}
+
+.register {
+    display: none;
+}
+
+.wrapper.show {
+    display: flex;
+}
+
+
+/*Check box ---------------------*/
+
+.verSenha {
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: white;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: inline-block;
+    cursor: pointer;
+    position: relative;
+}
+
+.verSenha:checked {
+    background-color: #4682B4;
+    border: 1px solid white;
+    transform: scale(1.1);
+}
+
+.verSenha:active {
+    transform: scale(0.9);
+}

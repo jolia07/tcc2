@@ -1,0 +1,240 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    background: gray;
+    font-family: sans-serif;
+}
+
+h2.titulo{
+    color:white;
+    font-size: 38px;
+    text-align: center;
+}
+.lembrar-esquecer{
+    margin: 10px;
+}
+
+header {
+    background: linear-gradient(90deg, #e4e2e4 5%, #6c8a9e 40%, #a7c8e8);
+    padding: 40px 4%;
+    display: flex;
+    justify-content: space-between;  
+    align-items: center;
+}
+
+.logo {
+    width: 162px;
+    height: 57.5px;
+    padding: 5px;
+    margin-top: -15px;
+}
+
+.navigation {
+    display: flex;  
+    justify-content: space-between;  
+    align-items: center;  
+    width: 100%;
+}
+
+/* .btnLogin-popup { era do botão login que tinha na logo do senai. ass: caique reis
+    padding: 10px 20px;  
+    font-size: 16px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    cursor: pointer;
+} */
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    background: #6f717a;
+    background: linear-gradient(90deg, rgba(16,34,121,1) 20%, rgba(17,49,103,1) 49%, rgba(16,34,121,1) 80%);
+    font-family: sans-serif;
+}
+
+.navigation a{
+    position: relative;
+    font-size: 1.1em;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 40px;
+}
+
+.navigation a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 3px;
+    background: white;
+    border-radius: 5px;
+    transform: scaleX(0);
+    transition: transform .5s;
+}
+
+.navigation a:hover::after {
+    transform: scaleX(1);
+}
+
+.navigation .btnLogin-popup {
+    width: 130px;
+    height: 50px;
+    background: transparent;
+    border: 2px solid white;
+    outline: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: white;
+    font-weight: 500;
+    margin-left: 1250px;
+    margin-top: -30px;
+    transition: .5s;
+}
+
+.navigation .btnLogin-popup:hover {
+    background: white;
+    color: #162938;
+}
+
+.flex{
+    display: flex;
+}
+
+h2.titulo{
+    color:white;
+    font-size: 38px;
+    text-align: center;
+}
+
+button:hover, form .btn-enviar input{
+    box-shadow: 0px 0px 0px rgb(255, 255, 255);
+    transform: scale(1.05);
+}
+
+header{
+    padding: 40px 4%;
+    height: 100px;
+}
+
+header .interface{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+header nav ul{
+    list-style-type: none;
+}
+
+header nav ul li{
+    display: inline-block;
+    padding: 0 40px;
+}
+
+/* Estilos para a página de redefinição */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f0f2f5;
+}
+
+.reset-box {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.btn {
+    width: 100%;
+    padding: 1rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn:hover {
+    background: #0056b3;
+}
+
+.message {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.message.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.message.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/*CSS do button Google*/
+#googleLoginBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: white;
+    color: #757575;
+    font-size: 16px;
+    border: 1px solid #dcdcdc;
+    padding: 10px 50px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s ease;
+    margin-left: 5px;
+
+  }
+
+  #googleLoginBtn img {
+    width: 20px;
+    height: 20px;
+  }
+
+  #googleLoginBtn:hover {
+    background-color: #f5f5f5;
+  }

@@ -1,0 +1,226 @@
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    width: 50%;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px); 
+    z-index: 999;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -55%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+button {
+    padding: 8px 16px;;
+    width: 15%;
+    margin: 10px;
+    border: none;
+    cursor: pointer;
+    background: #007bff;
+    color: white;
+    border-radius: 5px;
+}
+.button-container {
+    display: flex;
+    flex-wrap: wrap; /* Faz com que os botões "quebrem" para a linha seguinte se não houver espaço suficiente */
+    gap: 10px; /* Espaçamento entre os botões */
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+.close {
+    float: right;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+body {
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+#profile-container {
+    display: flex;
+    position: fixed;
+    top: 20px; /* Distância da borda superior */
+    right: 20px; /* Distância da borda direita */
+    align-items: center; /* Alinha verticalmente */
+    gap: 10px; /* Espaçamento entre a imagem e o texto */
+    background: rgba(255, 255, 255, 0.95); /* Fundo transparente */
+    padding: 12px; /* Espaçamento interno */
+    border-radius: 8px; /* Bordas arredondadas */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    z-index: 1000; /* Garante que o perfil fique acima de outros elementos */
+}
+
+#profilePic {
+    width: 65px; 
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #4CAF50; 
+}
+
+#userName {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 0;
+}
+
+#userRole {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+
+
+
+
+
+
+
+
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #37516d; --primary-dark: #2a3e52; --primary-light: #4a6585; --secondary: #ff7e00; --accent: #dbe2e8; --text-light: #fff; --text-dark: #333; --border: #b7bdc3; --shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--accent); color: var(--text-dark); height: 100vh; display: flex; flex-direction: column; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--primary); padding: 10px 20px; height: 60px; color: var(--text-light); }
+        .sidebar { width: 60px; background-color: var(--primary-dark); color: var(--text-light); transition: all 0.3s ease; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+        
+        .sidebar-nav ul { list-style: none; flex: 1; display: flex; flex-direction: column;  } /* padding: 0; */
+        .sidebar-nav li { margin: 5px 0; }
+        .sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 0;
+}
+        .sidebar-nav a { color: var(--text-light); text-decoration: none; opacity: 0.7; display: flex; align-items: center; padding: 12px 15px;
+    border-radius: 6px;
+    margin: 0 8px;
+    transition: var(--transition);
+    position: relative; }
+
+        .sidebar-nav a:hover { background-color: var(--primary-light); }
+        .sidebar-footer { margin-top: auto; padding: 10px; }
+        .sidebar:hover {
+    width: 200px;
+}
+
+.sidebar-nav a i {
+    width: 20px;
+    text-align: center;
+    font-size: 18px;
+    margin-right: 15px;
+}
+
+.sidebar-nav a .menu-text {
+    white-space: nowrap;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.sidebar:hover .sidebar-nav a .menu-text {
+    opacity: 1;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+    opacity: 1;
+    background-color: var(--primary-light);
+}
+
+/* Tooltip for sidebar items */
+.sidebar-nav a::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 65px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--primary);
+    color: var(--text-light);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+}
+
+.sidebar-nav a::before {
+    content: '';
+    position: absolute;
+    left: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: var(--primary);
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+    pointer-events: none;
+}
+
+.sidebar:not(:hover) .sidebar-nav a:hover::after,
+.sidebar:not(:hover) .sidebar-nav a:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar:hover .sidebar-nav a::after,
+.sidebar:hover .sidebar-nav a::before {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.sidebar-toggle {
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-toggle i {
+    font-size: 20px;
+}
+
+.sidebar-nav {
+    margin-top: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+        .filtro-topo { display: flex; align-items: center; padding: 12px 15px; background-color: #f5f7f9; }
+        .filtro-grupo { margin-right: 20px; display: flex; align-items: center; }
+        .filtro-grupo label { margin-right: 8px; color: var(--primary); font-weight: 500; }
+        .filtro-grupo select, .pesquisa-container input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background-color: white; }
+
+        .pesquisa-container { display: flex; align-items: center; }
+        .pesquisa-container button { margin-left: 8px; background-color: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .pesquisa-container button:hover { background-color: var(--primary-dark); }

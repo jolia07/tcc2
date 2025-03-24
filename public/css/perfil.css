@@ -1,0 +1,160 @@
+:root {
+    --primary: #2A2F4F;
+    --secondary: #917FB3;
+    --background: #F8F9FA;
+    --text: #2A2F4F;
+    --error: #FF6B6B;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background);
+    margin: 0;
+    color: var(--text);
+}
+
+header {
+    background-color: var(--primary);
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.profile-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: rgba(244, 244, 244, 0.5);
+}
+
+#profilePic {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 1rem;
+    display: block;
+    border: 3px solid var(--primary);
+}
+
+.info-item {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+input[type="password"] {
+    width: 100%;
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--secondary);
+}
+
+.logout {
+    background: var(--error);
+}
+
+.action-buttons {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    #profilePic {
+        width: 120px;
+        height: 120px;
+    }
+
+    .btn-icon {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estilizando os popups */
+.popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    z-index: 1000;
+}
+
+.popup h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.popup input, .popup button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+.popup input {
+    border: 1px solid #ccc;
+}
+
+.popup button {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.popup button:hover {
+    background: #0056b3;
+}
+
+.popup .close-btn {
+    background: #ff4d4d;
+    margin-top: 10px;
+}
+
+.popup .close-btn:hover {
+    background: #cc0000;
+}
