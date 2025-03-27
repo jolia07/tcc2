@@ -585,251 +585,272 @@ LEFT JOIN laboratorio l ON a.laboratorio_id = l.id;
 
 //Rota da planilha(montagem)
 app.get('/exportar-excel', async (req, res) => {
-  const [rows] = await pool.query("SELECT * FROM aula");
+  const [linhas] = await pool.query("SELECT * FROM aula");
 
 
-  const workbook = new excelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Aulas');
+  const planilha = new excelJS.Workbook();
+  const aba = planilha.addWorksheet('Aulas');
 
 
   const horariosDia = [
-    "Horários","07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-    "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00",
+    "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
+    "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "",
+    "18:40 - 21:40", ""
   ];
-  // Adicionando os horários para cada mês (JAN à DEZ)
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(11 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(31 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(51 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(71 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(91 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(111 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(131 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(151 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(171 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(191 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(211 + index, 1).value = horario;
-  });
-  horariosDia.forEach((horario, index) => {
-    worksheet.getCell(231 + index, 1).value = horario;
-  });
-
-
-  // Linha 1 - Cabeçalhos Mesclados e Personalizados
-  worksheet.mergeCells('B1:F1'); // Mescla "Dados do Docente/Administrador"
-  worksheet.mergeCells('B2:F2'); //Mescla "Docente"
-  worksheet.mergeCells('B3:F3'); //Mescla "Email"
-  worksheet.mergeCells('B4:F4'); //Mescla "Tel1.:"
-  worksheet.mergeCells('B5:F5'); //Mescla "Tel2.:"
-
-
-  worksheet.mergeCells('T1:T6'); // Mescla COLUNA pras fazer uma divisão
-  worksheet.mergeCells('A6:S6'); // Mescla LINHAS pras fazer uma divisão
-
-  // Colunas mescladas do meses (JAN à DEZ)
-  worksheet.mergeCells('A9:H9');
-  worksheet.mergeCells('A8:H8');
-  worksheet.mergeCells('A29:H29');
-  worksheet.mergeCells('A49:H49');
-  worksheet.mergeCells('A69:H69');
-  worksheet.mergeCells('A89:H89');
-  worksheet.mergeCells('A109:H109');
-  worksheet.mergeCells('A129:H129');
-  worksheet.mergeCells('A149:H149');
-  worksheet.mergeCells('A169:H169');
-  worksheet.mergeCells('A189:H189');
-  worksheet.mergeCells('A209:H209');
-  worksheet.mergeCells('A229:H229');
-  worksheet.mergeCells('A249:H249');
-
-
-
-  worksheet.getCell('B1').value = "Dados do Docente";
-
-  // Celulas dos meses
-  worksheet.getCell('A9').value = "Janeiro";
-  worksheet.getCell('A29').value = "Fevereiro";
-  worksheet.getCell('A49').value = "Março";
-  worksheet.getCell('A69').value = "Abril";
-  worksheet.getCell('A89').value = "Maio";
-  worksheet.getCell('A109').value = "Junho";
-  worksheet.getCell('A129').value = "Julho";
-  worksheet.getCell('A149').value = "Agosto";
-  worksheet.getCell('A169').value = "Setembro";
-  worksheet.getCell('A189').value = "Outubro";
-  worksheet.getCell('A209').value = "Novembro";
-  worksheet.getCell('A229').value = "Dezembro";
-
-
-  worksheet.getCell('A8').value = "Cronograma do período letivo"
  
-  worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
+  const linhaHorario = [12, 27, 42, 57, 72, 87, 102, 117, 132, 147, 162, 177];
 
-  // Alinhando as mesclagens dos meses (JAN à DEZ) no centro
-  worksheet.getCell('A9').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A8').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A29').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A49').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A69').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A89').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A109').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A129').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A149').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A169').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A189').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A209').alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.getCell('A229').alignment = { horizontal: 'center', vertical: 'middle' };
+  linhaHorario.forEach((linhaBase) => {
+    horariosDia.forEach((horario, indice) => {
+      const linhaAtual = linhaBase + indice;
+
+
+      aba.getCell(linhaAtual, 1).value = horario;
+
+
+      aba.getCell(linhaAtual, 1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD9D9D9' },
+      };
+    });
+  });
+
+
+  aba.mergeCells('B1:F1');
+  aba.mergeCells('B2:F2');
+  aba.mergeCells('B3:F3');
+  aba.mergeCells('B4:F4');
+  aba.mergeCells('B5:F5');
+  aba.mergeCells('A6:AF6');
+  aba.mergeCells('H1:R1');
+  aba.mergeCells('AF1:AF5');
+  aba.mergeCells('G1:G5');
+
+
+  aba.mergeCells('A9:AF9');
+  aba.mergeCells('A8:AF8');
+  aba.mergeCells('A24:AD24'); 
+  aba.mergeCells('A39:AF39'); 
+  aba.mergeCells('A54:AE54'); 
+  aba.mergeCells('A69:AF69'); 
+  aba.mergeCells('A84:AE84');
+  aba.mergeCells('A99:AF99');
+  aba.mergeCells('A114:AF114'); 
+  aba.mergeCells('A129:AE129');
+  aba.mergeCells('A144:AF144');
+  aba.mergeCells('A159:AE159'); 
+  aba.mergeCells('A174:AF174'); 
+
+
+
+  aba.getCell('B1').value = "Dados do Docente";
+  aba.getCell('A8').value = "Cronograma do período letivo";
+
+
+  aba.getCell('A9').value = "Janeiro";
+  aba.getCell('A24').value = "Fevereiro";
+  aba.getCell('A39').value = "Março";
+  aba.getCell('A54').value = "Abril";
+  aba.getCell('A69').value = "Maio";
+  aba.getCell('A84').value = "Junho";
+  aba.getCell('A99').value = "Julho";
+  aba.getCell('A114').value = "Agosto";
+  aba.getCell('A129').value = "Setembro";
+  aba.getCell('A144').value = "Outubro";
+  aba.getCell('A159').value = "Novembro";
+  aba.getCell('A174').value = "Dezembro";
+
+
+
+  aba.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
+  aba.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+
+  const linhasParaCentralizar = [8, 9, 24, 39, 54, 69, 84, 99, 114, 129, 144, 159, 174];
+
+
+  linhasParaCentralizar.forEach((linha) => {
+    aba.getCell(`A${linha}`).alignment = {
+      horizontal: 'center',
+      vertical: 'middle'
+    };
+  });
 
 
   const meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-  meses.forEach((mes, index) => {
-    worksheet.getCell(1, index + 8).value = mes;
+
+
+  meses.forEach((mes, indice) => {
+    const celula = aba.getCell(1, indice + 20);
+    celula.value = mes;
+    celula.alignment = { horizontal: 'center' };
   });
 
 
-  // Aplicando cor de fundo para toda a linha 1
-  worksheet.getRow(1).eachCell((cell) => {
-    cell.fill = {
+  aba.getRow(1).eachCell((celula) => {
+    celula.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FF1E3A5F' }
     };
-    cell.font = {
+    celula.font = {
       bold: true,
       color: { argb: 'FFFFFFFF' }
     };
   });
- 
 
 
-  worksheet.getCell('A2').value = "Docente:";
-  worksheet.getCell('A3').value = "E-mail:";
-  worksheet.getCell('A4').value = "Tel.1:";
-  worksheet.getCell('A5').value = "Tel.2:";
+  aba.getCell('A2').value = "Docente:";
+  aba.getCell('A3').value = "E-mail:";
+  aba.getCell('A4').value = "Tel.1:";
+  aba.getCell('A5').value = "Tel.2:";
+  aba.getCell('S2').value = "Dias Úteis:";
+  aba.getCell('S3').value = "Horas Úteis:";
+  aba.getCell('S4').value = "Horas Alocadas:";
+  aba.getCell('H1').value = "Legenda";
 
 
-  worksheet.getCell('G2').value = "Dias Úteis:";
-  worksheet.getCell('G3').value = "Horas Úteis:";
-  worksheet.getCell('G4').value = "Horas Alocadas:";
-
-// Adionando cor aos merge's dos meses (JAN à DEZ)
-  ["A9", "A29", "A49", "A69", "A89", "A109", "A129", "A149", "A169", "A189", "A209", "A229"].forEach(cellAddress => {
-    const cell = worksheet.getCell(cellAddress);
-    cell.fill = {
+  ["A9", "A24", "A39", "A54", "A69", "A84", "A99", "A114", "A129", "A144", "A159", "A174"].forEach(endereco => {
+    const celula = aba.getCell(endereco);
+    celula.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FF33658A' }
     };
-    cell.font = {
+    celula.font = {
       bold: true,
       color: { argb: 'FFFFFFFF' }
     };
-  });
+});
 
 
-  ["A8", "T1", "A1", "G1", "H6", "A2", "A3", "A4", "A5", "G1", "G2", "G3", "G4", "G5"].forEach(cellAddress => {
-    const cell = worksheet.getCell(cellAddress);
-    cell.fill = {
+  ["A8", "A1", "A2", "A3", "A4", "A5", "A6", "S1", "S2", "S3", "S4", 'S5', 'AF1', 'G1', 'S1'].forEach(endereco => {
+    const celula = aba.getCell(endereco);
+    celula.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FF1E3A5F' }
     };
-    cell.font = {
+    celula.font = {
       bold: true,
       color: { argb: 'FFFFFFFF' }
     };
   });
 
 
-  const diasDaSemana = ["","Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-  // Linha de dias da semana sendo adicionadas após o Mês (JAN à DEZ)
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(10, index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(30, index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(50 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(70 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(90 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(110 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(130 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(150 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(170 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(190 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(210 , index + 1).value = dia;
-  });
-  diasDaSemana.forEach((dia, index) => {
-    worksheet.getCell(230 , index + 1).value = dia;
+  const semanaPorMes = {
+    "Dom": [85],
+    "Seg": [130, 175],
+    "Ter": [55, 100],
+    "Qua": [10, 145],
+    "Qui": [70],
+    "Sex": [115],
+    "Sáb": [25, 40, 160],
+  };
+  
+  const diasPorMes = {
+    31: [11, 41, 71, 101, 116, 146, 176],
+    30: [56, 86, 131, 161],
+    29: [26]
+  };
+ 
+  const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+ 
+  const mapaInicioSemana = {};
+  Object.entries(semanaPorMes).forEach(([dia, linhas]) => {
+    linhas.forEach(linhaSemana => {
+      mapaInicioSemana[linhaSemana + 1] = dia;
+    });
   });
 
-  [10, 30, 50, 70, 90, 110, 130, 150, 170, 190, 210, 230].forEach((linha) => {
-    worksheet.getRow(linha).eachCell((cell) => {
-      cell.fill = {
+
+  const gerarDiasDoMes = (quantidade) => Array.from({ length: quantidade }, (_, i) => (i + 1).toString().padStart(2, '0'));
+ 
+  Object.entries(diasPorMes).forEach(([quantidadeDias, linhasMes]) => {
+    const totalDias = Number(quantidadeDias);
+ 
+    linhasMes.forEach(linhaMes => {
+      const linhaSemana = linhaMes - 1;
+      const diaInicial = mapaInicioSemana[linhaMes];
+ 
+      if (!diaInicial) {
+        console.warn(`Não foi possível identificar o dia da semana para a linha ${linhaMes}`);
+        return;
+      }
+ 
+      const indiceInicial = diasDaSemana.indexOf(diaInicial);
+      const diasSemana = Array.from({ length: totalDias }, (_, i) =>
+        diasDaSemana[(indiceInicial + i) % 7]
+      );
+ 
+      const diasMes = gerarDiasDoMes(totalDias);
+ 
+      diasSemana.forEach((dia, indice) => {
+        aba.getCell(linhaSemana, indice + 2).value = dia;
+      });
+ 
+      diasMes.forEach((dia, indice) => {
+        aba.getCell(linhaMes, indice + 2).value = dia;
+      });
+    });
+  });  
+ 
+  [11, 26, 41, 56, 71, 86, 101, 116, 131, 146, 161, 176].forEach((linhaDia) => {
+    aba.getRow(linhaDia).eachCell({ includeEmpty: true }, (celula) => {
+      celula.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFB7B7B7' }
+      };
+      celula.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+      celula.alignment = {
+        horizontal: 'center',
+        vertical: 'middle'
+      };
+    });
+  });
+ 
+  [10, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175].forEach((linha) => {
+    aba.getRow(linha).eachCell({ includeEmpty: true }, (celula) => {
+      celula.fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: 'FF5A7D9A' }
       };
-      cell.font = {
+      celula.font = {
         bold: true,
         color: { argb: 'FFFFFFFF' }
       };
+      celula.alignment = {
+        horizontal: 'center',
+        vertical: 'middle'
+      };
     });
   });
-  
 
-  // Ajustar automaticamente a largura das colunas
-  worksheet.columns.forEach((column) => {
-    let maxLength = 0;
-    column.eachCell({ includeEmpty: true }, (cell) => {
-      const cellValue = cell.value ? cell.value.toString() : "";
-      maxLength = Math.max(maxLength, cellValue.length);
-    });
-    column.width = maxLength + 5;
+  
+  // Função para converter centímetros em unidades de largura de coluna
+  function cmParaUnidadeExcel(cm) {
+    const cmPorUnidade = 0.144; // Aproximadamente 0.144 cm por unidade de largura de coluna
+    return cm / cmPorUnidade;
+  }
+
+  // Ajustar a largura de todas as colunas para 2,3 cm
+  const largura = cmParaUnidadeExcel(2.3);
+
+  // Iterar por todas as colunas e ajustar a largura
+  aba.columns.forEach((coluna, index) => {
+    coluna.width = largura;
   });
 
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=Aulas.xlsx');
-  await workbook.xlsx.write(res);
+  await planilha.xlsx.write(res);
   res.end();
 });
 
