@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificações</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="css/calendario.css">
+    <link rel="stylesheet" href="css/notificacoes.css">
+    <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <span class="sepa-title">SEPA - NOTIFICAÇÕES</span>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-layout" style="display: flex; flex: 1;">
+        <div class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="calendario.html" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
+                    <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
+                    <li><a href="notificacoes.html" class="active" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                </div>
+            </nav>
+        </div>
+
+        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
+
+    <div id="profile-container">
+        <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
+        <div>
+            <p id="userName"></p>
+            <p id="userRole"></p>
+        </div>
+    </div>
+
+    <div id="listaNotificacoes"></div>
+
+    <script>
+        async function carregarDadosUsuario() {
+            try {
+                const response = await fetch('/getUserData');
+                const data = await response.json();
+                
+                // Atualizar as informações do perfil
+                document.getElementById('userName').innerText = data.nome;
+                document.getElementById('userRole').innerText = data.tipo;
+                if (data.profilePic) {
+                    document.getElementById('profilePic').src = '/img/' + data.profilePic;
+                } else {
+                    document.getElementById('profilePic').src = '/img/default.png'; 
+                }
+                //Verifica o tipo de usuário
+                if (data.tipo !== 'adm') {
+                 document.getElementById('btnCadastrarMateria').style.display = 'none';
+                 document.getElementById('btnCadastrarCurso').style.display = 'none';
+                 document.getElementById('btnCadastrarTurma').style.display = 'none';
+                 document.getElementById('btnCadastrarlaboratorio').style.display = 'none';
+                }
+                } catch (error) {
+                console.error('Erro ao carregar dados do usuário:', error);
+                alert('Erro ao carregar perfil.');
+            }
+        }
+        
+        async function carregarNotificacoes() {
+            try {
+                const response = await fetch('/aulas', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error("Erro ao carregar as aulas");
+                }
+
+                const aulas = await response.json();
+                exibirNotificacoes(aulas);
+            } catch (error) {
+                console.error("Erro ao carregar as aulas:", error);
+            }
+        }
+
+        function exibirNotificacoes(aulas) {
+            const notificacoesDiv = document.getElementById('listaNotificacoes');
+            notificacoesDiv.innerHTML = ''; 
+
+            if (aulas.length === 0) {
+                notificacoesDiv.innerHTML = '<p>Nenhuma aula programada para notificação.</p>';
+                return;
+            }
+
+            aulas.forEach(aula => {
+                const noti = document.createElement('div');
+                noti.classList.add('notificacao'); 
+
+                noti.innerHTML = `
+                    <p><strong>Aula de ${aula.materia}</strong> - Turma: ${aula.turma}</p>
+                    <p>Turno: ${aula.turno} | Data de Início: ${aula.dataInicio}</p>
+                `;
+
+                notificacoesDiv.appendChild(noti);
+            });
+        }
+
+        window.onload = carregarNotificacoes;
+        carregarDadosUsuario();
+
+
+        function sair() {
+        if (confirm("Você tem certeza que deseja sair?")) {
+            fetch('http://localhost:5505/', { method: 'POST' })
+                .then(() => {
+                    window.location.href = 'home.html';
+                })
+                .catch(error => {
+                    console.error('Erro ao sair:', error);
+                    alert('Erro ao fazer logout.');
+                });
+        }}
+    </script>
+</body>
+</html>
