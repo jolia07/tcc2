@@ -1099,30 +1099,30 @@ app.get('/exportar-excel', async (req, res) => {
 
     // Mapeamento de meses para linhas na planilha
     const mesesLinhas = {
-      0: 9,   // Janeiro
-      1: 24,  // Fevereiro
-      2: 39,  // Março
-      3: 54,  // Abril
-      4: 69,  // Maio
-      5: 84,  // Junho
-      6: 99,  // Julho
-      7: 114, // Agosto
-      8: 129, // Setembro
-      9: 144, // Outubro
-      10: 159, // Novembro
-      11: 174  // Dezembro
+      0: 12,   // Janeiro
+      1: 27,   // Fevereiro
+      2: 42,   // Março
+      3: 57,   // Abril
+      4: 72,   // Maio
+      5: 87,   // Junho
+      6: 102,  // Julho
+      7: 117,  // Agosto
+      8: 132,  // Setembro
+      9: 147,  // Outubro
+      10: 162, // Novembro
+      11: 177  // Dezembro
     };
 
 
     // Mapeamento de dias da semana para colunas
     const diasColunas = {
-      "Dom": 2,
-      "Seg": 3,
-      "Ter": 4,
-      "Qua": 5,
-      "Qui": 6,
-      "Sex": 7,
-      "Sáb": 8
+      "Dom": 1,
+      "Seg": 2,
+      "Ter": 3,
+      "Qua": 4,
+      "Qui": 5,
+      "Sex": 6,
+      "Sáb": 7
     };
 
 
@@ -1166,7 +1166,7 @@ app.get('/exportar-excel', async (req, res) => {
        
         horariosTurno.linhas.forEach((offset, index) => {
           const linha = linhaMes + offset;
-          const celula = aba.getCell(linha + 3, colunaDia - 1);
+          const celula = aba.getCell(linha, colunaDia);
          
           // Formatar o conteúdo da célula
           const conteudo = [
