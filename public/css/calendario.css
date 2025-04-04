@@ -266,9 +266,21 @@ td {
     max-width: 1200px;
     width: 80%;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
 }
+
+
+#filtroDiaSemana {
+    width: 125px;
+}
+
+
+.select2-dropdown {
+    min-width: 125px !important;
+}
+
 
 .filtro-container select, .filtro-container button {
     padding: 10px;

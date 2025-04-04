@@ -212,8 +212,8 @@
                 <input type="checkbox" name="diasSemana" value="Terça"> Terça
                 <input type="checkbox" name="diasSemana" value="Quarta"> Quarta
                 <input type="checkbox" name="diasSemana" value="Quinta"> Quinta
-                <input type="checkbox" name="diasSemana" value="Sexta"> Sexta<br><br>
-
+                <input type="checkbox" name="diasSemana" value="Sexta"> Sexta
+                <input type="checkbox" name="diasSemana" value="Sabado"> Sábado<br><br>
 
                 <label for="dataInicio">Data de Início:</label>
                 <input type="date" id="dataInicio" name="dataInicio" required>
@@ -255,7 +255,15 @@
 
 
         <label for="filtroDiaSemana">Dia da Semana:</label>
-        <input type="text" id="filtroDiaSemana" placeholder="Ex: Segunda, Quarta">
+        <select id="filtroDiaSemana">
+            <option value="">Selecione</option>
+            <option value="Segunda">Segunda</option>
+            <option value="Terca">Terça</option>
+            <option value="Quarta">Quarta</option>
+            <option value="Quinta">Quinta</option>
+            <option value="Sexta">Sexta</option>
+            <option value="Sabado">Sábado</option>
+        </select>
 
 
         <button onclick="filtrarAulas()">Filtrar</button>
@@ -596,8 +604,7 @@
         async function enviarAula() {
             let formData = new FormData(document.getElementById("aulaForm"));
             let diasSelecionados = Array.from(document.querySelectorAll('input[name="diasSemana"]:checked'))
-                .map(el => el.value);
-
+                           .map(checkbox => checkbox.value);
 
             try {
                 const userResponse = await fetch("/getUserData", {
@@ -732,12 +739,10 @@
 
 
              $(document).ready(function() {
-                $('#filtroCurso, #filtroMateria, #filtroTurma, #filtroTurno').select2({
+                $('#filtroCurso, #filtroMateria, #filtroTurma, #filtroTurno, #filtroDiaSemana').select2({
                     placeholder: "Selecione ou digite",
                     minimumResultsForSearch: -1
                 });
-                // Adicionar um placeholder para o filtro de Dia da Semana (não é Select2)
-                $('#filtroDiaSemana').attr('placeholder', 'Ex: Segunda, Quarta');
             });
         }
 
@@ -748,7 +753,7 @@
             const filtroMateria = document.getElementById("filtroMateria").value;
             const filtroTurma = document.getElementById("filtroTurma").value;
             const filtroTurno = document.getElementById("filtroTurno").value;
-            const filtroDiaSemana = document.getElementById("filtroDiaSemana").value.toLowerCase();
+            const filtroDiaSemana = document.getElementById("filtroDiaSemana").value;
 
 
             // Filtrando as aulas com base nos critérios
@@ -757,7 +762,7 @@
                 const matchMateria = filtroMateria ? aula.materia.toLowerCase().includes(filtroMateria.toLowerCase()) : true;
                 const matchTurma = filtroTurma ? aula.turma.toLowerCase().includes(filtroTurma.toLowerCase()) : true;
                 const matchTurno = filtroTurno ? aula.turno.toLowerCase().includes(filtroTurno.toLowerCase()) : true;
-                const matchDiaSemana = filtroDiaSemana ? aula.diasSemana.toLowerCase().includes(filtroDiaSemana) : true;
+                const matchDiaSemana = filtroDiaSemana ? aula.diasSemana.toLowerCase().includes(filtroDiaSemana.toLowerCase()) : true;
 
 
                 return matchCurso && matchMateria && matchTurma && matchTurno && matchDiaSemana;
