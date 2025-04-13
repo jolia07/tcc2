@@ -7,29 +7,25 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const excelJS = require('exceljs');
 const nodemailer = require('nodemailer');
-const mysql = require('mysql2/promise'); // Usando mysql2
+const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const app = express();
 require("dotenv").config();
 
 
-
-
-// Configuração do pool de conexões MySQL
-const pool = mysql.createPool({
-  host: 'metro.proxy.rlwy.net',
-  user: 'root', // Substitua pelo usuário do MySQL
-  database: 'railway',
-  password: 'itTNpCtsLLOhDqNPuOsaWyYrnbIFvjdP', // Substitua pela senha do MySQL
-  port: 42235 , // Porta padrão do MySQL
+const pool = new Pool({
+  user: 'sepa_post_user',        
+  host: 'dpg-cvsis795pdvs73bmrd0g-a.virginia-postgres.render.com',        
+  database: 'sepa_post',    
+  password: 'dDfgxexkenaqwFDznQJEllCRlKOuRzHZ',    
+  port: 5432,      
   ssl: {
-    rejectUnauthorized: false, // Necessário para conexões seguras no Tembo
+    rejectUnauthorized: false // para conexões seguras
   },
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  max: 10,    
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000 
 });
-
-
 
 
 app.use(express.json());
@@ -39,9 +35,6 @@ app.use(express.static('public'));
 app.use('/img', express.static(path.join(__dirname, 'img')));
 
 
-
-
-// Configuração da sessão
 app.use(session({
   secret: 'seuSegredoAqui',
   resave: false,
@@ -51,8 +44,6 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 horas
   }
 }));
-
-
 
 
 const transporter = nodemailer.createTransport({
@@ -65,10 +56,6 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false // Adicione esta linha para ambiente local
   }
 });
-
-
-
-
 
 
 // Rota protegida - Página inicial
@@ -146,7 +133,7 @@ app.post('/definirTelefone2', async (req, res) => {
 
   try {
       await pool.query(
-          "UPDATE usuarios SET telefone2 = ? WHERE id = ?",
+          "UPDATE usuarios SET telefone2 = $1 WHERE id = $2",
           [telefone2 || null, req.session.user.id]
       );
 
@@ -176,7 +163,7 @@ app.post('/login', async (req, res) => {
 
 
   try {
-    const [rows] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+    const {rows} = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
 
 
     if (rows.length === 0) {
@@ -214,34 +201,35 @@ app.post('/login', async (req, res) => {
 });
 
 
-// Rota de cadastro
 app.post('/cadastro', async (req, res) => {
   const { nome, email, senha, telefone1, tipo } = req.body;
 
-
-  if (!['docente', 'adm'].includes(tipo)) {
-    return res.status(400).json({ message: "Tipo inválido! Use 'docente' ou 'adm'." });
+  if (!['Docente', 'Administrador'].includes(tipo)) {
+    return res.status(400).json({ message: "Tipo inválido! Use 'Docente' ou 'Administrador'." });
   }
 
-
   try {
-    const [checkUser] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
-    if (checkUser.length > 0) {
+    const checkUser = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+    if (checkUser.rows.length > 0) { 
       return res.status(409).send('Usuário já existe');
     }
 
-
     const senhaCriptografada = await bcrypt.hash(senha, 10);
-    const [result] = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha, telefone1, tipo) VALUES (?, ?, ?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO usuarios (nome, email, senha, telefone1, tipo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [nome, email, senhaCriptografada, telefone1, tipo]
     );
 
+    req.session.user = { 
+      id: result.rows[0].id, 
+      nome, 
+      email, 
+      telefone1, 
+      tipo: tipo
+    };
 
-    req.session.user = { id: result.insertId, nome, email, telefone1, tipo };
     console.log('Usuário registrado:', req.session.user);
     res.redirect('perfil');
-
 
   } catch (err) {
     console.error('Erro ao cadastrar usuário:', err);
@@ -262,7 +250,7 @@ app.post('/upload-profile-image', verificarAutenticacao, upload.single('profileP
     const imagePath = req.file.filename;
 
 
-    await pool.query('UPDATE usuarios SET profilePic = ? WHERE id = ?', [imagePath, userId]);
+    await pool.query('UPDATE usuarios SET profilePic = $1 WHERE id = $2', [imagePath, userId]);
     res.json({ message: 'Imagem atualizada com sucesso!', filename: imagePath });
 
 
@@ -284,14 +272,14 @@ app.post('/atualizarSenha', async (req, res) => {
 
 
   try {
-    const [rows] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+    const {rows} = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
     if (rows.length === 0) {
       return res.json({ success: false, message: 'Usuário não encontrado.' });
     }
 
 
     const senhaCriptografada = await bcrypt.hash(newPassword, 10);
-    await pool.query('UPDATE usuarios SET senha = ? WHERE email = ?', [senhaCriptografada, email]);
+    await pool.query('UPDATE usuarios SET senha = $1 WHERE email = $2', [senhaCriptografada, email]);
 
 
     res.json({ success: true, message: 'Senha atualizada com sucesso!' });
@@ -309,14 +297,14 @@ app.post('/redefinirSenhaDireta', async (req, res) => {
 
 
   try {
-      const [rows] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+      const {rows} = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
       if (rows.length === 0) {
           return res.json({ success: false, message: 'E-mail não encontrado.' });
       }
 
 
       const senhaCriptografada = await bcrypt.hash(novaSenha, 10);
-      await pool.query('UPDATE usuarios SET senha = ? WHERE email = ?', [senhaCriptografada, email]);
+      await pool.query('UPDATE usuarios SET senha = $1 WHERE email = $2', [senhaCriptografada, email]);
 
 
       res.json({ success: true, message: 'Senha redefinida com sucesso!' });
@@ -329,8 +317,6 @@ app.post('/redefinirSenhaDireta', async (req, res) => {
 });
 
 
-
-
 // Rota para atualizar perfil
 app.post('/atualizarPerfil', verificarAutenticacao, async (req, res) => {
   const { nome, email, senha } = req.body;
@@ -339,7 +325,7 @@ app.post('/atualizarPerfil', verificarAutenticacao, async (req, res) => {
 
   try {
     const senhaCriptografada = await bcrypt.hash(senha, 10);
-    await pool.query('UPDATE usuarios SET nome = ?, email = ?, senha = ? WHERE id = ?',
+    await pool.query('UPDATE usuarios SET nome = $1, email = $2, senha = $3 WHERE id = $4',
       [nome, email, senhaCriptografada, userId]);
 
 
@@ -353,192 +339,6 @@ app.post('/atualizarPerfil', verificarAutenticacao, async (req, res) => {
 });
 
 
-
-
-//Verificando informações
-//Recebendo os usuário ao sistema
-function verificarTipoUsuario(tiposPermitidos) {
-  return (req, res, next) => {
-      if (!req.session || !req.session.user) {
-          return res.status(401).json({ erro: "Não autorizado" });
-      }
-      const { tipo } = req.session.user;
-      if (!tiposPermitidos.includes(tipo)) {
-          return res.status(403).json({ erro: "Acesso negado" });
-      }
-      next();
-  };
-}
-
-
-// Rota para buscar dados do usuário
-app.get('/getUserData', verificarAutenticacao, async (req, res) => {
-  const userId = req.session.user.id;
-
-
-  try {
-    const [rows] = await pool.query('SELECT id, nome, email, telefone1, telefone2, profilePic, tipo FROM usuarios WHERE id = ?', [userId]);
-   
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Usuário não encontrado." });
-    }
-
-
-    res.json(rows[0]); // Retorna o usuário com o ID
-  } catch (err) {
-    console.error('Erro ao buscar dados do usuário:', err);
-    res.status(500).send('Erro no servidor.');
-  }
-});
-
-
-//Buttons de cadastros para aula
-//Rota ´para cadastrar curso
-app.post('/curso', async (req, res) => {
-  try {
-      const { nome } = req.body;
-
-
-      if (!nome) {
-          return res.status(400).json({ error: "O nome do curso é obrigatório." });
-      }
-
-
-      await pool.query("INSERT INTO curso (nome) VALUES (?)", [nome]);
-      res.json({ message: "Curso cadastrado com sucesso!" });
-
-
-  } catch (error) {
-      if (error.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ error: "Já existe um curso com esse nome." });
-      }
-      console.error(error);
-      res.status(500).json({ error: "Erro ao cadastrar o curso." });
-  }
-});
-
-
-app.get('/curso', async (req, res) => {
-  try {
-      const [rows] = await pool.query("SELECT * FROM curso");
-      res.json(rows);
-  } catch (error) {
-      console.error("Erro ao buscar cursos:", error);
-      res.status(500).json({ error: "Erro ao buscar cursos." });
-  }
-});
-
-
-//Rota para cadastrar turma
-app.post('/turma', async (req, res) => {
-  try {
-      const { nome, curso_id } = req.body;
-
-
-      if (!nome || !curso_id) {
-          return res.status(400).json({ error: "Nome da turma e curso_id são obrigatórios." });
-      }
-
-
-      await pool.query("INSERT INTO turma (nome, curso_id) VALUES (?, ?)", [nome, curso_id]);
-      res.json({ message: "Turma cadastrada com sucesso!" });
-  } catch (error) {
-      if (error.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ error: "Já existe uma turma com esse nome." });
-      }
-      console.error(error);
-      res.status(500).json({ error: "Erro ao cadastrar a turma." });
-  }
-});
-
-
-app.get('/turma', async (req, res) => {
-  try {
-    const [rows] = await pool.query(`
-        SELECT turma.id, turma.nome AS nome, curso.nome AS curso
-        FROM turma
-        JOIN curso ON turma.curso_id = curso.id
-    `);
-    res.json(rows);
-} catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao buscar turmas." });
-}
-});
-
-
-//Rota para cadastrar laboratorio
-app.post('/laboratorio', async (req, res) => {
-  try {
-      const { cimatec, andar, sala } = req.body;
-
-
-      if (!cimatec || !andar || !sala) {
-          return res.status(400).json({ error: "Todos os campos do laboratório são obrigatórios." });
-      }
-
-
-      await pool.query("INSERT INTO laboratorio (cimatec, andar, sala) VALUES (?, ?, ?)", [cimatec, andar, sala]);
-      res.json({ message: "Laboratório cadastrado com sucesso!" });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao cadastrar o laboratório." });
-  }
-});
-
-
-app.get('/laboratorio', async (req, res) => {
-      const [rows] = await pool.query("SELECT * FROM laboratorio");
-      res.json(rows);
-});
-
-
-// Rota para cadastrar matéria
-app.post('/materia', async (req, res) => {
-  try {
-      const { uc, ch, curso_id } = req.body;
-
-
-      console.log("Dados recebidos no backend:", req.body);
-
-
-      if (!uc || !ch || !curso_id) {
-          return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
-      }
-
-
-      const [materiaExistente] = await pool.query("SELECT * FROM materia WHERE uc = ? AND curso_id = ?", [uc, curso_id]);
-      if (materiaExistente.length > 0) {
-          return res.status(400).json({ error: "Esta matéria já está cadastrada para este curso!" });
-      }
-
-
-      await pool.query("INSERT INTO materia (uc, ch, curso_id) VALUES (?, ?, ?)", [uc, ch, curso_id]);
-      res.json({ message: "Matéria cadastrada com sucesso!" });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao cadastrar a matéria." });
-  }
-});
-
-
-app.get('/materia', async (req, res) => {
-  try {
-      const [rows] = await pool.query(`
-          SELECT materia.id, materia.uc, materia.ch, curso.nome AS curso
-          FROM materia
-          JOIN curso ON materia.curso_id = curso.id
-      `);
-      res.json(rows);
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar matérias." });
-  }
-});
-
-
-
-
 // Rota para solicitar redefinição de senha (app.js)
 app.post('/solicitar-redefinicao', async (req, res) => {
   const { email } = req.body;
@@ -546,25 +346,22 @@ app.post('/solicitar-redefinicao', async (req, res) => {
   try {
     console.log('Solicitação de redefinição recebida para:', email);
    
-    const [user] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+    const {user} = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
     if (!user.length) {
       console.log('E-mail não encontrado:', email);
       return res.status(200).json({ message: 'Se existir uma conta com este email, um link foi enviado.' });
     }
-
 
     // Geração do token e link
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 3600000); // 1 hora
     const resetLink = `http://localhost:5505/redefinir-senha.html?token=${token}`;    
     await pool.query(
-      'INSERT INTO reset_tokens (user_id, token, expires) VALUES (?, ?, ?)',
+      'INSERT INTO reset_tokens (user_id, token, expires) VALUES ($1, $2, $3)',
       [user[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL
     );
 
-
     console.log('Token inserido:', token); // Log para depuração
-
 
     // Configuração do e-mail
     const mailOptions = {
@@ -576,7 +373,6 @@ app.post('/solicitar-redefinicao', async (req, res) => {
         <p>Clique no link: <a href="${resetLink}">${resetLink}</a></p>
       `
     };
-
 
     console.log('Enviando e-mail para:', email);
     const info = await transporter.sendMail(mailOptions);
@@ -603,40 +399,230 @@ transporter.verify((error, success) => {
 app.post('/redefinir-senha', async (req, res) => {
   const { token, newPassword } = req.body;
 
-
   try {
-    const [tokenData] = await pool.query(
+    const {tokenData} = await pool.query(
       `SELECT * FROM reset_tokens
-      WHERE token = ?
+      WHERE token = $1
       AND used = FALSE
-      AND expires > UTC_TIMESTAMP()`, // Usar UTC para evitar problemas de fuso
+      AND expires > (NOW() AT TIME ZONE 'UTC')`, // Usar UTC para evitar problemas de fuso
       [token]
     );
-
 
     if (!tokenData || tokenData.length === 0) {
       return res.status(400).json({ message: 'Link inválido ou expirado' });
     }
- 
 
+    const senhaCriptografada = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE usuarios SET senha = $1 WHERE id = $2',
+        [senhaCriptografada, tokenData[0].user_id]);
 
-      const senhaCriptografada = await bcrypt.hash(newPassword, 10);
-      await pool.query('UPDATE usuarios SET senha = ? WHERE id = ?',
-          [senhaCriptografada, tokenData[0].user_id]);
-
-
-      await pool.query('UPDATE reset_tokens SET used = TRUE WHERE token = ?', [token]);
+    await pool.query('UPDATE reset_tokens SET used = TRUE WHERE token = $1', [token]);
      
-      res.json({ message: 'Senha redefinida com sucesso! Você pode fazer login agora.' });
+    res.json({ message: 'Senha redefinida com sucesso! Você pode fazer login agora.' });
   }catch (err) {
     console.error('Erro detalhado:', err.message); // Log detalhado
     res.status(500).send('Erro no servidor');
   }
- 
 });
 
 
-// Rota para cadastrar aula
+//Verificando informações
+//Recebendo os usuário ao sistema
+function verificarTipoUsuario(tiposPermitidos) {
+  return (req, res, next) => {
+      if (!req.session || !req.session.user) {
+          return res.status(401).json({ erro: "Não autorizado" });
+      }
+      const { tipo } = req.session.user;
+      if (!tiposPermitidos.includes(tipo)) {
+          return res.status(403).json({ erro: "Acesso negado" });
+      }
+      next();
+  };
+}
+
+
+// Rota para buscar dados do usuário
+app.get('/getUserData', verificarAutenticacao, async (req, res) => {
+  const userId = req.session.user.id;
+
+
+  try {
+    const {rows} = await pool.query('SELECT id, nome, email, telefone1, telefone2, profilePic, tipo FROM usuarios WHERE id = $1', [userId]);
+   
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+
+    res.json(rows[0]); // Retorna o usuário com o ID
+  } catch (err) {
+    console.error('Erro ao buscar dados do usuário:', err);
+    res.status(500).send('Erro no servidor.');
+  }
+});
+
+
+//Buttons de cadastros para aula
+//Rota ´para cadastrar curso
+app.post('/curso', async (req, res) => {
+  try {
+      const { nome } = req.body;
+
+
+      if (!nome) {
+          return res.status(400).json({ error: "O nome do curso é obrigatório." });
+      }
+
+
+      await pool.query("INSERT INTO curso (nome) VALUES ($1)", [nome]);
+      res.json({ message: "Curso cadastrado com sucesso!" });
+
+
+  } catch (error) {
+      if (error.code === '23505') {
+          return res.status(400).json({ error: "Já existe um curso com esse nome." });
+      }
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar o curso." });
+  }
+});
+
+
+app.get('/curso', async (req, res) => {
+  try {
+      const {rows} = await pool.query("SELECT * FROM curso");
+      res.json(rows);
+  } catch (error) {
+      console.error("Erro ao buscar cursos:", error);
+      res.status(500).json({ error: "Erro ao buscar cursos." });
+  }
+});
+
+
+//Rota para cadastrar turma
+app.post('/turma', async (req, res) => {
+  try {
+      const { nome, curso_id } = req.body;
+
+
+      if (!nome || !curso_id) {
+          return res.status(400).json({ error: "Nome da turma e curso_id são obrigatórios." });
+      }
+
+
+      await pool.query("INSERT INTO turma (nome, curso_id) VALUES ($1, $2)", [nome, curso_id]);
+      res.json({ message: "Turma cadastrada com sucesso!" });
+  } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ error: "Já existe uma turma com esse nome." });
+      }
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar a turma." });
+  }
+});
+
+
+app.get('/turma', async (req, res) => {
+  try {
+    const {rows} = await pool.query(`
+        SELECT turma.id, turma.nome AS nome, curso.nome AS curso
+        FROM turma
+        JOIN curso ON turma.curso_id = curso.id
+    `);
+    res.json(rows);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar turmas." });
+}
+});
+
+
+//Rota para cadastrar laboratorio
+app.post('/laboratorio', async (req, res) => {
+  try {
+      const { cimatec, andar, sala } = req.body;
+
+
+      if (!cimatec || !andar || !sala) {
+          return res.status(400).json({ error: "Todos os campos do laboratório são obrigatórios." });
+      }
+
+
+      await pool.query("INSERT INTO laboratorio (cimatec, andar, sala) VALUES ($1, $2, $3)", [cimatec, andar, sala]);
+      res.json({ message: "Laboratório cadastrado com sucesso!" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao cadastrar o laboratório." });
+  }
+});
+
+
+app.get('/laboratorio', async (req, res) => {
+      const {rows} = await pool.query("SELECT * FROM laboratorio");
+      res.json(rows);
+});
+
+
+// Rota para cadastrar matéria 
+app.post('/materia', async (req, res) => {
+  try {
+    const { uc, ch, curso_id } = req.body;
+
+    console.log("Dados recebidos no backend:", req.body);
+
+    if (!uc || !ch || !curso_id) {
+      return res.status(400).json({ error: "Todos os campos da matéria são obrigatórios." });
+    }
+
+    // Correção na desestruturação
+    const { rows: materiaExistente } = await pool.query(
+      "SELECT * FROM materia WHERE uc = $1 AND curso_id = $2", 
+      [uc, curso_id]
+    );
+
+    if (materiaExistente.length > 0) {
+      return res.status(400).json({ error: "Esta matéria já está cadastrada para este curso!" });
+    }
+
+    // Inserção com RETURNING para obter o resultado
+    const { rows } = await pool.query(
+      "INSERT INTO materia (uc, ch, curso_id) VALUES ($1, $2, $3) RETURNING *", 
+      [uc, ch, curso_id]
+    );
+
+    res.status(201).json({ 
+      success: true,
+      message: "Matéria cadastrada com sucesso!",
+      materia: rows[0]
+    });
+
+  } catch (error) {
+    console.error("Erro detalhado:", error);
+    res.status(500).json({ 
+      error: "Erro ao cadastrar a matéria.",
+      details: error.message
+    });
+  }
+});
+
+
+app.get('/materia', async (req, res) => {
+  try {
+      const {rows} = await pool.query(`
+          SELECT materia.id, materia.uc, materia.ch, curso.nome AS curso
+          FROM materia
+          JOIN curso ON materia.curso_id = curso.id
+      `);
+      res.json(rows);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao buscar matérias." });
+  }
+});
+
+
+// Rota para cadastrar aula - Versão Corrigida
 app.post('/aulas', async (req, res) => {
   try {
     // Verificar se o usuário está autenticado
@@ -644,68 +630,78 @@ app.post('/aulas', async (req, res) => {
       return res.status(401).json({ error: "Usuário não autenticado." });
     }
 
-
     const { curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio } = req.body;
     const usuario_id = req.session.user.id;
 
-
     console.log("Recebido no backend:", req.body);
-
-
+    
     // Validar campos obrigatórios
     if (!curso_id || !materia_id || !turma_id || !laboratorio_id || !turno || !diasSemana || !dataInicio) {
       return res.status(400).json({ error: "Todos os campos da aula são obrigatórios." });
     }
 
-
     // Verificar se o laboratório já está alocado no mesmo horário e turno
     const queryLaboratorio = `
       SELECT *
       FROM aula
-      WHERE laboratorio_id = ?
-      AND dataInicio = ?
-      AND turno = ?;
+      WHERE laboratorio_id = $1
+      AND dataInicio = $2
+      AND turno = $3;
     `;
-    const [rowsLaboratorio] = await pool.query(queryLaboratorio, [laboratorio_id, dataInicio, turno]);
-
+    const { rows: rowsLaboratorio } = await pool.query(queryLaboratorio, [laboratorio_id, dataInicio, turno]);
 
     if (rowsLaboratorio.length > 0) {
       return res.status(400).json({ error: "Este laboratório já está ocupado neste horário!" });
     }
 
-
     // Verificar se a turma já tem aula no mesmo turno
     const queryTurma = `
       SELECT *
       FROM aula
-      WHERE turma_id = ?
-      AND turno = ?;
+      WHERE turma_id = $1
+      AND dataInicio = $2
+      AND turno = $3;
     `;
-    const [rowsTurma] = await pool.query(queryTurma, [turma_id, turno]);
-
+    const { rows: rowsTurma } = await pool.query(queryTurma, [turma_id, dataInicio, turno]);
 
     if (rowsTurma.length > 0) {
       return res.status(400).json({ error: "Esta turma já possui uma aula no turno selecionado!" });
     }
 
-
     // Se não houver conflitos, cadastrar a aula
-    await pool.query(
-      "INSERT INTO aula (usuario_id, curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [usuario_id, curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana.join(','), dataInicio]
-    );
+    const queryInsert = `
+      INSERT INTO aula 
+        (usuario_id, curso_id, materia_id, turma_id, laboratorio_id, turno, diasSemana, dataInicio) 
+      VALUES 
+        ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
+    
+    const { rows: newAula } = await pool.query(queryInsert, [
+      usuario_id, 
+      curso_id, 
+      materia_id, 
+      turma_id, 
+      laboratorio_id, 
+      turno, 
+      Array.isArray(diasSemana) ? diasSemana.join(',') : diasSemana, 
+      dataInicio
+    ]);
 
-
-    res.json({ message: "Aula cadastrada com sucesso!" });
-
+    res.status(201).json({ 
+      success: true,
+      message: "Aula cadastrada com sucesso!",
+      aula: newAula[0]
+    });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao cadastrar a aula." });
+    console.error("Erro detalhado:", error);
+    res.status(500).json({ 
+      error: "Erro ao cadastrar a aula.",
+      details: error.message 
+    });
   }
 });
-
-
 
 
 app.get('/aulas', async (req, res) => {
@@ -713,10 +709,8 @@ app.get('/aulas', async (req, res) => {
     return res.status(401).json({ error: "Usuário não autenticado" });
   }
 
-
   const usuario_id = req.session.user.id;
   const userType = req.session.user.tipo;
-
 
   try {
     let query = `
@@ -739,17 +733,28 @@ app.get('/aulas', async (req, res) => {
     `;
     let values = [];
 
-
     // Se for docente, filtramos apenas as aulas que ele cadastrou
-    if (userType === 'docente') {
-      query += " WHERE a.usuario_id = ?";
+    if (userType === 'Docente') {
+      query += " WHERE a.usuario_id =$1";
       values.push(usuario_id);
     }
 
+    const {rows} = await pool.query(query, values);
+    const aulasFormatadas = rows.map(aula => {
+      // Converter a string de diasSemana para array
+      let diasArray = [];
+      if (aula.diassemana) {
+        // Remove espaços em branco e divide pela vírgula
+        diasArray = aula.diassemana.split(',').map(dia => dia.trim());
+      }
+      
+      return {
+        ...aula,
+        diasSemana: diasArray
+      };
+    });
 
-    const [rows] = await pool.query(query, values);
-    res.json(rows);
-
+    res.json(aulasFormatadas);
 
   } catch (error) {
     console.error("Erro ao buscar aulas:", error);
@@ -766,7 +771,6 @@ app.get('/aulasHoje', async (req, res) => {
   const userId = req.session.user.id;
   const hoje = new Date().toISOString().split('T')[0];
 
-
   try {
       const query = `
           SELECT
@@ -778,15 +782,44 @@ app.get('/aulasHoje', async (req, res) => {
           FROM aula a
           LEFT JOIN materia m ON a.materia_id = m.id
           LEFT JOIN turma t ON a.turma_id = t.id
-          WHERE a.usuario_id = ? AND DATE(a.dataInicio) = ?  
+          WHERE a.usuario_id = $1 AND DATE(a.dataInicio) = $2
       `;
 
 
-      const [rows] = await pool.query(query, [userId, hoje]);
+      const {rows} = await pool.query(query, [userId, hoje]);
       res.json(rows);
   } catch (error) {
       console.error("Erro ao buscar aulas de hoje:", error);
       res.status(500).json({ error: "Erro ao buscar aulas de hoje." });
+  }
+});
+
+
+app.get('/adm', async (req, res) => {
+  try {
+    if (!req.session?.user?.id) {
+      return res.json({ isAdmin: false });
+    }
+    res.json({ isAdmin: req.session.user.tipo === 'Administrador' });
+  } catch (error) {
+    console.error("Erro ao verificar Administrador:", error);
+    res.status(500).json({ isAdmin: false });
+  }
+});
+
+app.get('/docentes', async (req, res) => {
+  try {
+    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+      return res.status(403).json({ error: "Acesso não autorizado" });
+    }
+    const {rows} = await pool.query(
+      'SELECT id, nome FROM usuarios WHERE tipo = $1 ORDER BY nome',
+      ['Docente']
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Erro ao buscar docentes:", error);
+    res.status(500).json({ error: "Erro ao buscar docentes" });
   }
 });
 
@@ -819,16 +852,16 @@ app.get('/exportar-excel', async (req, res) => {
       return res.status(401).json({ error: "Usuário não autenticado" });
      }
       
-    const isAdmin = req.session.user.tipo === 'adm';
+    const isAdmin = req.session.user.tipo === 'Administrador';
     const docenteId = isAdmin && req.query.docente_id
        ? req.query.docente_id
        : req.session.user.id;
       
    // Validação para admin
     if (isAdmin && req.query.docente_id) {
-       const [docenteCheck] = await pool.query(
-      'SELECT id, tipo FROM usuarios WHERE id = ? AND tipo = "docente"',
-      [docenteId]
+       const {rows: docenteCheck} = await pool.query(
+      'SELECT id, tipo FROM usuarios WHERE id = $1 AND tipo = $2',
+      [docenteId, 'Docente']
       );
       if (docenteCheck.length === 0) {
         return res.status(400).json({ error: "Docente não encontrado" });
@@ -836,8 +869,8 @@ app.get('/exportar-excel', async (req, res) => {
     }
       
    // Buscar dados do docente
-    const [userData] = await pool.query(
-       'SELECT nome, email, telefone1, telefone2 FROM usuarios WHERE id = ?',
+    const {rows: userData} = await pool.query(
+       'SELECT nome, email, telefone1, telefone2 FROM usuarios WHERE id = $1',
        [docenteId]
     );
       
@@ -848,7 +881,7 @@ app.get('/exportar-excel', async (req, res) => {
       const docente = userData[0];
       
       
-      const [aulas] = await pool.query(`
+      const {rows: aulas} = await pool.query(`
   SELECT
       a.id,
      u.nome AS professor,
@@ -866,7 +899,7 @@ app.get('/exportar-excel', async (req, res) => {
        LEFT JOIN materia m ON a.materia_id = m.id
        LEFT JOIN turma t ON a.turma_id = t.id
        LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
-       WHERE a.usuario_id = ?
+       WHERE a.usuario_id = $1
       `, [docenteId]);
       
       if (aulas.length === 0) {
@@ -878,11 +911,11 @@ app.get('/exportar-excel', async (req, res) => {
 
     const planilha = new excelJS.Workbook();
     const aba = planilha.addWorksheet('Aulas');
- // Preencher informações do docente
- aba.getCell('B2').value = docente.nome;    // Nome do docente
- aba.getCell('B3').value = docente.email;   // E-mail
- aba.getCell('B4').value = docente.telefone1 || '';  // Telefone 1
- aba.getCell('B5').value = docente.telefone2 || '';  // Telefone 2
+    // Preencher informações do docente
+    aba.getCell('B2').value = docente.nome;    // Nome do docente
+    aba.getCell('B3').value = docente.email;   // E-mail
+    aba.getCell('B4').value = docente.telefone1 || '';  // Telefone 1
+    aba.getCell('B5').value = docente.telefone2 || '';  // Telefone 2
     // Configuração dos horários
     const horariosDia = [
       "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
@@ -1208,15 +1241,15 @@ app.get('/exportar-excel', async (req, res) => {
    
     // Agrupar aulas por matéria para a legenda
     const materias = {};
-aulas.forEach(aula => {
-  if (!materias[aula.materia]) {
-    materias[aula.materia] = {
-      color: getColorForMateria(aula.materia),
-      curso: aula.curso,
-      turma: aula.turma
-    };
-  }
-});
+        aulas.forEach(aula => {
+        if (!materias[aula.materia]) {
+        materias[aula.materia] = {
+          color: getColorForMateria(aula.materia),
+          curso: aula.curso,
+          turma: aula.turma
+        };
+      }
+    });
 
    
     // Ajustar largura das colunas da legenda
@@ -1224,135 +1257,164 @@ aulas.forEach(aula => {
     aba.getColumn('B').width = 30; // Coluna mais larga para as descrições
 
 
-  // Processar cada aula
-  aulas.forEach(aula => {
+    // Processar cada aula
+    // Modifique a parte de processamento das aulas para:
+aulas.forEach(aula => {
+  try {
+    // Padroniza os nomes dos campos (convertendo para camelCase)
+    const aulaPadronizada = {
+      id: aula.id,
+      materia: aula.materia,
+      professor: aula.professor,
+      turma: aula.turma,
+      diasSemana: aula.diasSemana || aula.diassemana || aula.diaSemana, // Corrige para o nome do campo
+      dataInicio: aula.dataInicio || aula.datainicio, // Corrige para o nome do campo
+      turno: aula.turno,
+      cargaHoraria: aula.cargaHoraria || aula.cargahoraria // Corrige para o nome do campo
+    };
 
+    // Validação robusta dos dados
+    if (!aulaPadronizada.diasSemana || !aulaPadronizada.dataInicio || !aulaPadronizada.turno) {
+      console.error('Aula com dados incompletos:', aulaPadronizada);
+      return;
+    }
 
-    const materiaColor = getColorForMateria(aula.materia);
-    const dataInicio = new Date(aula.dataInicio);
+    const dataInicio = new Date(aulaPadronizada.dataInicio);
+    if (isNaN(dataInicio.getTime())) {
+      console.error(`Data inválida: ${aulaPadronizada.dataInicio}`);
+      return;
+    }
+
+    // Função auxiliar para converter dias completos para abreviações
+    const diasAula = aulaPadronizada.diasSemana.split(',')
+      .map(dia => {
+        const diaLimpo = dia.trim();
+        // Converte dias completos para abreviações
+        if (diaLimpo === 'Segunda') return 'Seg';
+        if (diaLimpo === 'Terça') return 'Ter';
+        if (diaLimpo === 'Quarta') return 'Qua';
+        if (diaLimpo === 'Quinta') return 'Qui';
+        if (diaLimpo === 'Sexta') return 'Sex';
+        if (diaLimpo === 'Sábado' || diaLimpo === 'Sabado') return 'Sáb';
+        if (diaLimpo === 'Domingo') return 'Dom';
+        return diaLimpo.substring(0, 3); // Pega os 3 primeiros caracteres
+      });
+
+    if (diasAula.length === 0) {
+      console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
+      return;
+    }
+
+    console.log(`Processando aula ${aulaPadronizada.id} nos dias: ${diasAula.join(', ')}`);
+
+    const materiaColor = getColorForMateria(aulaPadronizada.materia);
     let dataAtual = new Date(dataInicio);
-   
-    // Obter os dias da semana selecionados
-    const diasAula = aula.diasSemana.split(',').map(dia => dia.trim().substring(0, 3));
-   
-    // Validar carga horária
-    const cargaHoraria = aula.cargaHoraria; // Default 60h se não definido
-    const horasPorDia = aula.turno === "Noturno" ? 3 : 4; // 3h para noturno, 4h para outros
-   
-    // Calcular total de dias necessários com arredondamento para cima
-    const totalDiasAula = Math.ceil(cargaHoraria / horasPorDia);
-    let diasAgendados = 0;
+    
+    // Configuração de carga horária
+    const cargaHoraria = parseInt(aulaPadronizada.cargaHoraria) || 60;
+    const horasPorDia = aulaPadronizada.turno === "Noturno" ? 3 : 4;
     let totalHorasAgendadas = 0;
-    const maxDias = 365 * 2; // Limite de segurança (2 anos)
     let diasProcessados = 0;
+    const maxDias = 180; // Limite de 6 meses para busca
 
-
-    // Enquanto não completar a carga horária
+    // Loop de agendamento
     while (totalHorasAgendadas < cargaHoraria && diasProcessados < maxDias) {
-        diasProcessados++;
-        const mes = dataAtual.getMonth();
-        const diaMes = dataAtual.getDate();
-        const diaSemanaNum = dataAtual.getDay();
-        const diasSemanaMap = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-        const diaSemana = diasSemanaMap[diaSemanaNum];
-       
-        // Verificar se é um dia de aula válido
-        if (!diasAula.includes(diaSemana)) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-        }
-       
-        // Verificar se o mês existe no mapeamento
-        if (mesesLinhas[mes] === undefined) {
-            dataAtual = new Date(dataAtual.getFullYear() + 1, 0, 1);
-            continue;
-        }
-       
-        const linhaMes = mesesLinhas[mes];
-        const linhaDias = linhaMes - 1;
-        let colunaDia = 0;
-       
-        // Encontrar a coluna do dia atual
-        for (let col = 2; col <= 32; col++) {
-            const celulaDia = aba.getCell(linhaDias, col);
-            if (parseInt(celulaDia.value) === diaMes) {
-                colunaDia = col;
-                break;
-            }
-        }
-       
-        if (colunaDia === 0) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-        }
-       
-        // Verificar dia da semana na planilha
-        const linhaSemana = linhaMes - 2;
-        const celulaDiaSemana = aba.getCell(linhaSemana, colunaDia);
-        if (celulaDiaSemana.value !== diaSemana) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-        }
-       
-        // Obter horários do turno
-        const horariosTurno = turnoHorarios[aula.turno];
-        if (!horariosTurno) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-        }
-       
-        // Agendar horários
-        let horariosAgendados = 0;
-        for (let i = 0; i < horariosTurno.linhas.length && horariosAgendados < horasPorDia; i++) {
-            const offset = horariosTurno.linhas[i];
-            const linha = linhaMes + offset;
-            const celula = aba.getCell(linha, colunaDia);
-           
-            if (celula.value) continue;
-           
-            // Preencher informações completas
-            celula.value = {
-                richText: [
-                    {text: `${aula.materia}\n`, font: {bold: true}},
-                    {text: `${aula.professor}\n`},
-                    {text: `${aula.turma}`}
-                ]
-            };
-           
-            celula.alignment = {
-                wrapText: true,
-                vertical: 'middle',
-                horizontal: 'center'
-            };
-           
-            celula.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: materiaColor }
-            };
-           
-            celula.border = {
-                top: { style: 'thin', color: { argb: 'FF000000' } },
-                left: { style: 'thin', color: { argb: 'FF000000' } },
-                bottom: { style: 'thin', color: { argb: 'FF000000' } },
-                right: { style: 'thin', color: { argb: 'FF000000' } }
-            };
-           
-            horariosAgendados++;
-            totalHorasAgendadas += (aula.turno === "Noturno" ? 3 : 1);
-        }
-       
-        if (horariosAgendados > 0) {
-            diasAgendados++;
-        }
-       
+      diasProcessados++;
+      const mes = dataAtual.getMonth();
+      const diaMes = dataAtual.getDate();
+      const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAtual.getDay()];
+
+      // Verificar se é um dia de aula válido
+      if (!diasAula.includes(diaSemana)) {
         dataAtual.setDate(dataAtual.getDate() + 1);
+        continue;
+      }
+
+      // Encontrar a linha do mês
+      const linhaMes = mesesLinhas[mes];
+      if (!linhaMes) {
+        dataAtual.setDate(dataAtual.getDate() + 1);
+        continue;
+      }
+
+      // Encontrar coluna do dia
+      let colunaDia = 0;
+      for (let col = 2; col <= 32; col++) {
+        const celulaDia = aba.getCell(linhaMes - 1, col);
+        if (parseInt(celulaDia.value) === diaMes) {
+          colunaDia = col;
+          break;
+        }
+      }
+
+      if (!colunaDia) {
+        dataAtual.setDate(dataAtual.getDate() + 1);
+        continue;
+      }
+
+      // Verificar turno e horários
+      const turno = turnoHorarios[aulaPadronizada.turno];
+      if (!turno) {
+        dataAtual.setDate(dataAtual.getDate() + 1);
+        continue;
+      }
+
+      // Preencher horários
+      let horariosPreenchidos = 0;
+      for (const offset of turno.linhas) {
+        const linha = linhaMes + offset;
+        const celula = aba.getCell(linha, colunaDia);
+
+        // Verificar se célula já está ocupada
+        if (celula.value) {
+          console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
+          continue;
+        }
+
+        // Preencher célula
+        celula.value = {
+          richText: [
+            { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
+            { text: `${aulaPadronizada.professor}\n` },
+            { text: `${aulaPadronizada.turma}` }
+          ]
+        };
+
+        celula.alignment = { 
+          wrapText: true, 
+          vertical: 'middle', 
+          horizontal: 'center' 
+        };
+
+        celula.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: materiaColor }
+        };
+
+        celula.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+
+        horariosPreenchidos++;
+        totalHorasAgendadas += (aulaPadronizada.turno === "Noturno" ? 3 : 1);
+
+        if (totalHorasAgendadas >= cargaHoraria) break;
+      }
+
+      dataAtual.setDate(dataAtual.getDate() + 1);
     }
-   
-    // Verificar se completou a carga horária
+
     if (totalHorasAgendadas < cargaHoraria) {
-        console.warn(`Atenção: Aula ${aula.materia} não completou carga horária. Agendadas ${totalHorasAgendadas}h de ${cargaHoraria}h`);
+      console.warn(`Carga horária incompleta para ${aulaPadronizada.materia}: ${totalHorasAgendadas}/${cargaHoraria}h`);
     }
+
+  } catch (error) {
+    console.error(`Erro ao processar aula ${aula?.id}:`, error);
+  }
 });
 
     // Ajustar largura das colunas
@@ -1383,7 +1445,7 @@ aulas.forEach(aula => {
 //Rota de notificações
 app.get('/notificao', (req, res) => {
   const hoje = new Date().toISOString().split('T')[0]; // Data de hoje no formato YYYY-MM-DD
-  const query = `SELECT * FROM aula WHERE dataInicio >= ? ORDER BY dataInicio ASC`;
+  const query = `SELECT * FROM aula WHERE dataInicio >= $1 ORDER BY dataInicio ASC`;
 
 
   pool.query(query, [hoje], (err, results) => {
@@ -1395,15 +1457,16 @@ app.get('/notificao', (req, res) => {
 });
 
 
-// Rota de logout
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
-      if (err) return res.status(500).send('Erro ao encerrar sessão.');
-      res.clearCookie('connect.sid'); // Limpa o cookie de sessão
-      res.redirect('/'); // Redireciona para a página inicial
+      if (err) {
+          console.error('Erro ao destruir sessão:', err);
+          return res.status(500).json({ success: false });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ success: true }); // Envia resposta JSON em vez de redirecionar
   });
 });
-
 
 // Inicializar servidor
 app.listen(5505, () => {

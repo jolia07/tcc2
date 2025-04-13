@@ -67,13 +67,6 @@
                 } else {
                     document.getElementById('profilePic').src = '/img/default.png'; 
                 }
-                //Verifica o tipo de usuário
-                if (data.tipo !== 'adm') {
-                 document.getElementById('btnCadastrarMateria').style.display = 'none';
-                 document.getElementById('btnCadastrarCurso').style.display = 'none';
-                 document.getElementById('btnCadastrarTurma').style.display = 'none';
-                 document.getElementById('btnCadastrarlaboratorio').style.display = 'none';
-                }
                 } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
                 alert('Erro ao carregar perfil.');
@@ -113,7 +106,7 @@
 
                 noti.innerHTML = `
                     <p><strong>Aula de ${aula.materia}</strong> - Turma: ${aula.turma}</p>
-                    <p>Turno: ${aula.turno} | Data de Início: ${aula.dataInicio}</p>
+                    <p>Turno: ${aula.turno} | Dias da Semana: ${aula.diasSemana}</p>
                 `;
 
                 notificacoesDiv.appendChild(noti);

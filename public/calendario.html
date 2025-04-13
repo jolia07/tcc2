@@ -36,7 +36,11 @@
                     <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
-                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                    <!-- Adicione return false para prevenir comportamento padrão -->
+                    <a onclick="sair(event); return false;" href="#" data-tooltip="Sair">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="menu-text">Sair</span>
+                    </a>
                 </div>
             </nav>
         </div>
@@ -200,7 +204,6 @@
 
                 <label for="turno">Turno:</label>
                 <select id="turno" name="turno" required>
-                    <option value="">Selecione o Turno</option>
                     <option value="Matutino">Matutino</option>
                     <option value="Vespertino">Vespertino</option>
                     <option value="Noturno">Noturno</option>
@@ -227,48 +230,67 @@
 
     <!--Filtragem de aulas-->
     <div class="filtros">
-        <label for="filtroCurso">Curso:</label>
-        <select id="filtroCurso">
-            <option value="">Selecione</option>
-        </select>
-
-
-        <label for="filtroMateria">Matéria:</label>
-        <select id="filtroMateria">
-            <option value="">Selecione</option>
-        </select>
-
-
-        <label for="filtroTurma">Turma:</label>
-        <select id="filtroTurma">
-            <option value="">Selecione</option>
-        </select>
-
-
-        <label for="filtroTurno">Turno:</label>
-        <select id="filtroTurno">
-            <option value="">Selecione</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Vespertino">Vespertino</option>
-            <option value="Noturno">Noturno</option>
-        </select>
-
-
-        <label for="filtroDiaSemana">Dia da Semana:</label>
-        <select id="filtroDiaSemana">
-            <option value="">Selecione</option>
-            <option value="Segunda">Segunda</option>
-            <option value="Terca">Terça</option>
-            <option value="Quarta">Quarta</option>
-            <option value="Quinta">Quinta</option>
-            <option value="Sexta">Sexta</option>
-            <option value="Sabado">Sábado</option>
-        </select>
-
-
-        <button onclick="filtrarAulas()">Filtrar</button>
+        <div class="filtro-grupo">
+            <label for="filtroCurso">Curso</label>
+            <select id="filtroCurso" class="select-filtro">
+                <option value=""></option>
+            </select>
+        </div>
+    
+        <div class="filtro-grupo">
+            <label for="filtroMateria">Matéria</label>
+            <select id="filtroMateria" class="select-filtro">
+                <option value=""></option>
+            </select>
+        </div>
+    
+        <div class="filtro-grupo">
+            <label for="filtroTurma">Turma</label>
+            <select id="filtroTurma" class="select-filtro">
+                <option value=""></option>
+            </select>
+        </div>
+    
+        <div class="filtro-grupo">
+            <label for="filtroTurno">Turno</label>
+            <select id="filtroTurno" class="select-filtro">
+                <option value=""></option>
+                <option value="Matutino">Matutino</option>
+                <option value="Vespertino">Vespertino</option>
+                <option value="Noturno">Noturno</option>
+            </select>
+        </div>
+    
+        <div class="filtro-grupo">
+            <label for="filtroDiaSemana">Dia da Semana</label>
+            <select id="filtroDiaSemana" class="select-filtro">
+                <option value=""></option>
+                <option value="Segunda">Segunda</option>
+                <option value="Terca">Terça</option>
+                <option value="Quarta">Quarta</option>
+                <option value="Quinta">Quinta</option>
+                <option value="Sexta">Sexta</option>
+                <option value="Sabado">Sábado</option>
+            </select>
+        </div>
+    
+        <div class="filtro-grupo btn-group">
+            <button class="btn-filtro" onclick="filtrarAulas()">
+                <i class="fas fa-filter"></i> Filtrar
+            </button>
+            <button class="btn-filtro btn-limpar" onclick="limparFiltros()">
+                <i class="fas fa-broom"></i> Limpar
+            </button>
+        </div>
     </div>
 
+    <div class="filtro-admin" style="display: none;">
+        <label for="seletorDocente">Selecione o Docente:</label>
+        <select id="seletorDocente">
+            <option value=""></option>
+        </select>
+        <button id="btnExportarDocente" class="btn-exportar">Exportar planilha do docente</button>
+    </div>
 
     <table id="tabelaAulas">
         <thead>
@@ -310,7 +332,7 @@
                     document.getElementById('profilePic').src = '/img/default.png';
                 }
                 //Verifica o tipo de usuário
-                if (data.tipo !== 'adm') {
+                if (data.tipo !== 'Administrador') {
                  document.getElementById('btnCadastrarMateria').style.display = 'none';
                  document.getElementById('btnCadastrarCurso').style.display = 'none';
                  document.getElementById('btnCadastrarTurma').style.display = 'none';
@@ -326,53 +348,54 @@
         async function carregarCursos() {
             try {
                 const response = await fetch('http://localhost:5505/curso');
-                if (!response.ok) {
-                    throw new Error("Erro ao carregar cursos");
-                }
+                if (!response.ok) throw new Error("Erro ao carregar cursos");
+                
                 const cursos = await response.json();
-                console.log("Cursos carregados:", cursos); // 🔍 Veja se os cursos aparecem no console
-
+                console.log("Cursos carregados:", cursos);
 
                 // Atualiza todos os selects de curso
                 const selectsCurso = document.querySelectorAll('select[id="curso"]');
                 selectsCurso.forEach(select => {
-                    select.innerHTML = '<option value="">Selecione um curso</option>';
+                    // Limpa o select completamente
+                    select.innerHTML = '';
+                    
+                    // Preenche apenas com as opções reais
                     cursos.forEach(curso => {
-                        const option = document.createElement('option');
-                        option.value = curso.id;
-                        option.textContent = curso.nome;
-                        select.appendChild(option);
+                        const option = new Option(curso.nome, curso.id);
+                        select.add(option);
                     });
 
-
-                    select.addEventListener('change', function() {
-                        console.log("Curso selecionado:", this.value); // Mostra o ID do curso selecionado
+                    // Inicializa Select2 com placeholder
+                    $(select).select2({
+                        placeholder: "Selecione ou digite",
+                        allowClear: true,  // Permite limpar a seleção
+                        minimumResultsForSearch: -1,
+                        width: '200px'
+                    }).on('change', function() {
+                        console.log("Curso selecionado (Select2):", $(this).val());
                     });
+
+                    // Força o placeholder a aparecer inicialmente
+                    $(select).val('').trigger('change');
                 });
+
             } catch (error) {
                 console.error('Erro ao carregar cursos:', error);
             }
         }
 
 
-
-
-
-
         document.getElementById('cursoForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             console.log("Formulário de curso enviado!");
 
-
             const nomeCurso = document.getElementById('nome').value;
-
 
             const response = await fetch('http://localhost:5505/curso', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome: nomeCurso })
             });
-
 
             if (response.ok) {
                 alert('Curso cadastrado!');
@@ -395,10 +418,8 @@
                 const response = await fetch('http://localhost:5505/turma');
                 if (!response.ok) throw new Error("Erro ao carregar turmas");
 
-
                 const turmas = await response.json();
                 const selectTurma = document.getElementById('turma');
-
 
                 selectTurma.innerHTML = '<option value="">Selecione uma turma</option>';
                 turmas.forEach(turma => {
@@ -407,6 +428,11 @@
                     option.textContent = turma.nome;
                     selectTurma.appendChild(option);
                 });
+                $('#turma').select2({
+                    placeholder: "Selecione ou digite",
+                    minimumResultsForSearch: -1,
+                    width: '200px' // Pode ser ajustado (ex: '300px')
+                }).trigger('change');
             } catch (error) {
                 console.error('Erro ao carregar turmas:', error);
             }
@@ -457,6 +483,11 @@
                     option.textContent = `Cimatec ${lab.cimatec} - Andar ${lab.andar} - Sala ${lab.sala}`;
                     selectLaboratorio.appendChild(option);
                 });
+                $('#laboratorio').select2({
+                    placeholder: "Selecione ou digite",
+                    minimumResultsForSearch: -1,
+                    width: '200px' // Pode ser ajustado (ex: '300px')
+                }).trigger('change');
             } catch (error) {
                 console.error('Erro ao carregar laboratório:', error);
             }
@@ -467,13 +498,9 @@
             event.preventDefault();
             console.log("Formulário de laboratório enviado!");
 
-
             const cimatec = document.getElementById('cimatec').value;
             const andar = document.getElementById('andar').value;
             const sala = document.getElementById('sala').value;
-
-
-
 
             const response = await fetch('http://localhost:5505/laboratorio', {
                 method: 'POST',
@@ -500,17 +527,21 @@
                 const response = await fetch('http://localhost:5505/materia');
                 const materias = await response.json();
 
-
                 const selectMateria = document.getElementById('materia');
-                selectMateria.innerHTML = '<option value="">Selecione uma Matéria</option>'; // Limpa antes de adicionar
-
+                selectMateria.innerHTML = '<option value="">Selecione uma Matéria</option>'; 
 
                 materias.forEach(materia => {
                     const option = document.createElement('option');
-                    option.value = materia.id;  // Supondo que o ID da matéria esteja vindo do backend
-                    option.textContent = materia.uc;  // Nome da matéria
+                    option.value = materia.id; 
+                    option.textContent = materia.uc;  
                     selectMateria.appendChild(option);
                 });
+
+                $('#materia').select2({
+                    placeholder: "Selecione ou digite",
+                    minimumResultsForSearch: -5,
+                    width: '200px' // Pode ser ajustado (ex: '300px')
+                }).trigger('change');
             } catch (error) {
                 console.error('Erro ao carregar matérias:', error);
             }
@@ -526,28 +557,41 @@
         });
 
 
-        function enviarMateria() {
-            let formData = new FormData(document.getElementById("materiaForm"));
-            let dadosMateria = {
-                uc: formData.get("uc"),
-                ch: formData.get("ch"),
-                curso_id: formData.get("curso")
-            };
+        // Função corrigida para enviar matéria
+        async function enviarMateria() {
+        const form = document.getElementById("materiaForm");
+        const formData = new FormData(form);
+        
+        const dadosMateria = {
+            uc: formData.get("uc"),
+            ch: formData.get("ch"),
+            curso_id: formData.get("curso")
+        };
 
+        try {
+            const response = await fetch("/materia", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(dadosMateria)
+            });
 
-            fetch("/materia", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(dadosMateria)
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert("Matéria cadastrada com sucesso!");
-                document.getElementById("materiaForm").reset();
-            })
-            .catch(error => console.error("Erro ao cadastrar matéria:", error));
+            const data = await response.json();
+
+            if (!response.ok) {
+            throw new Error(data.error || "Erro ao cadastrar matéria");
+            }
+
+            alert(data.message);
+            form.reset();
+            carregarMaterias(); // Recarrega a lista de matérias
+            closeModal('modalMateria');
+
+        } catch (error) {
+            console.error("Erro:", error);
+            alert(error.message);
+        }
         }
 
 
@@ -588,7 +632,11 @@
             carregarMaterias();
             carregarTurmas();
             carregarLaboratorios();
-
+            $('#turno').select2({
+                    placeholder: "Selecione ou digite",
+                    minimumResultsForSearch: -1,
+                    width: '200px'  
+                }).trigger('change');
 
             document.getElementById("aulaForm").addEventListener("submit", async function (event) {
                 event.preventDefault();
@@ -622,7 +670,6 @@
                 return;
                 }
 
-
                 let usuario_id = userData.id;
                 let dadosAula = {
                 usuario_id: usuario_id,
@@ -635,16 +682,13 @@
                 dataInicio: formData.get("dataInicio")
                 };
 
-
                 console.log("Dados da aula antes do envio:", dadosAula);
-
 
                 if (!dadosAula.curso_id || !dadosAula.materia_id || !dadosAula.turma_id ||
                 !dadosAula.laboratorio_id || !dadosAula.turno || dadosAula.diasSemana.length === 0 || !dadosAula.dataInicio) {
                 alert("Todos os campos devem ser preenchidos corretamente!");
                 return;
                 }
-
 
                 const response = await fetch("http://localhost:5505/aulas", {
                 method: "POST",
@@ -653,12 +697,12 @@
                 body: JSON.stringify(dadosAula)
                 });
 
-
                 const data = await response.json();
                 if (response.ok) {
                 alert("Aula cadastrada com sucesso!");
                 document.getElementById("aulaForm").reset();
                 closeModal("modalAula");
+                await carregarAulas();//carregando na tabela
                 } else {
                 console.error("Erro ao cadastrar aula:", data.error);
                 alert(data.error || "Erro ao cadastrar aula.");
@@ -680,7 +724,6 @@
                     method: 'GET',
                     credentials: 'include'
                 });
-
 
                 if (!response.ok) {
                     throw new Error("Erro ao carregar as aulas");
@@ -734,7 +777,7 @@
             });
 
 
-             $(document).ready(function() {
+            $(document).ready(function() {
                 $('#filtroCurso, #filtroMateria, #filtroTurma, #filtroTurno, #filtroDiaSemana').select2({
                     placeholder: "Selecione ou digite",
                     minimumResultsForSearch: -1
@@ -751,7 +794,6 @@
             const filtroTurno = document.getElementById("filtroTurno").value;
             const filtroDiaSemana = document.getElementById("filtroDiaSemana").value;
 
-
             // Filtrando as aulas com base nos critérios
             const aulasFiltradas = aulas.filter(aula => {
                 const matchCurso = filtroCurso ? aula.curso.toLowerCase().includes(filtroCurso.toLowerCase()) : true;
@@ -760,10 +802,8 @@
                 const matchTurno = filtroTurno ? aula.turno.toLowerCase().includes(filtroTurno.toLowerCase()) : true;
                 const matchDiaSemana = filtroDiaSemana ? aula.diasSemana.toLowerCase().includes(filtroDiaSemana.toLowerCase()) : true;
 
-
                 return matchCurso && matchMateria && matchTurma && matchTurno && matchDiaSemana;
             });
-
 
             atualizarTabela(aulasFiltradas);
         }
@@ -772,10 +812,8 @@
         function atualizarTabela(aulas) {
             const tbody = document.getElementById("tabelaCorpo");
 
-
             // Limpar a tabela antes de adicionar os novos dados
             tbody.innerHTML = '';
-
 
             // Preencher a tabela com as aulas
             aulas.forEach(aula => {
@@ -803,9 +841,18 @@
 
 
                 const tdDiaSemana = document.createElement('td');
-                tdDiaSemana.textContent = aula.diasSemana;
-                tr.appendChild(tdDiaSemana);
+                // Verifica se é array, string com vírgulas ou outro formato
+                if (Array.isArray(aula.diasSemana)) {
+                    tdDiaSemana.textContent = aula.diasSemana.join(', ');
+                } else if (typeof aula.diasSemana === 'string' && aula.diasSemana.includes(',')) {
+                    tdDiaSemana.textContent = aula.diasSemana.replace(/,/g, ', ');
+                } else if (aula.diasSemana) {
+                    tdDiaSemana.textContent = aula.diasSemana;
+                } else {
+                    tdDiaSemana.textContent = 'N/A';
+                }
 
+                tr.appendChild(tdDiaSemana);
 
                 tbody.appendChild(tr);
             });
@@ -815,11 +862,107 @@
 
 
         $(document).ready(function() {
-            carregarAulas();
-            setInterval(carregarAulas, 100000);
-            verificarAulasHoje();
+            $(document).ready(function() {
+    // Configuração padrão para todos os selects de filtro
+    $('.select-filtro').select2({
+        placeholder: "Selecione...",
+        allowClear: true,
+        minimumResultsForSearch: 5,
+        width: '100%',
+        dropdownAutoWidth: true,
+        language: {
+            noResults: function() {
+                return "Nenhum resultado encontrado";
+            },
+            searching: function() {
+                return "Pesquisando...";
+            }
+        }
+    });
+
+    // Configuração específica para o seletor de docente
+    $('#seletorDocente').select2({
+        placeholder: "Selecione o docente...",
+        allowClear: true,
+        width: '100%'
+    });
+});
         });
 
+        
+        // Mostrar filtro apenas para admin
+        document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            const response = await fetch('/adm');
+            const data = await response.json();
+           
+            if (data.isAdmin) {
+            document.querySelector('.filtro-admin').style.display = 'block';
+            await carregarDocentes();
+            }
+        } catch (error) {
+            console.error('Erro ao verificar permissões:', error);
+        }
+        });
+
+        // Carregar lista de docentes
+        async function carregarDocentes() {
+        try {
+            const response = await fetch('/docentes');
+            if (!response.ok) throw new Error();
+           
+            const docentes = await response.json();
+            const select = document.getElementById('seletorDocente');
+           
+            // Adicionar docentes
+            docentes.forEach(docente => {
+            select.add(new Option(docente.nome, docente.id));
+            });
+
+              // Inicializa o Select2 APÓS carregar os docentes
+            $('#seletorDocente').select2({
+                placeholder: "Selecione ou digite",
+                minimumResultsForSearch: -1,
+                width: '100%' // Opcional: ajusta a largura
+            }).trigger('change'); // Força a atualização visual
+        } catch (error) {
+            console.error('Erro ao carregar docentes:', error);
+            alert('Não foi possível carregar a lista de docentes');
+        }
+        }
+        // Configurar botão de exportação
+        document.getElementById('btnExportarDocente').addEventListener('click', exportarPlanilhaDocente);
+        function exportarPlanilhaDocente() {
+        const docenteId = document.getElementById('seletorDocente').value;
+        let url = '/exportar-excel';
+       
+        if (docenteId) {
+            url += `?docente_id=${encodeURIComponent(docenteId)}`;
+        }
+       
+        window.open(url, '_blank');
+        }
+
+        function limparFiltros() {
+            const filtros = ['filtroCurso', 'filtroMateria', 'filtroTurma', 'filtroTurno', 'filtroDiaSemana', 'seletorDocente'];
+            filtros.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.value = "";
+                    select.selectedIndex = 0;
+                    select.dispatchEvent(new Event('change'));
+                }
+            });
+            if (typeof resetarEstadoFiltros === 'function') {
+                resetarEstadoFiltros();
+            }
+            if (typeof atualizarTabela === 'function' && aulas) {
+                atualizarTabela(aulas);
+            } else {
+                console.warn("Não foi possível atualizar a tabela programaticamente");
+                window.location.reload();
+            }
+        }
 
         // Função para verificar se o usuário é docente e se ele tem aula no dia
         async function verificarAulasHoje() {
@@ -904,17 +1047,32 @@
         }
 
 
-        function sair() {
-        if (confirm("Você tem certeza que deseja sair?")) {
-            fetch('http://localhost:5505/', { method: 'POST' })
-                .then(() => {
-                    window.location.href = 'home.html';
-                })
-                .catch(error => {
-                    console.error('Erro ao sair:', error);
-                    alert('Erro ao fazer logout.');
-                });
-        }}
+        function sair(event) {
+    // Previne o comportamento padrão do link
+    event.preventDefault();
+    
+    if (confirm("Você tem certeza que deseja sair?")) {
+        fetch('/logout', {
+            method: 'POST',
+            credentials: 'include', // Importante para enviar os cookies
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redireciona apenas se o logout foi bem-sucedido
+                window.location.href = 'home.html';
+            } else {
+                throw new Error('Falha no logout');
+            }
+        })
+        .catch(error => {
+            console.error('Erro detalhado:', error);
+            alert('Não foi possível conectar ao servidor. Tente novamente.');
+        });
+    }
+}
 
 
         function openModal(id) { document.getElementById(id).style.display = 'block'; }

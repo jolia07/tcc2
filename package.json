@@ -16,6 +16,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "path": "^0.12.7",
+    "pg": "^8.14.1",
     "promise": "^8.3.0",
     "transporter": "^0.0.1",
     "util": "^0.12.5"

@@ -92,8 +92,8 @@
                 <div class="wrap-input100 validate-input" data-validate="Tipo de conta é obrigatório">
                     <select class="input100" id="tipo" name="tipo" required>
                         <option value="" disabled selected>Selecione o tipo</option>
-                        <option value="docente">Docente</option>
-                        <option value="adm">Administrador</option>
+                        <option value="Docente">Docente</option>
+                        <option value="Administrador">Administrador</option>
                     </select>
                     <span class="focus-input100"></span>
                     <span class="symbol-input100">
@@ -243,7 +243,7 @@
          })
          .then(response => {
           if (response.ok) {
-            window.location.href = "perfil.html"; 
+            window.location.href = "calendario.html"; 
           } else {
             alert('Email ou senha incorretos!');
            }
@@ -251,8 +251,7 @@
          .catch(error => console.error('Erro:', error));
         });
 
-        // Função para enviar o formulário de cadastro
-         document.getElementById('registerForm').addEventListener('submit', function(e) {
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
           e.preventDefault();
 
            const nome = document.getElementById('name').value;
@@ -261,6 +260,7 @@
            const telefone1 = document.getElementById('register-text').value;
            const tipo = document.getElementById('tipo').value;
 
+           
           if (!nome || !email || !senha || !telefone1 || !tipo ) {
            alert("Por favor, preencha todos os campos.");
            return;
@@ -330,37 +330,7 @@
          })
          .catch(error => console.error('Erro:', error));
         });
-   
-        document.querySelector('.form-box.register form').addEventListener('submit', function(e) {
-         e.preventDefault();
-   
-         const nome = this.querySelector('input[type="text"]').value;
-         const email = this.querySelector('input[type="email"]').value;
-         const senha = this.querySelector('input[type="password"]').value;
-         const telefone1 = this.querySelector('input[type="text"]').value;
-         const tipo = this.querySelector('select').value;
-   
-         fetch('/cadastro', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ nome, email, senha, telefone1, tipo }),
-         })
-         .then(response => {
-            if (response.ok) {
-                alert('Cadastro realizado com sucesso! Você pode fazer login agora.');
-                location.reload();
-            } else {
-                alert('Erro ao cadastrar: ' + response.statusText);
-            }
-         })
-         .catch(error => console.error('Erro:', error));
-        });
-    </script>
 
-    <!--Atualizar senha do usuário no banco/fetch para rota-->
-    <script>
     document.getElementById('updatePasswordForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
