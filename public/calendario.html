@@ -347,7 +347,7 @@
 
         async function carregarCursos() {
             try {
-                const response = await fetch('http://localhost:5505/curso');
+                const response = await fetch('https://sepa-api.onrender.com/curso');
                 if (!response.ok) throw new Error("Erro ao carregar cursos");
                 
                 const cursos = await response.json();
@@ -391,7 +391,7 @@
 
             const nomeCurso = document.getElementById('nome').value;
 
-            const response = await fetch('http://localhost:5505/curso', {
+            const response = await fetch('https://sepa-api.onrender.com/curso', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome: nomeCurso })
@@ -415,7 +415,7 @@
 
         async function carregarTurmas() {
             try {
-                const response = await fetch('http://localhost:5505/turma');
+                const response = await fetch('https://sepa-api.onrender.com/turma');
                 if (!response.ok) throw new Error("Erro ao carregar turmas");
 
                 const turmas = await response.json();
@@ -445,7 +445,7 @@
             const cursoId = document.getElementById('curso').value;
 
 
-            const response = await fetch('http://localhost:5505/turma', {
+            const response = await fetch('https://sepa-api.onrender.com/turma', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome, curso_id: cursoId })
@@ -468,7 +468,7 @@
 
         async function carregarLaboratorios() {
             try {
-                const response = await fetch('http://localhost:5505/laboratorio');
+                const response = await fetch('https://sepa-api.onrender.com/laboratorio');
                 if (!response.ok) throw new Error("Erro ao carregar laboratório");
 
 
@@ -502,7 +502,7 @@
             const andar = document.getElementById('andar').value;
             const sala = document.getElementById('sala').value;
 
-            const response = await fetch('http://localhost:5505/laboratorio', {
+            const response = await fetch('https://sepa-api.onrender.com/laboratorio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cimatec, andar, sala })
@@ -524,7 +524,7 @@
        
         async function carregarMaterias() {
             try {
-                const response = await fetch('http://localhost:5505/materia');
+                const response = await fetch('https://sepa-api.onrender.com/materia');
                 const materias = await response.json();
 
                 const selectMateria = document.getElementById('materia');
@@ -605,7 +605,7 @@
 
 
             try {
-                const response = await fetch('http://localhost:5505/materia', {
+                const response = await fetch('hhttps://sepa-api.onrender.com/materia', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ uc, ch, curso_id })
@@ -690,7 +690,7 @@
                 return;
                 }
 
-                const response = await fetch("http://localhost:5505/aulas", {
+                const response = await fetch("https://sepa-api.onrender.com/aulas", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -1043,7 +1043,7 @@
 
 
         function exportarParaExcel() {
-            window.location.href = 'http://localhost:5505/exportar-excel';
+            window.location.href = 'https://sepa-api.onrender.com/exportar-excel';
         }
 
 

@@ -9,6 +9,7 @@ const excelJS = require('exceljs');
 const nodemailer = require('nodemailer');
 const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
+const cors = require('cors');
 const app = express();
 require("dotenv").config();
 
@@ -27,7 +28,7 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000 
 });
 
-
+app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
@@ -355,7 +356,7 @@ app.post('/solicitar-redefinicao', async (req, res) => {
     // Geração do token e link
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 3600000); // 1 hora
-    const resetLink = `http://localhost:5505/redefinir-senha.html?token=${token}`;    
+    const resetLink = `https://sepa-api.onrender.com/redefinir-senha.html?token=${token}`;    
     await pool.query(
       'INSERT INTO reset_tokens (user_id, token, expires) VALUES ($1, $2, $3)',
       [user[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL

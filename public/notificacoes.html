@@ -119,7 +119,7 @@
 
         function sair() {
         if (confirm("Você tem certeza que deseja sair?")) {
-            fetch('http://localhost:5505/', { method: 'POST' })
+            fetch('https://sepa-api.onrender.com/', { method: 'POST' })
                 .then(() => {
                     window.location.href = 'home.html';
                 })
