@@ -295,6 +295,7 @@
     <table id="tabelaAulas">
         <thead>
             <tr>
+                <th>Docente</th>
                 <th>Curso</th>
                 <th>Matéria</th>
                 <th>Turma</th>
@@ -719,23 +720,35 @@
 
         // Função para carregar os dados da tabela
         async function carregarAulas() {
-            try {
-                const response = await fetch('/aulas', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
+        try {
+            // Verifica se é admin
+            const userResponse = await fetch('/adm');
+            const { isAdmin } = await userResponse.json();
+            
+            // Define a URL baseado no tipo de usuário
+            const url = isAdmin ? '/todasAulas' : '/aulas';
+            
+            const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include'
+            });
 
-                if (!response.ok) {
-                    throw new Error("Erro ao carregar as aulas");
-                }
-                aulas = await response.json();
-                preencherFiltros(aulas);
-                atualizarTabela(aulas);
-            } catch (error) {
-                console.error("Erro ao carregar as aulas:", error);
+            if (!response.ok) throw new Error("Erro ao carregar as aulas");
+            
+            aulas = await response.json();
+            preencherFiltros(aulas);
+            atualizarTabela(aulas);
+            
+            // Mostra filtro de docente se for admin
+            if (isAdmin) {
+            document.querySelector('.filtro-admin').style.display = 'block';
+            carregarDocentes();
             }
+        } catch (error) {
+            console.error("Erro ao carregar as aulas:", error);
+            alert('Erro ao carregar aulas. Tente recarregar a página.');
         }
-
+        }
 
         function preencherFiltros(aulas) {
             const cursos = [...new Set(aulas.map(aula => aula.curso))];
@@ -783,6 +796,18 @@
                     minimumResultsForSearch: -1
                 });
             });
+
+            if (document.querySelector('.filtro-admin').style.display === 'block') {
+                const docentes = [...new Set(aulas.map(aula => aula.professor))].filter(Boolean);
+                const docenteSelect = document.getElementById("seletorDocente");
+                docenteSelect.innerHTML = '<option value="">Selecione</option>';
+                docentes.forEach(docente => {
+                const option = document.createElement("option");
+                option.value = docente;
+                option.textContent = docente;
+                docenteSelect.appendChild(option);
+                });
+            }
         }
 
 
@@ -793,16 +818,20 @@
             const filtroTurma = document.getElementById("filtroTurma").value;
             const filtroTurno = document.getElementById("filtroTurno").value;
             const filtroDiaSemana = document.getElementById("filtroDiaSemana").value;
+            const filtroDocente = document.getElementById("seletorDocente")?.value || '';
 
-            // Filtrando as aulas com base nos critérios
             const aulasFiltradas = aulas.filter(aula => {
-                const matchCurso = filtroCurso ? aula.curso.toLowerCase().includes(filtroCurso.toLowerCase()) : true;
-                const matchMateria = filtroMateria ? aula.materia.toLowerCase().includes(filtroMateria.toLowerCase()) : true;
-                const matchTurma = filtroTurma ? aula.turma.toLowerCase().includes(filtroTurma.toLowerCase()) : true;
-                const matchTurno = filtroTurno ? aula.turno.toLowerCase().includes(filtroTurno.toLowerCase()) : true;
-                const matchDiaSemana = filtroDiaSemana ? aula.diasSemana.toLowerCase().includes(filtroDiaSemana.toLowerCase()) : true;
+                const matchCurso = filtroCurso ? (aula.curso || '').includes(filtroCurso) : true;
+                const matchMateria = filtroMateria ? (aula.materia || '').includes(filtroMateria) : true;
+                const matchTurma = filtroTurma ? (aula.turma || '').includes(filtroTurma) : true;
+                const matchTurno = filtroTurno ? (aula.turno || '').includes(filtroTurno) : true;
+                const matchDiaSemana = filtroDiaSemana ? 
+                (Array.isArray(aula.diasSemana) ? 
+                    aula.diasSemana.some(dia => dia.includes(filtroDiaSemana)) : 
+                    (aula.diasSemana || '').includes(filtroDiaSemana)) : true;
+                const matchDocente = filtroDocente ? (aula.professor || '').includes(filtroDocente) : true;
 
-                return matchCurso && matchMateria && matchTurma && matchTurno && matchDiaSemana;
+                return matchCurso && matchMateria && matchTurma && matchTurno && matchDiaSemana && matchDocente;
             });
 
             atualizarTabela(aulasFiltradas);
@@ -819,6 +848,10 @@
             aulas.forEach(aula => {
                 const tr = document.createElement('tr');
 
+
+                const tdDocente = document.createElement('td');
+                tdDocente.textContent = aula.usuario || aula.professor || 'N/A'; 
+                tr.appendChild(tdDocente);
 
                 const tdCurso = document.createElement('td');
                 tdCurso.textContent = aula.curso;
@@ -863,30 +896,29 @@
 
         $(document).ready(function() {
             $(document).ready(function() {
-    // Configuração padrão para todos os selects de filtro
-    $('.select-filtro').select2({
-        placeholder: "Selecione...",
-        allowClear: true,
-        minimumResultsForSearch: 5,
-        width: '100%',
-        dropdownAutoWidth: true,
-        language: {
-            noResults: function() {
-                return "Nenhum resultado encontrado";
-            },
-            searching: function() {
-                return "Pesquisando...";
-            }
-        }
-    });
-
-    // Configuração específica para o seletor de docente
-    $('#seletorDocente').select2({
-        placeholder: "Selecione o docente...",
-        allowClear: true,
-        width: '100%'
-    });
-});
+                // Configuração padrão para todos os selects de filtro
+                $('.select-filtro').select2({
+                    placeholder: "Selecione...",
+                    allowClear: true,
+                    minimumResultsForSearch: 5,
+                    width: '100%',
+                    dropdownAutoWidth: true,
+                    language: {
+                        noResults: function() {
+                            return "Nenhum resultado encontrado";
+                        },
+                        searching: function() {
+                            return "Pesquisando...";
+                        }
+                    }
+                });
+                // Configuração específica para o seletor de docente
+                $('#seletorDocente').select2({
+                    placeholder: "Selecione o docente...",
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
         });
 
         
@@ -930,6 +962,7 @@
             alert('Não foi possível carregar a lista de docentes');
         }
         }
+        
         // Configurar botão de exportação
         document.getElementById('btnExportarDocente').addEventListener('click', exportarPlanilhaDocente);
         function exportarPlanilhaDocente() {
@@ -1048,36 +1081,44 @@
 
 
         function sair(event) {
-    // Previne o comportamento padrão do link
-    event.preventDefault();
-    
-    if (confirm("Você tem certeza que deseja sair?")) {
-        fetch('/logout', {
-            method: 'POST',
-            credentials: 'include', // Importante para enviar os cookies
-            headers: {
-                'Content-Type': 'application/json'
+            // Previne o comportamento padrão do link
+            event.preventDefault();
+            
+            if (confirm("Você tem certeza que deseja sair?")) {
+                fetch('/logout', {
+                    method: 'POST',
+                    credentials: 'include', // Importante para enviar os cookies
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Redireciona apenas se o logout foi bem-sucedido
+                        window.location.href = 'home.html';
+                    } else {
+                        throw new Error('Falha no logout');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro detalhado:', error);
+                    alert('Não foi possível conectar ao servidor. Tente novamente.');
+                });
             }
-        })
-        .then(response => {
-            if (response.ok) {
-                // Redireciona apenas se o logout foi bem-sucedido
-                window.location.href = 'home.html';
-            } else {
-                throw new Error('Falha no logout');
-            }
-        })
-        .catch(error => {
-            console.error('Erro detalhado:', error);
-            alert('Não foi possível conectar ao servidor. Tente novamente.');
-        });
-    }
-}
-
+        }
 
         function openModal(id) { document.getElementById(id).style.display = 'block'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        carregarDadosUsuario();
+        document.addEventListener("DOMContentLoaded", function() {
+            carregarDadosUsuario();
+            carregarAulas(); // Isso vai carregar tudo automaticamente
+            
+            // Configura os selects
+            $('.select-filtro').select2({
+                placeholder: "Selecione...",
+                allowClear: true
+            });
+        });
     </script>
 
 

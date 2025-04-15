@@ -764,6 +764,44 @@ app.get('/aulas', async (req, res) => {
 });
 
 
+// Rota para pegar todas as aulas (apenas admin)
+app.get('/todasAulas', async (req, res) => {
+  try {
+    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    
+    const query = `
+      SELECT
+        a.id,
+        u.nome AS professor,
+        c.nome AS curso,
+        m.uc AS materia,
+        t.nome AS turma,
+        CONCAT('CIMATEC ', l.cimatec, ' - Andar ', l.andar, ' - Sala ', l.sala) AS laboratorio,
+        a.turno,
+        a.diasSemana,
+        a.dataInicio
+      FROM aula a
+      LEFT JOIN usuarios u ON a.usuario_id = u.id
+      LEFT JOIN curso c ON a.curso_id = c.id
+      LEFT JOIN materia m ON a.materia_id = m.id
+      LEFT JOIN turma t ON a.turma_id = t.id
+      LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
+    `;
+
+    const { rows } = await pool.query(query);
+    res.json(rows.map(aula => ({
+      ...aula,
+      diasSemana: aula.diassemana ? aula.diassemana.split(',').map(d => d.trim()) : []
+    })));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao buscar aulas' });
+  }
+});
+
+
 // Rota para retornar aulas do dia
 app.get('/aulasHoje', async (req, res) => {
   if (!req.session || !req.session.user || !req.session.user.id) {
