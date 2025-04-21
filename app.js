@@ -889,39 +889,60 @@ app.get('/exportar-excel', async (req, res) => {
   try {
     if (!req.session || !req.session.user || !req.session.user.id) {
       return res.status(401).json({ error: "Usuário não autenticado" });
-     }
-      
-    const isAdmin = req.session.user.tipo === 'Administrador';
-    const docenteId = isAdmin && req.query.docente_id
-       ? req.query.docente_id
-       : req.session.user.id;
-      
-   // Validação para admin
-    if (isAdmin && req.query.docente_id) {
-       const {rows: docenteCheck} = await pool.query(
-      'SELECT id, tipo FROM usuarios WHERE id = $1 AND tipo = $2',
-      [docenteId, 'Docente']
-      );
-      if (docenteCheck.length === 0) {
-        return res.status(400).json({ error: "Docente não encontrado" });
-      }
     }
       
-   // Buscar dados do docente
+    const isAdmin = req.session.user.tipo === 'Administrador';
+    let docenteId;
+    let docenteNome;
+
+    // Lógica para obter o docente (por nome para admin, por ID para docente normal)
+    if (isAdmin && req.query.docente_nome) {
+      // Busca o docente pelo nome
+      docenteNome = req.query.docente_nome.trim();
+      
+      const { rows: docenteCheck } = await pool.query(
+        'SELECT id, nome FROM usuarios WHERE nome = $1 AND tipo = $2',
+        [docenteNome, 'Docente']
+      );
+      
+      if (docenteCheck.length === 0) {
+        return res.status(404).json({ 
+          error: "Docente não encontrado",
+          details: `Nenhum docente encontrado com o nome "${docenteNome}"`
+        });
+      }
+      
+      // Se houver mais de um docente com o mesmo nome
+      if (docenteCheck.length > 1) {
+        return res.status(400).json({
+          error: "Múltiplos docentes encontrados",
+          details: `Foram encontrados ${docenteCheck.length} docentes com o nome "${docenteNome}".`,
+          sugestoes: docenteCheck.map(d => ({ id: d.id, nome: d.nome }))
+        });
+      }
+      
+      docenteId = docenteCheck[0].id;
+      docenteNome = docenteCheck[0].nome;
+    } else {
+      // Usa o ID do usuário logado (para docentes não-admins)
+      docenteId = req.session.user.id;
+    }
+      
+    // Buscar dados do docente
     const {rows: userData} = await pool.query(
        'SELECT nome, email, telefone1, telefone2 FROM usuarios WHERE id = $1',
        [docenteId]
     );
       
-       if (userData.length === 0) {
+      if (userData.length === 0) {
        return res.status(404).json({ error: "Usuário não encontrado" });
-       }
+      }
       
-      const docente = userData[0];
+    const docente = userData[0];
+    docenteNome = docente.nome; 
       
-      
-      const {rows: aulas} = await pool.query(`
-  SELECT
+    const {rows: aulas} = await pool.query(`
+     SELECT
       a.id,
      u.nome AS professor,
      c.nome AS curso,
@@ -939,14 +960,14 @@ app.get('/exportar-excel', async (req, res) => {
        LEFT JOIN turma t ON a.turma_id = t.id
        LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
        WHERE a.usuario_id = $1
-      `, [docenteId]);
+    `, [docenteId]);
       
-      if (aulas.length === 0) {
+    if (aulas.length === 0) {
       const msg = isAdmin
       ? `Nenhuma aula encontrada para o docente ${docente.nome}`
       : "Nenhuma aula cadastrada para o seu usuário";
-      return res.status(404).json({ error: msg });
-      }
+     return res.status(404).json({ error: msg });
+    }
 
     const planilha = new excelJS.Workbook();
     const aba = planilha.addWorksheet('Aulas');

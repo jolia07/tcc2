@@ -289,7 +289,7 @@
         <select id="seletorDocente">
             <option value=""></option>
         </select>
-        <button id="btnExportarDocente" class="btn-exportar">Exportar planilha do docente</button>
+        <button id="btnExportarDocente" class="btn-exportar" onclick="exportarPlanilhaDocente()">Exportar planilha do docente</button>
     </div>
 
     <table id="tabelaAulas">
@@ -939,41 +939,47 @@
 
         // Carregar lista de docentes
         async function carregarDocentes() {
-        try {
-            const response = await fetch('/docentes');
-            if (!response.ok) throw new Error();
-           
-            const docentes = await response.json();
-            const select = document.getElementById('seletorDocente');
-           
-            // Adicionar docentes
-            docentes.forEach(docente => {
-            select.add(new Option(docente.nome, docente.id));
-            });
+            try {
+                const response = await fetch('/docentes');
+                if (!response.ok) throw new Error();
+                
+                const docentes = await response.json();
+                const select = document.getElementById('seletorDocente');
+                select.innerHTML = '<option value="">Selecione um docente</option>';
+                
+                // Adicionar docentes pelo nome completo
+                docentes.forEach(docente => {
+                    const option = new Option(docente.nome, docente.nome);
+                    select.add(option);
+                });
 
-              // Inicializa o Select2 APÓS carregar os docentes
-            $('#seletorDocente').select2({
-                placeholder: "Selecione ou digite",
-                minimumResultsForSearch: -1,
-                width: '100%' // Opcional: ajusta a largura
-            }).trigger('change'); // Força a atualização visual
-        } catch (error) {
-            console.error('Erro ao carregar docentes:', error);
-            alert('Não foi possível carregar a lista de docentes');
-        }
+                // Inicializa o Select2
+                $('#seletorDocente').select2({
+                    placeholder: "Selecione um docente",
+                    allowClear: true,
+                    width: '100%'
+                });
+            } catch (error) {
+                console.error('Erro ao carregar docentes:', error);
+                alert('Não foi possível carregar a lista de docentes');
+            }
         }
         
         // Configurar botão de exportação
         document.getElementById('btnExportarDocente').addEventListener('click', exportarPlanilhaDocente);
+
         function exportarPlanilhaDocente() {
-        const docenteId = document.getElementById('seletorDocente').value;
-        let url = '/exportar-excel';
-       
-        if (docenteId) {
-            url += `?docente_id=${encodeURIComponent(docenteId)}`;
-        }
-       
-        window.open(url, '_blank');
+            const docenteNome = document.getElementById('seletorDocente').value;
+            
+            if (!docenteNome) {
+                alert('Por favor, selecione um docente para exportar');
+                return;
+            }
+            
+            const nomeCodificado = encodeURIComponent(docenteNome);
+            const url = `/exportar-excel?docente_nome=${nomeCodificado}`;
+            
+            window.open(url, '_blank');
         }
 
         function limparFiltros() {
