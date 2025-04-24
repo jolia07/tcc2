@@ -10,6 +10,8 @@ const nodemailer = require('nodemailer');
 const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
 const cors = require('cors');
+const xlsx = require('xlsx');
+const fileUpload = require('express-fileupload');
 const app = express();
 require("dotenv").config();
 
@@ -28,6 +30,7 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000 
 });
 
+app.use(fileUpload());
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -108,6 +111,27 @@ const upload = multer({
       return cb(null, true);
     }
     cb(new Error('Apenas imagens são permitidas!'));
+  }
+});
+
+
+// Configuração para upload de planilhas Excel
+const planilhaStorage = multer.diskStorage({
+  destination: path.join(__dirname, 'uploads', 'planilhas'),
+  filename: (req, file, cb) => {
+      cb(null, `aulas_${req.session.user.id}.xlsx`);
+  }
+});
+
+const uploadPlanilha = multer({
+  storage: planilhaStorage,
+  fileFilter: (req, file, cb) => {
+      const allowed = /xlsx/.test(path.extname(file.originalname).toLowerCase());
+      if (allowed) return cb(null, true);
+      cb(new Error('Somente arquivos Excel (.xlsx) são permitidos!'));
+  },
+  limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB
   }
 });
 
@@ -883,6 +907,34 @@ function getColorForMateria(materia) {
  
   return `FF${pastelR}${pastelG}${pastelB}`; // Formato ARGB (FF = alpha totalmente opaco)
 }
+
+
+// Upload e processamento do Excel
+app.post('/upload', (req, res) => {
+  if (!req.files || !req.files.planilha) {
+    return res.status(400).send('Nenhum arquivo enviado.');
+  }
+
+
+  const workbook = xlsx.read(req.files.planilha.data, { type: 'buffer' });
+  const primeiraAba = workbook.SheetNames[0];
+  const dados = xlsx.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
+
+
+  // Agrupa por docente
+  const agrupadoPorDocente = {};
+  dados.forEach(linha => {
+    const docente = linha.Docente || 'Desconhecido';
+    if (!agrupadoPorDocente[docente]) agrupadoPorDocente[docente] = [];
+    agrupadoPorDocente[docente].push(linha);
+  });
+
+
+  res.json(agrupadoPorDocente);
+});
+
+
+
 
 //Rota da planilha(montagem)
 app.get('/exportar-excel', async (req, res) => {
