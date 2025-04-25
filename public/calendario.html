@@ -1138,113 +1138,51 @@
 
 <script>
     document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-
-        try {
-            const res = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!res.ok) throw new Error('Erro ao enviar a planilha');
-            
-            const data = await res.json();
-            const resultadoDiv = document.getElementById('resultado');
-            resultadoDiv.innerHTML = '';
-
-            // Função para formatar horários
-            const formatarHorario = (valor) => {
-                if (valor === null || valor === undefined || valor === '') return '';
-                if (typeof valor === 'string' && valor.match(/^\d{1,2}:\d{2}$/)) return valor;
-                if (typeof valor === 'number') {
-                    const horas = Math.floor(valor * 24);
-                    const minutos = Math.round((valor * 24 - horas) * 60);
-                    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
-                }
-                return valor;
-            };
-
-            // Processa cada docente
-            Object.entries(data).forEach(([docente, aulas]) => {
-                const h3 = document.createElement('h3');
-                h3.textContent = `Docente: ${docente}`;
-                resultadoDiv.appendChild(h3);
-
-                if (aulas.length === 0) {
-                    resultadoDiv.appendChild(document.createElement('p')).textContent = 'Nenhuma aula encontrada';
-                    return;
-                }
-
-                const table = document.createElement('table');
-                table.style.borderCollapse = 'collapse';
-                table.style.width = '100%';
-                
-                // Identifica colunas de horário
-                const colunasHorario = new Set();
-                const colunaDatas = 'datas da atividade';
-                
-                // Cria cabeçalho
-                const header = document.createElement('tr');
-                const allColumns = Array.from(new Set(aulas.flatMap(linha => Object.keys(linha))));
-                
-                allColumns.forEach(col => {
-                    if (col.match(/hora|horário|início|fim|agendad[ao]/i)) {
-                        colunasHorario.add(col);
-                    }
-                    const th = document.createElement('th');
-                    th.textContent = col;
-                    th.style.border = '1px solid #ddd';
-                    th.style.padding = '8px';
-                    header.appendChild(th);
-                });
-                table.appendChild(header);
-
-                // Processa cada linha e expande as datas
-                aulas.forEach(linhaOriginal => {
-                    const datas = linhaOriginal[colunaDatas] ? 
-                                linhaOriginal[colunaDatas].split(';').map(d => d.trim()).filter(Boolean) : 
-                                [linhaOriginal[colunaDatas] || '']; // Mantém o valor original se não houver ;
-
-                    // Cria uma linha para cada data
-                    datas.forEach(data => {
-                        const linha = {...linhaOriginal};
-                        linha[colunaDatas] = data; // Atualiza com a data individual
-
-                        const row = document.createElement('tr');
-                        
-                        allColumns.forEach(col => {
-                            const td = document.createElement('td');
-                            td.style.border = '1px solid #ddd';
-                            td.style.padding = '8px';
-                            
-                            const valor = linha[col];
-                            
-                            if (colunasHorario.has(col)) {
-                                td.textContent = formatarHorario(valor);
-                                td.style.fontFamily = 'monospace';
-                                td.style.textAlign = 'center';
-                            } else {
-                                td.textContent = (valor === null || valor === undefined || valor === '') ? '' : valor;
-                            }
-                            
-                            row.appendChild(td);
-                        });
-                        
-                        table.appendChild(row);
-                    });
-                });
-
-                resultadoDiv.appendChild(table);
-            });
-
-        } catch (error) {
-            console.error('Erro:', error);
-            const resultadoDiv = document.getElementById('resultado');
-            resultadoDiv.innerHTML = `<p style="color: red;">Erro ao processar: ${error.message}</p>`;
+      e.preventDefault();
+      const formData = new FormData(this);
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
+  
+      try {
+        const res = await fetch('/upload-laboratorios', {
+          method: 'POST',
+          body: formData
+        });
+  
+        const data = await res.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Erro ao processar planilha');
         }
+  
+        resultadoDiv.innerHTML = '<h2>Resultados do Processamento</h2>';
+        
+        // Exibe resultados por docente
+        for (const [docente, info] of Object.entries(data.resultados)) {
+          const docenteDiv = document.createElement('div');
+          docenteDiv.innerHTML = `
+            <h3>${docente}</h3>
+            <p>Total de registros: ${info.total}</p>
+            <p>Inseridos com sucesso: ${info.inseridos}</p>
+            <p>Erros: ${info.erros}</p>
+            <details>
+              <summary>Detalhes</summary>
+              <pre>${JSON.stringify(info.detalhes, null, 2)}</pre>
+            </details>
+            <hr>
+          `;
+          resultadoDiv.appendChild(docenteDiv);
+        }
+  
+      } catch (error) {
+        resultadoDiv.innerHTML = `
+          <p style="color: red;">Erro: ${error.message}</p>
+          <p>Verifique o console para mais detalhes.</p>
+        `;
+        console.error('Erro:', error);
+      }
     });
-</script>
+  </script>
 
 </body>
 </html>

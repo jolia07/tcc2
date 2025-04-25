@@ -910,28 +910,155 @@ function getColorForMateria(materia) {
 
 
 // Upload e processamento do Excel
-app.post('/upload', (req, res) => {
+app.post('/upload-laboratorios', async (req, res) => {
   if (!req.files || !req.files.planilha) {
     return res.status(400).send('Nenhum arquivo enviado.');
   }
 
+  try {
+    const workbook = xlsx.read(req.files.planilha.data, { type: 'buffer' });
+    const primeiraAba = workbook.SheetNames[0];
+    const dados = xlsx.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
 
-  const workbook = xlsx.read(req.files.planilha.data, { type: 'buffer' });
-  const primeiraAba = workbook.SheetNames[0];
-  const dados = xlsx.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
+    // Objeto para agrupar por docente
+    const agrupadoPorDocente = {};
 
+    // Processa cada linha da planilha
+    dados.forEach(linha => {
+      const docente = linha['Nome do pessoal atribuído'] || 'Sem docente';
+      
+      if (!agrupadoPorDocente[docente]) {
+        agrupadoPorDocente[docente] = [];
+      }
 
-  // Agrupa por docente
-  const agrupadoPorDocente = {};
-  dados.forEach(linha => {
-    const docente = linha.Docente || 'Desconhecido';
-    if (!agrupadoPorDocente[docente]) agrupadoPorDocente[docente] = [];
-    agrupadoPorDocente[docente].push(linha);
-  });
+      // Processa as datas (pode ter múltiplas datas separadas por ;)
+      const datas = linha['Datas da atividade (Individual)'] 
+        ? linha['Datas da atividade (Individual)'].split(';').map(d => d.trim())
+        : [];
 
+      // Cria um registro para cada data
+      datas.forEach(data => {
+        agrupadoPorDocente[docente].push({
+          nome: linha['Nome'],
+          descricao: linha['Descrição'],
+          docente,
+          diasSemana: linha['Dias agendados'],
+          horaInicio: linha['Hora de início agendada'],
+          horaFim: linha['Fim Agendado'],
+          localizacao: linha['Nome da localização atribuída'],
+          descricaoLocalizacao: linha['Descrição da localização atribuída'],
+          dataAtividade: data,
+          agendado: linha['Agendado']
+        });
+      });
+    });
 
-  res.json(agrupadoPorDocente);
+    // Agora insere no banco de dados para cada docente
+    const resultados = {};
+    
+    for (const [docente, registros] of Object.entries(agrupadoPorDocente)) {
+      resultados[docente] = {
+        total: registros.length,
+        inseridos: 0,
+        erros: 0,
+        detalhes: []
+      };
+
+      for (const registro of registros) {
+        try {
+          // Primeiro verifica se o docente existe no banco
+          let usuarioId = null;
+          if (docente && docente !== 'Sem docente') {
+            const usuarioRes = await pool.query(
+              'SELECT id FROM usuarios WHERE nome = $1', 
+              [docente]
+            );
+            usuarioId = usuarioRes.rows[0]?.id || null;
+          }
+
+          // Verifica se o laboratório existe
+          let laboratorioId = null;
+          if (registro.localizacao) {
+            const labRes = await pool.query(
+              'SELECT id FROM laboratorio WHERE cimatec = $1 AND andar =$2 AND sala = $3', 
+              [registro.localizacao]
+            );
+            laboratorioId = labRes.rows[0]?.id || null;
+            
+            // Se não existe, cria um novo laboratório
+            if (!laboratorioId && registro.localizacao) {
+              const newLab = await pool.query(
+                `INSERT INTO laboratorio (cimatec, andar, sala) 
+                 VALUES ($1, $2, $3) RETURNING id`,
+                [registro.localizacao, registro.descricaoLocalizacao]
+              );
+              laboratorioId = newLab.rows[0].id;
+            }
+          }
+
+          // Insere a aula
+          const dataInicio = new Date(registro.dataAtividade.split('/').reverse().join('-'));
+          
+          const aulaInsert = await pool.query(
+            `INSERT INTO aula (
+              usuario_id, laboratorio_id, turno, diasSemana, 
+              dataInicio, hora_inicio, hora_fim, descricao
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+            [
+              usuarioId,
+              laboratorioId,
+              determinarTurno(registro.horaInicio), // Função auxiliar para determinar turno
+              registro.diasSemana,
+              dataInicio,
+              registro.horaInicio,
+              registro.horaFim,
+              `${registro.nome} - ${registro.descricao}`
+            ]
+          );
+
+          resultados[docente].inseridos++;
+          resultados[docente].detalhes.push({
+            id: aulaInsert.rows[0].id,
+            data: registro.dataAtividade,
+            status: 'sucesso'
+          });
+        } catch (error) {
+          console.error(`Erro ao inserir registro para ${docente}:`, error);
+          resultados[docente].erros++;
+          resultados[docente].detalhes.push({
+            data: registro.dataAtividade,
+            status: 'erro',
+            mensagem: error.message
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Processamento concluído',
+      resultados
+    });
+
+  } catch (error) {
+    console.error('Erro ao processar planilha:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao processar planilha',
+      error: error.message
+    });
+  }
 });
+
+// Função auxiliar para determinar turno baseado no horário
+function determinarTurno(hora) {
+  if (!hora) return 'Não especificado';
+  
+  const [horas] = hora.split(':').map(Number);
+  if (horas < 12) return 'Manhã';
+  if (horas < 18) return 'Tarde';
+  return 'Noite';
+}
 
 
 
