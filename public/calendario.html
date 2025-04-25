@@ -355,26 +355,14 @@
 <div id="tabelaImportadosContainer">
   <h2>Dados Importados da Planilha</h2>
   <!-- Filtros específicos para dados importados -->
-  <div class="filtros-container">
-    <div class="filtro">
-      <label for="filtroDocenteImportado">Docente:</label>
-      <select id="filtroDocenteImportado" class="select-filtro">
-        <option value=""></option>
-      </select>
+  <div class="filtros-importados">
+    <div class="filtro-group">
+      <select id="filtroDocenteImportado" class="select-filtro-importado"></select>
+      <select id="filtroTurnoImportado" class="select-filtro-importado"></select>
     </div>
-    
-    <div class="filtro">
-      <label for="filtroTurnoImportado">Turno:</label>
-      <select id="filtroTurnoImportado" class="select-filtro"></select>
-    </div>
-    
-    <div class="filtro-grupo btn-group">
-        <button class="btn-filtro" onclick="filtrarAulas()">
-            <i class="fas fa-filter"></i> Filtrar
-        </button>
-        <button class="btn-filtro btn-limpar" onclick="limparFiltros()">
-            <i class="fas fa-broom"></i> Limpar
-        </button>
+    <div class="btn-group">
+      <button id="btnFiltrarImportados" class="btn-filtro">Filtrar</button>
+      <button id="btnLimparFiltrosImportados" class="btn-limpar">Limpar Filtros</button>
     </div>
   </div>
   
@@ -1284,21 +1272,22 @@ async function carregarDocentesImportados() {
     selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
     
     // Preenche com os docentes
-    docentes.forEach(docente => {
-      if (docente.nome) { // Garante que o nome não é vazio
-        const option = document.createElement("option");
-        option.value = docente.nome;
-        option.textContent = docente.nome;
-        selectDocente.appendChild(option);
-      }
+    const docentesUnicos = [...new Set(docentes.map(d => d.nome))].filter(Boolean);
+    docentesUnicos.forEach(nomeDocente => {
+      const option = document.createElement("option");
+      option.value = nomeDocente;
+      option.textContent = nomeDocente;
+      selectDocente.appendChild(option);
     });
     
     // Configura o Select2
-    $(selectDocente).select2({
-      placeholder: "Selecione um docente",
+    $('#filtroDocenteImportado').select2({
+      placeholder: "Selecione o docente...",
       allowClear: true,
       width: '100%'
     });
+
+    selectDocente.addEventListener('change', filtrarDadosImportados);
     
   } catch (error) {
     console.error("Erro ao carregar docentes:", error);
@@ -1366,7 +1355,10 @@ function preencherFiltrosImportados(dados) {
     turnoSelect.appendChild(option);
   });
   
-  $(turnoSelect).select2({ placeholder: "Selecione...", allowClear: true });
+  $(turnoSelect).select2({ 
+    placeholder: "Selecione o turno...", 
+    allowClear: true 
+  }).on('change', filtrarDadosImportados);
 }
 
 function filtrarDadosImportados() {
@@ -1374,11 +1366,11 @@ function filtrarDadosImportados() {
   const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
   
   const dadosFiltrados = dadosImportados.filter(item => {
-    // Filtro por docente (case insensitive)
+    // Filtro por docente (comparação exata)
     const matchDocente = docenteSelecionado ? 
-      item.docente && item.docente.toLowerCase().includes(docenteSelecionado.toLowerCase()) : true;
+      item.docente && item.docente.trim() === docenteSelecionado.trim() : true;
     
-    // Filtro por turno (case insensitive)
+    // Filtro por turno (comparação case insensitive)
     const matchTurno = turnoSelecionado ? 
       item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
     
@@ -1419,10 +1411,16 @@ document.addEventListener("DOMContentLoaded", function() {
   
   document.getElementById('btnAlternarTabelas').addEventListener('click', alternarTabelas);
   
-  $('.select-filtro').select2({ placeholder: "Selecione...", allowClear: true });
-
-  document.querySelector('.btn-group .btn-filtro:first-child').addEventListener('click', filtrarDadosImportados);
-  document.querySelector('.btn-group .btn-limpar').addEventListener('click', limparFiltrosImportados);
+  // Configurar os eventos dos botões de filtro
+  document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
+  document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
+  
+  // Inicializar Select2
+  $('.select-filtro-importado').select2({
+    placeholder: "Selecione...",
+    allowClear: true,
+    width: '100%'
+  });
 });
   </script>
 
