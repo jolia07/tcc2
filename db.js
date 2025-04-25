@@ -101,6 +101,25 @@ async function criarTabelas() {
     `);
     console.log("Tabela 'aula' pronta!");
 
+    await pool.query(`
+            CREATE TABLE IF NOT EXISTS importado (
+              id SERIAL PRIMARY KEY,
+              nome VARCHAR(255) NOT NULL,
+              descricao TEXT,
+              docente VARCHAR(255),
+              dias_semana VARCHAR(50) NOT NULL,  
+              hora_inicio TIME NOT NULL,       
+              hora_fim TIME NOT NULL,           
+              localizacao VARCHAR(255),          
+              descricao_localizacao TEXT,        
+              data_atividade DATE NOT NULL,      
+              agendado VARCHAR(50),              
+              turno VARCHAR(10) NOT NULL CHECK (turno IN ('MANHÃ', 'TARDE', 'NOITE')),
+              criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+    `);
+    console.log("Tabela 'importado' pronta!");
+
   } catch (err) {
       console.error("Erro ao criar tabelas:", err);
   }

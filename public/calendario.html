@@ -314,8 +314,7 @@
         </thead>
         <tbody id="tabelaCorpo">
         </tbody>
-    </table>  
-
+    </table>
 
     <!-- Pop-up de Notificação de Aulas -->
     <div id="popupAula" class="popup">
@@ -326,6 +325,78 @@
         </div>
     </div>
 
+    <!-- Botão para alternar entre as tabelas -->
+<button id="btnAlternarTabelas" class="btn-alternar">Ver Dados Importados</button>
+
+<!-- Container da tabela Aula -->
+<div id="tabelaAulasContainer">
+  <h2>Agendamento de Aulas</h2>
+  <!-- Filtros existentes para a tabela aula -->
+  <div class="filtros-container">
+    <!-- ... filtros existentes ... -->
+  </div>
+  
+  <table class="tabela-dados">
+    <thead>
+      <tr>
+        <th>Docente</th>
+        <th>Curso</th>
+        <th>Matéria</th>
+        <!-- ... outros cabeçalhos ... -->
+      </tr>
+    </thead>
+    <tbody id="tabelaCorpo">
+      <!-- Dados serão inseridos aqui via JavaScript -->
+    </tbody>
+  </table>
+</div>
+
+<!-- Container da tabela Importado -->
+<div id="tabelaImportadosContainer">
+  <h2>Dados Importados da Planilha</h2>
+  <!-- Filtros específicos para dados importados -->
+  <div class="filtros-container">
+    <div class="filtro">
+      <label for="filtroDocenteImportado">Docente:</label>
+      <select id="filtroDocenteImportado" class="select-filtro">
+        <option value=""></option>
+      </select>
+    </div>
+    
+    <div class="filtro">
+      <label for="filtroTurnoImportado">Turno:</label>
+      <select id="filtroTurnoImportado" class="select-filtro"></select>
+    </div>
+    
+    <div class="filtro-grupo btn-group">
+        <button class="btn-filtro" onclick="filtrarAulas()">
+            <i class="fas fa-filter"></i> Filtrar
+        </button>
+        <button class="btn-filtro btn-limpar" onclick="limparFiltros()">
+            <i class="fas fa-broom"></i> Limpar
+        </button>
+    </div>
+  </div>
+  
+  <table class="tabela-dados">
+    <thead>
+      <tr>
+        <th>Docente</th>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Dias da Semana</th>
+        <th>Hora Início</th>
+        <th>Hora Fim</th>
+        <th>Data</th>
+        <th>Turno</th>
+        <th>Localização</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaImportadosCorpo">
+      <!-- Dados serão inseridos aqui via JavaScript -->
+    </tbody>
+  </table>
+</div>
 
     <script>
         async function carregarDadosUsuario() {
@@ -1182,6 +1253,177 @@
         console.error('Erro:', error);
       }
     });
+
+    let dadosImportados = []; 
+
+    async function carregarDadosImportados() {
+  try {
+    const response = await fetch('/importado');
+    if (!response.ok) throw new Error("Erro ao carregar dados importados");
+    
+    dadosImportados = await response.json();
+    await carregarDocentesImportados();
+    atualizarTabelaImportados(dadosImportados);
+    preencherFiltrosImportados(dadosImportados);
+    
+  } catch (error) {
+    console.error("Erro ao carregar dados importados:", error);
+    alert('Erro ao carregar dados da planilha.');
+  }
+}
+
+async function carregarDocentesImportados() {
+  try {
+    const response = await fetch('/docentesImportado');
+    if (!response.ok) throw new Error("Erro ao carregar docentes");
+    
+    const docentes = await response.json();
+    const selectDocente = document.getElementById("filtroDocenteImportado");
+    
+    // Limpa e prepara o select
+    selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
+    
+    // Preenche com os docentes
+    docentes.forEach(docente => {
+      if (docente.nome) { // Garante que o nome não é vazio
+        const option = document.createElement("option");
+        option.value = docente.nome;
+        option.textContent = docente.nome;
+        selectDocente.appendChild(option);
+      }
+    });
+    
+    // Configura o Select2
+    $(selectDocente).select2({
+      placeholder: "Selecione um docente",
+      allowClear: true,
+      width: '100%'
+    });
+    
+  } catch (error) {
+    console.error("Erro ao carregar docentes:", error);
+    alert('Não foi possível carregar a lista de docentes');
+  }
+}
+
+function atualizarTabelaImportados(dados) {
+  const tbody = document.getElementById("tabelaImportadosCorpo");
+  tbody.innerHTML = '';
+
+  dados.forEach(item => {
+    const tr = document.createElement('tr');
+    
+    const campos = ['docente', 'nome', 'descricao', 'dias_semana', 
+                   'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
+    
+    campos.forEach(campo => {
+      const td = document.createElement('td');
+      td.textContent = formatarCampoImportado(item[campo], campo);
+      tr.appendChild(td);
+    });
+    
+    tbody.appendChild(tr);
+  });
+}
+
+function formatarCampoImportado(valor, campo) {
+  if (!valor) return 'N/A';
+  
+  switch(campo) {
+    case 'data_atividade':
+      return new Date(valor).toLocaleDateString('pt-BR');
+    case 'hora_inicio':
+    case 'hora_fim':
+      return valor.slice(0, 5); 
+    case 'dias_semana':
+      return formatarDiasSemana(valor);
+    default:
+      return valor;
+  }
+}
+
+function formatarDiasSemana(dias) {
+  const diasMap = {
+    'SEG': 'Segunda', 'TER': 'Terça', 'QUA': 'Quarta',
+    'QUI': 'Quinta', 'SEX': 'Sexta', 'SAB': 'Sábado', 'DOM': 'Domingo'
+  };
+  
+  return dias.split(',').map(dia => {
+    return diasMap[dia.trim().toUpperCase()] || dia.trim();
+  }).join(', ');
+}
+
+function preencherFiltrosImportados(dados) {
+  // Filtro por turno
+  const turnos = [...new Set(dados.map(item => item.turno))].filter(Boolean);
+  const turnoSelect = document.getElementById("filtroTurnoImportado");
+  
+  turnoSelect.innerHTML = '<option value="">Todos os turnos</option>';
+  turnos.forEach(turno => {
+    const option = document.createElement("option");
+    option.value = turno;
+    option.textContent = turno;
+    turnoSelect.appendChild(option);
+  });
+  
+  $(turnoSelect).select2({ placeholder: "Selecione...", allowClear: true });
+}
+
+function filtrarDadosImportados() {
+  const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
+  const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
+  
+  const dadosFiltrados = dadosImportados.filter(item => {
+    // Filtro por docente (case insensitive)
+    const matchDocente = docenteSelecionado ? 
+      item.docente && item.docente.toLowerCase().includes(docenteSelecionado.toLowerCase()) : true;
+    
+    // Filtro por turno (case insensitive)
+    const matchTurno = turnoSelecionado ? 
+      item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
+    
+    return matchDocente && matchTurno;
+  });
+  
+  atualizarTabelaImportados(dadosFiltrados);
+}
+
+function limparFiltrosImportados() {
+  $('#filtroDocenteImportado, #filtroTurnoImportado').val('').trigger('change');
+  atualizarTabelaImportados(dadosImportados);
+}
+
+let exibindoAulas = true; // Começa mostrando a tabela aula
+
+function alternarTabelas() {
+  exibindoAulas = !exibindoAulas;
+  
+  if (exibindoAulas) {
+    document.getElementById('tabelaAulasContainer').style.display = 'block';
+    document.getElementById('tabelaImportadosContainer').style.display = 'none';
+    document.getElementById('btnAlternarTabelas').textContent = 'Ver Dados Importados';
+    carregarAulas();
+  } else {
+    document.getElementById('tabelaAulasContainer').style.display = 'none';
+    document.getElementById('tabelaImportadosContainer').style.display = 'block';
+    document.getElementById('btnAlternarTabelas').textContent = 'Voltar para Aulas';
+    carregarDadosImportados();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  carregarDadosUsuario();
+  
+  document.getElementById('tabelaImportadosContainer').style.display = 'none';
+  carregarAulas();
+  
+  document.getElementById('btnAlternarTabelas').addEventListener('click', alternarTabelas);
+  
+  $('.select-filtro').select2({ placeholder: "Selecione...", allowClear: true });
+
+  document.querySelector('.btn-group .btn-filtro:first-child').addEventListener('click', filtrarDadosImportados);
+  document.querySelector('.btn-group .btn-limpar').addEventListener('click', limparFiltrosImportados);
+});
   </script>
 
 </body>

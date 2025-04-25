@@ -886,6 +886,22 @@ app.get('/docentes', async (req, res) => {
   }
 });
 
+// Rota para obter docentes da tabela importado
+app.get('/docentesImportado', async (req, res) => {
+  try {
+    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+      return res.status(403).json({ error: "Acesso não autorizado" });
+    }
+    const { rows } = await pool.query(
+      'SELECT DISTINCT docente as nome FROM importado WHERE docente IS NOT NULL AND docente != \'\' ORDER BY docente'
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Erro ao buscar docentes:", error);
+    res.status(500).json({ error: "Erro ao buscar docentes" });
+  }
+});
+
 
 
 function getColorForMateria(materia) {
@@ -923,7 +939,7 @@ app.post('/upload-laboratorios', async (req, res) => {
     // Objeto para agrupar por docente
     const agrupadoPorDocente = {};
 
-    // Processa cada linha da planilha
+    //Na parte do código que processa os dados:
     dados.forEach(linha => {
       const docente = linha['Nome do pessoal atribuído'] || 'Sem docente';
       
@@ -931,10 +947,14 @@ app.post('/upload-laboratorios', async (req, res) => {
         agrupadoPorDocente[docente] = [];
       }
 
-      // Processa as datas (pode ter múltiplas datas separadas por ;)
+      // Processa as datas
       const datas = linha['Datas da atividade (Individual)'] 
         ? linha['Datas da atividade (Individual)'].split(';').map(d => d.trim())
         : [];
+
+      // Converte os horários para formato adequado
+      const horaInicio = converterHoraExcel(linha['Hora de início agendada']);
+      const horaFim = converterHoraExcel(linha['Fim Agendado']);
 
       // Cria um registro para cada data
       datas.forEach(data => {
@@ -942,13 +962,14 @@ app.post('/upload-laboratorios', async (req, res) => {
           nome: linha['Nome'],
           descricao: linha['Descrição'],
           docente,
-          diasSemana: linha['Dias agendados'],
-          horaInicio: linha['Hora de início agendada'],
-          horaFim: linha['Fim Agendado'],
+          dias_semana: linha['Dias agendados'],
+          hora_inicio: horaInicio,
+          hora_fim: horaFim,
           localizacao: linha['Nome da localização atribuída'],
-          descricaoLocalizacao: linha['Descrição da localização atribuída'],
-          dataAtividade: data,
-          agendado: linha['Agendado']
+          descricao_localizacao: linha['Descrição da localização atribuída'],
+          data_atividade: data,
+          agendado: linha['Agendado'],
+          turno: determinarTurno(horaInicio)
         });
       });
     });
@@ -966,67 +987,43 @@ app.post('/upload-laboratorios', async (req, res) => {
 
       for (const registro of registros) {
         try {
-          // Primeiro verifica se o docente existe no banco
-          let usuarioId = null;
-          if (docente && docente !== 'Sem docente') {
-            const usuarioRes = await pool.query(
-              'SELECT id FROM usuarios WHERE nome = $1', 
-              [docente]
-            );
-            usuarioId = usuarioRes.rows[0]?.id || null;
-          }
-
-          // Verifica se o laboratório existe
-          let laboratorioId = null;
-          if (registro.localizacao) {
-            const labRes = await pool.query(
-              'SELECT id FROM laboratorio WHERE cimatec = $1 AND andar =$2 AND sala = $3', 
-              [registro.localizacao]
-            );
-            laboratorioId = labRes.rows[0]?.id || null;
-            
-            // Se não existe, cria um novo laboratório
-            if (!laboratorioId && registro.localizacao) {
-              const newLab = await pool.query(
-                `INSERT INTO laboratorio (cimatec, andar, sala) 
-                 VALUES ($1, $2, $3) RETURNING id`,
-                [registro.localizacao, registro.descricaoLocalizacao]
-              );
-              laboratorioId = newLab.rows[0].id;
-            }
-          }
-
-          // Insere a aula
-          const dataInicio = new Date(registro.dataAtividade.split('/').reverse().join('-'));
+          // Formata a data para o padrão YYYY-MM-DD
+          const dataFormatada = registro.data_atividade.split('/').reverse().join('-');
           
-          const aulaInsert = await pool.query(
-            `INSERT INTO aula (
-              usuario_id, laboratorio_id, turno, diasSemana, 
-              dataInicio, hora_inicio, hora_fim, descricao
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+          // Insere na tabela importado
+          const insertRes = await pool.query(
+            `INSERT INTO importado (
+              nome, descricao, docente, dias_semana, 
+              hora_inicio, hora_fim, localizacao, 
+              descricao_localizacao, data_atividade, 
+              agendado, turno
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
             [
-              usuarioId,
-              laboratorioId,
-              determinarTurno(registro.horaInicio), // Função auxiliar para determinar turno
-              registro.diasSemana,
-              dataInicio,
-              registro.horaInicio,
-              registro.horaFim,
-              `${registro.nome} - ${registro.descricao}`
+              registro.nome,
+              registro.descricao,
+              registro.docente,
+              registro.dias_semana,
+              registro.hora_inicio,
+              registro.hora_fim,
+              registro.localizacao,
+              registro.descricao_localizacao,
+              dataFormatada,
+              registro.agendado,
+              registro.turno
             ]
           );
 
           resultados[docente].inseridos++;
           resultados[docente].detalhes.push({
-            id: aulaInsert.rows[0].id,
-            data: registro.dataAtividade,
+            id: insertRes.rows[0].id,
+            data: registro.data_atividade,
             status: 'sucesso'
           });
         } catch (error) {
           console.error(`Erro ao inserir registro para ${docente}:`, error);
           resultados[docente].erros++;
           resultados[docente].detalhes.push({
-            data: registro.dataAtividade,
+            data: registro.data_atividade,
             status: 'erro',
             mensagem: error.message
           });
@@ -1050,17 +1047,48 @@ app.post('/upload-laboratorios', async (req, res) => {
   }
 });
 
-// Função auxiliar para determinar turno baseado no horário
-function determinarTurno(hora) {
-  if (!hora) return 'Não especificado';
+// Função para converter valores de hora do Excel para formato HH:MM
+function converterHoraExcel(valor) {
+  // Se já estiver no formato HH:MM, retorna direto
+  if (typeof valor === 'string' && valor.match(/^\d{1,2}:\d{2}$/)) {
+    return valor;
+  }
   
-  const [horas] = hora.split(':').map(Number);
-  if (horas < 12) return 'Manhã';
-  if (horas < 18) return 'Tarde';
-  return 'Noite';
+  // Se for um número (formato Excel), converte
+  if (typeof valor === 'number') {
+    // Converte fração de dia para horas decimais
+    const horasDecimais = valor * 24;
+    const horas = Math.floor(horasDecimais);
+    const minutos = Math.round((horasDecimais - horas) * 60);
+    
+    // Formata com zero à esquerda
+    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+  }
+  
+  // Se não reconhecer o formato, retorna um padrão
+  return '00:00';
 }
 
+// Função auxiliar para determinar turno baseado no horário
+function determinarTurno(hora) {
+  const horaFormatada = converterHoraExcel(hora);
+  const [horas] = horaFormatada.split(':').map(Number);
+  
+  if (horas < 12) return 'MANHÃ';
+  if (horas < 18) return 'TARDE';
+  return 'NOITE';
+}
 
+// No seu servidor Node.js (backend)
+app.get('/importado', async (req, res) => {
+  try {
+      const result = await pool.query('SELECT * FROM importado ORDER BY data_atividade DESC');
+      res.json(result.rows);
+  } catch (error) {
+      console.error('Erro ao buscar dados importados:', error);
+      res.status(500).json({ error: 'Erro ao buscar dados' });
+  }
+});
 
 
 //Rota da planilha(montagem)
