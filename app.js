@@ -1707,7 +1707,535 @@ aulas.forEach(aula => {
   }
 });
 
+app.get('/exportar-excel-importado', async (req, res) => {
+  try {
+    if (!req.session || !req.session.user || !req.session.user.id) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const isAdmin = req.session.user.tipo === 'Administrador';
+    let docenteNome = req.query.docente_nome;
 
+    if (!docenteNome) {
+      return res.status(400).json({ error: "Nome do docente não fornecido" });
+    }
+
+    // Buscar dados do docente importado
+    const {rows: aulasImportadas} = await pool.query(`
+      SELECT 
+        id,
+        nome AS materia,
+        docente AS professor,
+        dias_semana AS diasSemana,
+        data_atividade AS dataInicio,
+        turno,
+        descricao_localizacao AS laboratorio,
+        'Importado' AS curso,
+        'Importado' AS turma,
+        60 AS cargaHoraria
+      FROM importado
+      WHERE docente = $1
+      ORDER BY data_atividade, hora_inicio
+    `, [docenteNome]);
+    
+    if (aulasImportadas.length === 0) {
+      return res.status(404).json({ 
+        error: "Nenhuma aula importada encontrada",
+        details: `Nenhuma aula encontrada para o docente "${docenteNome}" na base de dados importada`
+      });
+    }
+
+    const planilha = new excelJS.Workbook();
+    const aba = planilha.addWorksheet('Aulas');
+
+    // Preencher informações do docente (simplificado já que não temos todos os dados)
+    aba.getCell('B2').value = docenteNome;    // Nome do docente
+    aba.getCell('B3').value = "";            // E-mail (não disponível)
+    aba.getCell('B4').value = "";            // Telefone 1 (não disponível)
+    aba.getCell('B5').value = "";            // Telefone 2 (não disponível)
+
+    // Configuração dos horários
+    const horariosDia = [
+      "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
+      "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "",
+      "18:40 - 21:40", ""
+    ];
+   
+    const linhaHorario = [12, 27, 42, 57, 72, 87, 102, 117, 132, 147, 162, 177];
+
+    // Preencher horários na coluna A
+    linhaHorario.forEach((linhaBase) => {
+      horariosDia.forEach((horario, indice) => {
+        const linhaAtual = linhaBase + indice;
+        aba.getCell(linhaAtual, 1).value = horario;
+        aba.getCell(linhaAtual, 1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD9D9D9' },
+        };
+      });
+    });
+
+    // Configuração de mesclagem de células (igual ao original)
+    aba.mergeCells('B1:F1');
+    aba.mergeCells('B2:F2');
+    aba.mergeCells('B3:F3');
+    aba.mergeCells('B4:F4');
+    aba.mergeCells('B5:F5');
+    aba.mergeCells('A6:AF6');
+    aba.mergeCells('H1:R1');
+    aba.mergeCells('AF1:AF5');
+    aba.mergeCells('G1:G5');
+
+    // Mesclagem de células dos meses (igual ao original)
+    aba.mergeCells('A9:AF9');
+    aba.mergeCells('A8:AF8');
+    aba.mergeCells('A24:AD24');
+    aba.mergeCells('A39:AF39');
+    aba.mergeCells('A54:AE54');
+    aba.mergeCells('A69:AF69');
+    aba.mergeCells('A84:AE84');
+    aba.mergeCells('A99:AF99');
+    aba.mergeCells('A114:AF114');
+    aba.mergeCells('A129:AE129');
+    aba.mergeCells('A144:AF144');
+    aba.mergeCells('A159:AE159');
+    aba.mergeCells('A174:AF174');
+
+    // Cabeçalhos e títulos (igual ao original)
+    aba.getCell('B1').value = "Dados do Docente";
+    aba.getCell('A8').value = "Cronograma do período letivo";
+
+    // Nomes dos meses (igual ao original)
+    const meses = [
+      {nome: "Janeiro", linha: 9},
+      {nome: "Fevereiro", linha: 24},
+      {nome: "Março", linha: 39},
+      {nome: "Abril", linha: 54},
+      {nome: "Maio", linha: 69},
+      {nome: "Junho", linha: 84},
+      {nome: "Julho", linha: 99},
+      {nome: "Agosto", linha: 114},
+      {nome: "Setembro", linha: 129},
+      {nome: "Outubro", linha: 144},
+      {nome: "Novembro", linha: 159},
+      {nome: "Dezembro", linha: 174}
+    ];
+
+    meses.forEach(mes => {
+      aba.getCell(`A${mes.linha}`).value = mes.nome;
+    });
+
+    // Centralização (igual ao original)
+    aba.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
+    aba.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const linhasParaCentralizar = [8, ...meses.map(m => m.linha)];
+    linhasParaCentralizar.forEach(linha => {
+      aba.getCell(`A${linha}`).alignment = {
+        horizontal: 'center',
+        vertical: 'middle'
+      };
+    });
+
+    // Cabeçalho dos meses (JAN, FEV, etc.) (igual ao original)
+    const mesesAbreviados = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    mesesAbreviados.forEach((mes, indice) => {
+      const celula = aba.getCell(1, indice + 20);
+      celula.value = mes;
+      celula.alignment = { horizontal: 'center' };
+    });
+
+    // Estilo do cabeçalho (igual ao original)
+    aba.getRow(1).eachCell((celula) => {
+      celula.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E3A5F' }
+      };
+      celula.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+    });
+
+    // Labels e legendas (igual ao original)
+    aba.getCell('A2').value = "Docente:";
+    aba.getCell('A3').value = "E-mail:";
+    aba.getCell('A4').value = "Tel.1:";
+    aba.getCell('A5').value = "Tel.2:";
+    aba.getCell('S2').value = "Dias Úteis:";
+    aba.getCell('S3').value = "Horas Úteis:";
+    aba.getCell('S4').value = "Horas Alocadas:";
+    aba.getCell('H1').value = "Legenda";
+
+    const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.materia))];
+
+    let colunaAtual = 8;
+
+    materiasUnicas.forEach((materia, index) => {
+      const corMateria = getColorForMateria(materia);
+      const colunaLetra = String.fromCharCode(64 + colunaAtual);
+     
+      // Célula com nome da matéria
+      aba.getCell(`${colunaLetra}2`).value = materia;
+      aba.getCell(`${colunaLetra}2`).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: corMateria }
+      };
+      aba.getCell(`${colunaLetra}2`).font = {
+        bold: true,
+        color: { argb: 'FF000000' }
+      };
+      aba.getCell(`${colunaLetra}2`).alignment = {
+        horizontal: 'center',
+        vertical: 'middle',
+        wrapText: true
+      };
+      aba.getCell(`${colunaLetra}2`).border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+     
+      aba.getColumn(colunaAtual).width = 20;
+      colunaAtual++;
+     
+      if (colunaAtual > 50) return;
+    });
+    
+    // Estilo dos meses (igual ao original)
+    meses.forEach(mes => {
+      const celula = aba.getCell(`A${mes.linha}`);
+      celula.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF33658A' }
+      };
+      celula.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+    });
+
+    // Estilo das células de cabeçalho (igual ao original)
+    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", "S1", "S2", "S3", "S4", 'S5', 'AF1', 'G1', 'S1'].forEach(endereco => {
+      const celula = aba.getCell(endereco);
+      celula.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E3A5F' }
+      };
+      celula.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+    });
+
+    // Configuração dos dias da semana e dias do mês (igual ao original)
+    const semanaPorMes = {
+      "Dom": [85],
+      "Seg": [130, 175],
+      "Ter": [55, 100],
+      "Qua": [10, 145],
+      "Qui": [70],
+      "Sex": [115],
+      "Sáb": [25, 40, 160],
+    };
+   
+    const diasPorMes = {
+      31: [11, 41, 71, 101, 116, 146, 176],
+      30: [56, 86, 131, 161],
+      29: [26]
+    };
+   
+    const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+   
+    const mapaInicioSemana = {};
+    Object.entries(semanaPorMes).forEach(([dia, linhas]) => {
+      linhas.forEach(linhaSemana => {
+        mapaInicioSemana[linhaSemana + 1] = dia;
+      });
+    });
+
+    const gerarDiasDoMes = (quantidade) => Array.from({ length: quantidade }, (_, i) => (i + 1).toString().padStart(2, '0'));
+   
+    Object.entries(diasPorMes).forEach(([quantidadeDias, linhasMes]) => {
+      const totalDias = Number(quantidadeDias);
+   
+      linhasMes.forEach(linhaMes => {
+        const linhaSemana = linhaMes - 1;
+        const diaInicial = mapaInicioSemana[linhaMes];
+   
+        if (!diaInicial) {
+          console.warn(`Não foi possível identificar o dia da semana para a linha ${linhaMes}`);
+          return;
+        }
+   
+        const indiceInicial = diasDaSemana.indexOf(diaInicial);
+        const diasSemana = Array.from({ length: totalDias }, (_, i) =>
+          diasDaSemana[(indiceInicial + i) % 7]
+        );
+   
+        const diasMes = gerarDiasDoMes(totalDias);
+   
+        diasSemana.forEach((dia, indice) => {
+          aba.getCell(linhaSemana, indice + 2).value = dia;
+        });
+   
+        diasMes.forEach((dia, indice) => {
+          aba.getCell(linhaMes, indice + 2).value = dia;
+        });
+      });
+    });  
+   
+    // Estilo dos dias do mês (igual ao original)
+    [11, 26, 41, 56, 71, 86, 101, 116, 131, 146, 161, 176].forEach((linhaDia) => {
+      aba.getRow(linhaDia).eachCell({ includeEmpty: true }, (celula) => {
+        celula.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFB7B7B7' }
+        };
+        celula.font = {
+          bold: true,
+          color: { argb: 'FFFFFFFF' }
+        };
+        celula.alignment = {
+          horizontal: 'center',
+          vertical: 'middle'
+        };
+      });
+    });
+   
+    // Estilo dos dias da semana (igual ao original)
+    [10, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175].forEach((linha) => {
+      aba.getRow(linha).eachCell({ includeEmpty: true }, (celula) => {
+        celula.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF5A7D9A' }
+        };
+        celula.font = {
+          bold: true,
+          color: { argb: 'FFFFFFFF' }
+        };
+        celula.alignment = {
+          horizontal: 'center',
+          vertical: 'middle'
+        };
+      });
+    });
+
+    // Mapeamento de meses para linhas na planilha (igual ao original)
+    const mesesLinhas = {
+      0: 12,   // Janeiro
+      1: 27,   // Fevereiro
+      2: 42,   // Março
+      3: 57,   // Abril
+      4: 72,   // Maio
+      5: 87,   // Junho
+      6: 102,  // Julho
+      7: 117,  // Agosto
+      8: 132,  // Setembro
+      9: 147,  // Outubro
+      10: 162, // Novembro
+      11: 177  // Dezembro
+    };
+
+    // Mapeamento de turnos para linhas de horário (igual ao original)
+    const turnoHorarios = {
+      "Matutino": {
+        linhas: [0, 1, 2, 3], // 07:30-08:30, 08:30-09:30, 09:30-10:30, 10:30-11:30
+        horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30"]
+      },
+      "Vespertino": {
+        linhas: [5, 6, 7, 8], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00
+        horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"]
+      },
+      "Noturno": {
+        linhas: [10], // 18:40-21:40
+        horarios: ["18:40 - 21:40"]
+      }
+    };
+
+    // Processar cada aula importada (adaptado para os dados importados)
+    aulasImportadas.forEach(aula => {
+      try {
+        // Padroniza os nomes dos campos
+        const aulaPadronizada = {
+          id: aula.id,
+          materia: aula.materia,
+          professor: aula.professor,
+          turma: aula.turma || "Importado",
+          diasSemana: aula.diasSemana,
+          dataInicio: aula.dataInicio,
+          turno: aula.turno,
+          cargaHoraria: aula.cargaHoraria || 60,
+          laboratorio: aula.laboratorio || "Importado"
+        };
+
+        // Validação dos dados
+        if (!aulaPadronizada.diasSemana || !aulaPadronizada.dataInicio || !aulaPadronizada.turno) {
+          console.error('Aula importada com dados incompletos:', aulaPadronizada);
+          return;
+        }
+
+        const dataInicio = new Date(aulaPadronizada.dataInicio);
+        if (isNaN(dataInicio.getTime())) {
+          console.error(`Data inválida: ${aulaPadronizada.dataInicio}`);
+          return;
+        }
+
+        // Função auxiliar para converter dias completos para abreviações
+        const diasAula = aulaPadronizada.diasSemana.split(',')
+          .map(dia => {
+            const diaLimpo = dia.trim();
+            if (diaLimpo === 'Segunda') return 'Seg';
+            if (diaLimpo === 'Terça') return 'Ter';
+            if (diaLimpo === 'Quarta') return 'Qua';
+            if (diaLimpo === 'Quinta') return 'Qui';
+            if (diaLimpo === 'Sexta') return 'Sex';
+            if (diaLimpo === 'Sábado' || diaLimpo === 'Sabado') return 'Sáb';
+            if (diaLimpo === 'Domingo') return 'Dom';
+            return diaLimpo.substring(0, 3);
+          });
+
+        if (diasAula.length === 0) {
+          console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
+          return;
+        }
+
+        const materiaColor = getColorForMateria(aulaPadronizada.materia);
+        let dataAtual = new Date(dataInicio);
+        
+        // Configuração de carga horária
+        const cargaHoraria = parseInt(aulaPadronizada.cargaHoraria) || 60;
+        let totalHorasAgendadas = 0;
+        let diasProcessados = 0;
+        const maxDias = 180;
+
+        // Loop de agendamento
+        while (totalHorasAgendadas < cargaHoraria && diasProcessados < maxDias) {
+          diasProcessados++;
+          const mes = dataAtual.getMonth();
+          const diaMes = dataAtual.getDate();
+          const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAtual.getDay()];
+
+          if (!diasAula.includes(diaSemana)) {
+            dataAtual.setDate(dataAtual.getDate() + 1);
+            continue;
+          }
+
+          const linhaMes = mesesLinhas[mes];
+          if (!linhaMes) {
+            dataAtual.setDate(dataAtual.getDate() + 1);
+            continue;
+          }
+
+          let colunaDia = 0;
+          for (let col = 2; col <= 32; col++) {
+            const celulaDia = aba.getCell(linhaMes - 1, col);
+            if (parseInt(celulaDia.value) === diaMes) {
+              colunaDia = col;
+              break;
+            }
+          }
+
+          if (!colunaDia) {
+            dataAtual.setDate(dataAtual.getDate() + 1);
+            continue;
+          }
+
+          const turno = turnoHorarios[aulaPadronizada.turno];
+          if (!turno) {
+            dataAtual.setDate(dataAtual.getDate() + 1);
+            continue;
+          }
+
+          // Preencher horários
+          let horariosPreenchidos = 0;
+          for (const offset of turno.linhas) {
+            const linha = linhaMes + offset;
+            const celula = aba.getCell(linha, colunaDia);
+
+            if (celula.value) {
+              console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
+              continue;
+            }
+
+            // Preencher célula
+            celula.value = {
+              richText: [
+                { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
+                { text: `${aulaPadronizada.professor}\n` },
+                { text: `${aulaPadronizada.laboratorio}` }
+              ]
+            };
+
+            celula.alignment = { 
+              wrapText: true, 
+              vertical: 'middle', 
+              horizontal: 'center' 
+            };
+
+            celula.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: materiaColor }
+            };
+
+            celula.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+
+            horariosPreenchidos++;
+            totalHorasAgendadas += (aulaPadronizada.turno === "Noturno" ? 3 : 1);
+
+            if (totalHorasAgendadas >= cargaHoraria) break;
+          }
+
+          dataAtual.setDate(dataAtual.getDate() + 1);
+        }
+
+        if (totalHorasAgendadas < cargaHoraria) {
+          console.warn(`Carga horária incompleta para ${aulaPadronizada.materia}: ${totalHorasAgendadas}/${cargaHoraria}h`);
+        }
+
+      } catch (error) {
+        console.error(`Erro ao processar aula importada ${aula?.id}:`, error);
+      }
+    });
+
+    // Ajustar largura das colunas (igual ao original)
+    function cmParaUnidadeExcel(cm) {
+      const cmPorUnidade = 0.144;
+      return cm / cmPorUnidade;
+    }
+
+    const largura = cmParaUnidadeExcel(2.3);
+    aba.columns.forEach((coluna, index) => {
+      coluna.width = largura;
+    });
+    
+    // Enviar a planilha
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=Aulas_Importadas_${docenteNome.replace(/\s+/g, '_')}.xlsx`);
+    await planilha.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Erro ao gerar planilha de dados importados:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar planilha",
+      details: error.message 
+    });
+  }
+});
 
 //Rota de notificações
 app.get('/notificao', (req, res) => {

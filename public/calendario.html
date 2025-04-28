@@ -363,6 +363,7 @@
     <div class="btn-group">
       <button id="btnFiltrarImportados" class="btn-filtro">Filtrar</button>
       <button id="btnLimparFiltrosImportados" class="btn-limpar">Limpar Filtros</button>
+      <button id="btnExportarDocenteImportado" class="btn-exportar" onclick="exportarPlanilhaDocenteImportado()">Exportar planilha do docente</button>
     </div>
   </div>
   
@@ -1035,7 +1036,8 @@
         
         // Configurar botão de exportação
         document.getElementById('btnExportarDocente').addEventListener('click', exportarPlanilhaDocente);
-
+        
+        
         function exportarPlanilhaDocente() {
             const docenteNome = document.getElementById('seletorDocente').value;
             
@@ -1046,6 +1048,23 @@
             
             const nomeCodificado = encodeURIComponent(docenteNome);
             const url = `/exportar-excel?docente_nome=${nomeCodificado}`;
+            
+            window.open(url, '_blank');
+        }
+
+
+        document.getElementById('btnExportarDocenteImportado').addEventListener('click', exportarPlanilhaDocenteImportado);
+
+        function exportarPlanilhaDocenteImportado() {
+            const docenteImportadoNome = document.getElementById('filtroDocenteImportado').value;
+
+            if (!docenteImportadoNome) {
+                alert('Por favor, selecione um docente para exportar');
+                return;
+            }
+
+            const nomeCodificado = encodeURIComponent(docenteImportadoNome);
+            const url = `/exportar-excel-importado?docente_nome=${nomeCodificado}`;
             
             window.open(url, '_blank');
         }

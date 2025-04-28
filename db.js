@@ -116,7 +116,7 @@ async function criarTabelas() {
               agendado VARCHAR(50),              
               turno VARCHAR(10) NOT NULL CHECK (turno IN ('MANHÃ', 'TARDE', 'NOITE')),
               criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
+            );
     `);
     console.log("Tabela 'importado' pronta!");
 
