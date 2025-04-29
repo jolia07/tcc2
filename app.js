@@ -1713,30 +1713,30 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return res.status(401).json({ error: "Usuário não autenticado" });
     }
     
-    const isAdmin = req.session.user.tipo === 'Administrador';
     let docenteNome = req.query.docente_nome;
 
     if (!docenteNome) {
       return res.status(400).json({ error: "Nome do docente não fornecido" });
     }
 
-    // Buscar dados do docente importado
-    const {rows: aulasImportadas} = await pool.query(`
-      SELECT 
+    // Buscar dados do docente importado - ajustado para os campos reais da tabela
+    const {rows: aulasImportadas} = await pool.query(
+      `SELECT 
         id,
-        nome AS materia,
-        docente AS professor,
-        dias_semana AS diasSemana,
-        data_atividade AS dataInicio,
+        nome,
+        docente,
+        dias_semana,
+        data_atividade,
+        hora_inicio,
+        hora_fim,
         turno,
-        descricao_localizacao AS laboratorio,
+        COALESCE(descricao_localizacao, localizacao) AS laboratorio,
         'Importado' AS curso,
-        'Importado' AS turma,
-        60 AS cargaHoraria
+        'Importado' AS turma
       FROM importado
       WHERE docente = $1
-      ORDER BY data_atividade, hora_inicio
-    `, [docenteNome]);
+      ORDER BY data_atividade, hora_inicio`, 
+      [docenteNome]);
     
     if (aulasImportadas.length === 0) {
       return res.status(404).json({ 
@@ -1869,7 +1869,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.getCell('S4').value = "Horas Alocadas:";
     aba.getCell('H1').value = "Legenda";
 
-    const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.materia))];
+    const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.nome))];
 
     let colunaAtual = 8;
 
@@ -2045,63 +2045,69 @@ app.get('/exportar-excel-importado', async (req, res) => {
       11: 177  // Dezembro
     };
 
-    // Mapeamento de turnos para linhas de horário (igual ao original)
+    // Mapeamento de turnos para linhas de horário (ajustado para os valores da tabela)
     const turnoHorarios = {
-      "Matutino": {
+      "MANHÃ": {
         linhas: [0, 1, 2, 3], // 07:30-08:30, 08:30-09:30, 09:30-10:30, 10:30-11:30
         horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30"]
       },
-      "Vespertino": {
+      "TARDE": {
         linhas: [5, 6, 7, 8], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00
         horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"]
       },
-      "Noturno": {
+      "NOITE": {
         linhas: [10], // 18:40-21:40
         horarios: ["18:40 - 21:40"]
       }
     };
 
-    // Processar cada aula importada (adaptado para os dados importados)
+    // Processar cada aula importada (ajustado para os dados da tabela)
     aulasImportadas.forEach(aula => {
       try {
-        // Padroniza os nomes dos campos
+        // Padroniza os nomes dos campos usando os dados diretamente do banco
         const aulaPadronizada = {
           id: aula.id,
-          materia: aula.materia,
-          professor: aula.professor,
-          turma: aula.turma || "Importado",
-          diasSemana: aula.diasSemana,
-          dataInicio: aula.dataInicio,
+          materia: aula.nome,  // Usando o campo 'nome' da tabela
+          professor: aula.docente,
+          diasSemana: aula.dias_semana,
+          data_atividade: aula.data_atividade,
+          hora_inicio: aula.hora_inicio,
+          hora_fim: aula.hora_fim,
           turno: aula.turno,
-          cargaHoraria: aula.cargaHoraria || 60,
-          laboratorio: aula.laboratorio || "Importado"
+          laboratorio: aula.laboratorio || "Importado",
+          curso: aula.curso,
+          turma: aula.turma
         };
 
-        // Validação dos dados
-        if (!aulaPadronizada.diasSemana || !aulaPadronizada.dataInicio || !aulaPadronizada.turno) {
+        // Validação dos dados obrigatórios
+        if (!aulaPadronizada.diasSemana || !aulaPadronizada.data_atividade || 
+            !aulaPadronizada.turno || !aulaPadronizada.hora_inicio || !aulaPadronizada.hora_fim) {
           console.error('Aula importada com dados incompletos:', aulaPadronizada);
           return;
         }
 
-        const dataInicio = new Date(aulaPadronizada.dataInicio);
-        if (isNaN(dataInicio.getTime())) {
-          console.error(`Data inválida: ${aulaPadronizada.dataInicio}`);
+        const dataAula = new Date(aulaPadronizada.data_atividade);
+        if (isNaN(dataAula.getTime())) {
+          console.error(`Data inválida: ${aulaPadronizada.data_atividade}`);
           return;
         }
 
-        // Função auxiliar para converter dias completos para abreviações
+        // Converter dias da semana para abreviações padrão
         const diasAula = aulaPadronizada.diasSemana.split(',')
           .map(dia => {
-            const diaLimpo = dia.trim();
-            if (diaLimpo === 'Segunda') return 'Seg';
-            if (diaLimpo === 'Terça') return 'Ter';
-            if (diaLimpo === 'Quarta') return 'Qua';
-            if (diaLimpo === 'Quinta') return 'Qui';
-            if (diaLimpo === 'Sexta') return 'Sex';
-            if (diaLimpo === 'Sábado' || diaLimpo === 'Sabado') return 'Sáb';
-            if (diaLimpo === 'Domingo') return 'Dom';
-            return diaLimpo.substring(0, 3);
-          });
+            const diaLimpo = dia.trim().toLowerCase();
+            switch(diaLimpo) {
+              case 'segunda-feira': return 'Seg';
+              case 'terça-feira': case 'terca': return 'Ter';
+              case 'quarta-feira': return 'Qua';
+              case 'quinta-feira': return 'Qui';
+              case 'sexta-feira': return 'Sex';
+              case 'sábado': case 'sabado': return 'Sáb';
+              case 'domingo': return 'Dom';
+              default: return diaLimpo.substring(0, 3);
+            }
+          })
+          .filter(dia => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].includes(dia));
 
         if (diasAula.length === 0) {
           console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
@@ -2109,103 +2115,88 @@ app.get('/exportar-excel-importado', async (req, res) => {
         }
 
         const materiaColor = getColorForMateria(aulaPadronizada.materia);
-        let dataAtual = new Date(dataInicio);
-        
-        // Configuração de carga horária
-        const cargaHoraria = parseInt(aulaPadronizada.cargaHoraria) || 60;
-        let totalHorasAgendadas = 0;
-        let diasProcessados = 0;
-        const maxDias = 180;
+        const mes = dataAula.getMonth();
+        const diaMes = dataAula.getDate();
+        const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAula.getDay()];
 
-        // Loop de agendamento
-        while (totalHorasAgendadas < cargaHoraria && diasProcessados < maxDias) {
-          diasProcessados++;
-          const mes = dataAtual.getMonth();
-          const diaMes = dataAtual.getDate();
-          const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAtual.getDay()];
-
-          if (!diasAula.includes(diaSemana)) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-          }
-
-          const linhaMes = mesesLinhas[mes];
-          if (!linhaMes) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-          }
-
-          let colunaDia = 0;
-          for (let col = 2; col <= 32; col++) {
-            const celulaDia = aba.getCell(linhaMes - 1, col);
-            if (parseInt(celulaDia.value) === diaMes) {
-              colunaDia = col;
-              break;
-            }
-          }
-
-          if (!colunaDia) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-          }
-
-          const turno = turnoHorarios[aulaPadronizada.turno];
-          if (!turno) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            continue;
-          }
-
-          // Preencher horários
-          let horariosPreenchidos = 0;
-          for (const offset of turno.linhas) {
-            const linha = linhaMes + offset;
-            const celula = aba.getCell(linha, colunaDia);
-
-            if (celula.value) {
-              console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
-              continue;
-            }
-
-            // Preencher célula
-            celula.value = {
-              richText: [
-                { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
-                { text: `${aulaPadronizada.professor}\n` },
-                { text: `${aulaPadronizada.laboratorio}` }
-              ]
-            };
-
-            celula.alignment = { 
-              wrapText: true, 
-              vertical: 'middle', 
-              horizontal: 'center' 
-            };
-
-            celula.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: materiaColor }
-            };
-
-            celula.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              left: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: { style: 'thin', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF000000' } }
-            };
-
-            horariosPreenchidos++;
-            totalHorasAgendadas += (aulaPadronizada.turno === "Noturno" ? 3 : 1);
-
-            if (totalHorasAgendadas >= cargaHoraria) break;
-          }
-
-          dataAtual.setDate(dataAtual.getDate() + 1);
+        // Verificar se o dia da semana está nos dias da aula
+        if (!diasAula.includes(diaSemana)) {
+          return;
         }
 
-        if (totalHorasAgendadas < cargaHoraria) {
-          console.warn(`Carga horária incompleta para ${aulaPadronizada.materia}: ${totalHorasAgendadas}/${cargaHoraria}h`);
+        const linhaMes = mesesLinhas[mes];
+        if (!linhaMes) {
+          return;
         }
+
+        // Encontrar coluna do dia no Excel
+        let colunaDia = 0;
+        for (let col = 2; col <= 32; col++) {
+          const celulaDia = aba.getCell(linhaMes - 1, col);
+          if (parseInt(celulaDia.value) === diaMes) {
+            colunaDia = col;
+            break;
+          }
+        }
+
+        if (!colunaDia) {
+          return;
+        }
+
+        // Determinar linha do horário baseado no turno e hora
+        const turnoInfo = turnoHorarios[aulaPadronizada.turno];
+        if (!turnoInfo) {
+          console.error(`Turno inválido: ${aulaPadronizada.turno}`);
+          return;
+        }
+
+        // Encontrar o horário específico dentro do turno
+        const horaInicio = aulaPadronizada.hora_inicio;
+        let linhaHorario = turnoInfo.linhas[0]; // Padrão para o primeiro horário do turno
+
+        // Tentar encontrar o horário exato
+        for (let i = 0; i < turnoInfo.horarios.length; i++) {
+          if (turnoInfo.horarios[i].includes(horaInicio.substring(0, 5))) {
+            linhaHorario = turnoInfo.linhas[i];
+            break;
+          }
+        }
+
+        const linha = linhaMes + linhaHorario;
+        const celula = aba.getCell(linha, colunaDia);
+
+        if (celula.value) {
+          console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
+          return;
+        }
+
+        // Preencher célula
+        celula.value = {
+          richText: [
+            { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
+            { text: `${aulaPadronizada.professor}\n` },
+            { text: `${aulaPadronizada.laboratorio}` }
+          ]
+        };
+
+        celula.alignment = { 
+          wrapText: true, 
+          vertical: 'middle', 
+          horizontal: 'center' 
+        };
+
+        celula.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: materiaColor }
+        };
+
+        celula.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
 
       } catch (error) {
         console.error(`Erro ao processar aula importada ${aula?.id}:`, error);
