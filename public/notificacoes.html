@@ -34,6 +34,7 @@
                     <li><a href="calendario.html" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
                     <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
                     <li><a href="notificacoes.html" class="active" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="calendario2.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
                     <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
@@ -74,48 +75,99 @@
         }
         
         async function carregarNotificacoes() {
-            try {
-                const response = await fetch('/aulas', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
+  const notificacoesDiv = document.getElementById('listaNotificacoes');
+  
+  try {
+    // Mostrar estado de carregamento
+    notificacoesDiv.innerHTML = '<div class="loading"><p>Carregando notificações...</p></div>';
 
-                if (!response.ok) {
-                    throw new Error("Erro ao carregar as aulas");
-                }
+    const response = await fetch('/api/notificacoes', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include'
+    });
 
-                const aulas = await response.json();
-                exibirNotificacoes(aulas);
-            } catch (error) {
-                console.error("Erro ao carregar as aulas:", error);
-            }
-        }
+    // Verificação robusta do tipo de conteúdo
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('O servidor retornou um formato inesperado');
+    }
 
-        function exibirNotificacoes(aulas) {
-            const notificacoesDiv = document.getElementById('listaNotificacoes');
-            notificacoesDiv.innerHTML = ''; 
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      throw new Error(error.message || `Erro ${response.status}`);
+    }
 
-            if (aulas.length === 0) {
-                notificacoesDiv.innerHTML = '<p>Nenhuma aula programada para notificação.</p>';
-                return;
-            }
+    const aulas = await response.json();
+    exibirNotificacoes(aulas);
+  } catch (error) {
+    console.error("Erro ao carregar notificações:", error);
+    notificacoesDiv.innerHTML = `
+      <div class="notificacao erro">
+        <p>Erro ao carregar notificações</p>
+        <small>${escapeHtml(error.message)}</small>
+      </div>
+    `;
+  }
+}
 
-            aulas.forEach(aula => {
-                const noti = document.createElement('div');
-                noti.classList.add('notificacao'); 
+// Função para escapar HTML (prevenção XSS)
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-                noti.innerHTML = `
-                    <p><strong>Aula de ${aula.materia}</strong> - Turma: ${aula.turma}</p>
-                    <p>Turno: ${aula.turno} | Dias da Semana: ${aula.diasSemana}</p>
-                `;
+// Função para exibir as notificações na página
+function exibirNotificacoes(aulas) {
+  const notificacoesDiv = document.getElementById('listaNotificacoes');
+  notificacoesDiv.innerHTML = '';
 
-                notificacoesDiv.appendChild(noti);
-            });
-        }
+  if (aulas.length === 0) {
+    notificacoesDiv.innerHTML = `
+      <div class="notificacao">
+        <p>Nenhuma aula programada</p>
+        <small>Não há aulas agendadas no momento</small>
+      </div>
+    `;
+    return;
+  }
 
-        window.onload = carregarNotificacoes;
-        carregarDadosUsuario();
+  aulas.forEach(aula => {
+    const noti = document.createElement('div');
+    noti.classList.add('notificacao');
+    
+    noti.innerHTML = `
+      <div class="notificacao-cabecalho">
+        <h4>${aula.materia}</h4>
+        <span class="notificacao-data">${aula.data}</span>
+      </div>
+      <div class="notificacao-corpo">
+        <p><i class="far fa-clock"></i> ${aula.hora_inicio} - ${aula.hora_fim}</p>
+        <p><i class="fas fa-map-marker-alt"></i> ${aula.localizacao || 'Local não informado'}</p>
+        ${aula.dias_semana ? `<p><i class="far fa-calendar-alt"></i> ${aula.dias_semana}</p>` : ''}
+        ${aula.professor ? `<p><i class="fas fa-chalkboard-teacher"></i> ${aula.professor}</p>` : ''}
+      </div>
+      <div class="notificacao-rodape">
+        <span class="turno ${aula.turno.toLowerCase()}">${aula.turno}</span>
+      </div>
+    `;
 
+    notificacoesDiv.appendChild(noti);
+  });
+}
+
+// Atualizar notificações a cada 5 minutos
+setInterval(carregarNotificacoes, 5 * 60 * 1000);
+
+// Carregar ao iniciar
+document.addEventListener('DOMContentLoaded', carregarNotificacoes);
 
         function sair() {
         if (confirm("Você tem certeza que deseja sair?")) {

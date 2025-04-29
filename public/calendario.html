@@ -34,6 +34,7 @@
                     <li><a href="calendario.html" class="active" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
                     <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
                     <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="calendario2.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
                     <!-- Adicione return false para prevenir comportamento padrão -->
@@ -1090,75 +1091,80 @@
             }
         }
 
-        // Função para verificar se o usuário é docente e se ele tem aula no dia
-        async function verificarAulasHoje() {
-            try {
-                    const response = await fetch('/getUserData', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    const userData = await response.json();
-                    console.log("User Data:", userData);
-
-
-                    const aulasHoje = await fetch('/aulasHoje', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-
-
-                    const aulas = await aulasHoje.json();
-                    console.log("Aulas Hoje:", aulas);
-
-
-                    const hoje = new Date().toISOString().split('T')[0];
-                    console.log("Data de Hoje:", hoje);
-
-
-                    const aulasDoDia = aulas.filter(aula => {
-                        const dataInicio = new Date(aula.dataInicio).toISOString().split('T')[0];
-                        return dataInicio === hoje;
-                    });
-
-
-                    console.log("Aulas do Dia:", aulasDoDia);
-
-
-                    if (aulasDoDia.length > 0) {
-                        exibirPopupAula(aulasDoDia);
-                    } else {
-                        exibirPopupAula([]); // Passa um array vazio para disparar a exibição de "Sem aulas cadastradas hoje"
-                    }
-            } catch (error) {
-                console.error("Erro ao verificar as aulas de hoje:", error);
+            // Função para verificar e exibir aulas do dia
+            async function verificarAulasHoje() {
+        console.log('Iniciando verificação de aulas...'); // Debug
+        
+        try {
+            const userResponse = await fetch('/getUserData', {
+            method: 'GET',
+            credentials: 'include'
+            });
+            
+            console.log('Status da resposta do usuário:', userResponse.status); // Debug
+            
+            if (!userResponse.ok) {
+            console.log("Usuário não autenticado");
+            return;
             }
+
+            const userData = await userResponse.json();
+            console.log("Dados do usuário recebidos:", userData); // Debug
+
+            const aulasResponse = await fetch('/aulasHoje', {
+            method: 'GET',
+            credentials: 'include'
+            });
+            
+            console.log('Status da resposta das aulas:', aulasResponse.status); // Debug
+            
+            if (!aulasResponse.ok) {
+            console.error("Erro ao buscar aulas:", aulasResponse.statusText);
+            return;
+            }
+
+            const aulas = await aulasResponse.json();
+            console.log("Aulas recebidas:", aulas); // Debug
+            
+            exibirPopupAula(aulas);
+        } catch (error) {
+            console.error("Erro ao verificar aulas:", error);
+        }
         }
 
+                function formatarHora(hora) {
+        if (!hora) return '';
+        // Assume que hora vem como 'HH:MM:SS' ou 'HH:MM'
+        return hora.substring(0, 5);
+        }
 
-        // Função para exibir as aulas no pop-up
         function exibirPopupAula(aulas) {
-            const popup = document.getElementById('popupAula');
-            const aulaInfo = document.getElementById('aula-info');
+        const popup = document.getElementById('popupAula');
+        const aulaInfo = document.getElementById('aula-info');
 
-
-            // Verifica se existem aulas para o dia
-            if (aulas.length > 0) {
-                // Se houver aulas, exibe as informações das aulas
-                const aulasList = aulas.map(aula => {
-                    return `<p>Aula de <strong>${aula.materia}</strong> no turno ${aula.turno} com a turma ${aula.turma}!</p>`;
-                }).join('');
-                aulaInfo.innerHTML = aulasList;
-            } else {
-                // Se não houver aulas, exibe a mensagem "Sem aulas cadastradas hoje"
-                aulaInfo.innerHTML = '<p>Sem aulas cadastradas hoje</p>';
-            }
-
-
-            // Exibe o pop-up
-            popup.style.display = 'flex';
+        if (!popup || !aulaInfo) {
+            console.error("Elementos do popup não encontrados no DOM");
+            return;
         }
 
+        if (aulas.length > 0) {
+            aulaInfo.innerHTML = aulas.map(aula => `
+            <div class="aula-notificacao">
+                <h3>${aula.materia}</h3>
+                <p>Turno: ${aula.turno}</p>
+                <p>Horário: ${formatarHora(aula.hora_inicio)} - ${formatarHora(aula.hora_fim)}</p>
+                <p>Local: ${aula.localizacao || 'Não informado'}</p>
+            </div>
+            `).join('');
+        } else {
+            aulaInfo.innerHTML = '<p>Nenhuma aula agendada para hoje</p>';
+        }
 
+        popup.style.display = 'flex';
+        }
+
+        // Chamada automática quando a página carrega
+        document.addEventListener('DOMContentLoaded', verificarAulasHoje);
 
 
         function fecharPopup() {
@@ -1214,234 +1220,234 @@
         });
     </script>
 
-<script>
-    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      const resultadoDiv = document.getElementById('resultado');
-      resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
-  
-      try {
-        const res = await fetch('/upload-laboratorios', {
-          method: 'POST',
-          body: formData
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const resultadoDiv = document.getElementById('resultado');
+        resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
+    
+        try {
+            const res = await fetch('/upload-laboratorios', {
+            method: 'POST',
+            body: formData
+            });
+    
+            const data = await res.json();
+            
+            if (!data.success) {
+            throw new Error(data.message || 'Erro ao processar planilha');
+            }
+    
+            resultadoDiv.innerHTML = '<h2>Resultados do Processamento</h2>';
+            
+            // Exibe resultados por docente
+            for (const [docente, info] of Object.entries(data.resultados)) {
+            const docenteDiv = document.createElement('div');
+            docenteDiv.innerHTML = `
+                <h3>${docente}</h3>
+                <p>Total de registros: ${info.total}</p>
+                <p>Inseridos com sucesso: ${info.inseridos}</p>
+                <p>Erros: ${info.erros}</p>
+                <details>
+                <summary>Detalhes</summary>
+                <pre>${JSON.stringify(info.detalhes, null, 2)}</pre>
+                </details>
+                <hr>
+            `;
+            resultadoDiv.appendChild(docenteDiv);
+            }
+    
+            } catch (error) {
+                resultadoDiv.innerHTML = `
+                <p style="color: red;">Erro: ${error.message}</p>
+                <p>Verifique o console para mais detalhes.</p>
+                `;
+                console.error('Erro:', error);
+            }
+            });
+
+            let dadosImportados = []; 
+
+            async function carregarDadosImportados() {
+                try {
+                    const response = await fetch('/importado');
+                    if (!response.ok) throw new Error("Erro ao carregar dados importados");
+                    
+                    dadosImportados = await response.json();
+                    await carregarDocentesImportados();
+                    atualizarTabelaImportados(dadosImportados);
+                    preencherFiltrosImportados(dadosImportados);
+                    
+                } catch (error) {
+                    console.error("Erro ao carregar dados importados:", error);
+                    alert('Erro ao carregar dados da planilha.');
+                }
+            }
+
+            async function carregarDocentesImportados() {
+            try {
+                const response = await fetch('/docentesImportado');
+                if (!response.ok) throw new Error("Erro ao carregar docentes");
+                
+                const docentes = await response.json();
+                const selectDocente = document.getElementById("filtroDocenteImportado");
+                
+                // Limpa e prepara o select
+                selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
+                
+                // Preenche com os docentes
+                const docentesUnicos = [...new Set(docentes.map(d => d.nome))].filter(Boolean);
+                docentesUnicos.forEach(nomeDocente => {
+                const option = document.createElement("option");
+                option.value = nomeDocente;
+                option.textContent = nomeDocente;
+                selectDocente.appendChild(option);
+                });
+                
+                // Configura o Select2
+                $('#filtroDocenteImportado').select2({
+                placeholder: "Selecione o docente...",
+                allowClear: true,
+                width: '100%'
+                });
+
+                selectDocente.addEventListener('change', filtrarDadosImportados);
+                
+            } catch (error) {
+                console.error("Erro ao carregar docentes:", error);
+                alert('Não foi possível carregar a lista de docentes');
+            }
+            }
+
+    function atualizarTabelaImportados(dados) {
+    const tbody = document.getElementById("tabelaImportadosCorpo");
+    tbody.innerHTML = '';
+
+    dados.forEach(item => {
+        const tr = document.createElement('tr');
+        
+        const campos = ['docente', 'nome', 'descricao', 'dias_semana', 
+                    'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
+        
+        campos.forEach(campo => {
+        const td = document.createElement('td');
+        td.textContent = formatarCampoImportado(item[campo], campo);
+        tr.appendChild(td);
         });
-  
-        const data = await res.json();
         
-        if (!data.success) {
-          throw new Error(data.message || 'Erro ao processar planilha');
-        }
-  
-        resultadoDiv.innerHTML = '<h2>Resultados do Processamento</h2>';
-        
-        // Exibe resultados por docente
-        for (const [docente, info] of Object.entries(data.resultados)) {
-          const docenteDiv = document.createElement('div');
-          docenteDiv.innerHTML = `
-            <h3>${docente}</h3>
-            <p>Total de registros: ${info.total}</p>
-            <p>Inseridos com sucesso: ${info.inseridos}</p>
-            <p>Erros: ${info.erros}</p>
-            <details>
-              <summary>Detalhes</summary>
-              <pre>${JSON.stringify(info.detalhes, null, 2)}</pre>
-            </details>
-            <hr>
-          `;
-          resultadoDiv.appendChild(docenteDiv);
-        }
-  
-      } catch (error) {
-        resultadoDiv.innerHTML = `
-          <p style="color: red;">Erro: ${error.message}</p>
-          <p>Verifique o console para mais detalhes.</p>
-        `;
-        console.error('Erro:', error);
-      }
+        tbody.appendChild(tr);
     });
+    }
 
-    let dadosImportados = []; 
-
-    async function carregarDadosImportados() {
-  try {
-    const response = await fetch('/importado');
-    if (!response.ok) throw new Error("Erro ao carregar dados importados");
+    function formatarCampoImportado(valor, campo) {
+    if (!valor) return 'N/A';
     
-    dadosImportados = await response.json();
-    await carregarDocentesImportados();
+    switch(campo) {
+        case 'data_atividade':
+        return new Date(valor).toLocaleDateString('pt-BR');
+        case 'hora_inicio':
+        case 'hora_fim':
+        return valor.slice(0, 5); 
+        case 'dias_semana':
+        return formatarDiasSemana(valor);
+        default:
+        return valor;
+    }
+    }
+
+    function formatarDiasSemana(dias) {
+    const diasMap = {
+        'SEG': 'Segunda', 'TER': 'Terça', 'QUA': 'Quarta',
+        'QUI': 'Quinta', 'SEX': 'Sexta', 'SAB': 'Sábado', 'DOM': 'Domingo'
+    };
+    
+    return dias.split(',').map(dia => {
+        return diasMap[dia.trim().toUpperCase()] || dia.trim();
+    }).join(', ');
+    }
+
+    function preencherFiltrosImportados(dados) {
+    // Filtro por turno
+    const turnos = [...new Set(dados.map(item => item.turno))].filter(Boolean);
+    const turnoSelect = document.getElementById("filtroTurnoImportado");
+    
+    turnoSelect.innerHTML = '<option value="">Todos os turnos</option>';
+    turnos.forEach(turno => {
+        const option = document.createElement("option");
+        option.value = turno;
+        option.textContent = turno;
+        turnoSelect.appendChild(option);
+    });
+    
+    $(turnoSelect).select2({ 
+        placeholder: "Selecione o turno...", 
+        allowClear: true 
+    }).on('change', filtrarDadosImportados);
+    }
+
+    function filtrarDadosImportados() {
+    const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
+    const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
+    
+    const dadosFiltrados = dadosImportados.filter(item => {
+        // Filtro por docente (comparação exata)
+        const matchDocente = docenteSelecionado ? 
+        item.docente && item.docente.trim() === docenteSelecionado.trim() : true;
+        
+        // Filtro por turno (comparação case insensitive)
+        const matchTurno = turnoSelecionado ? 
+        item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
+        
+        return matchDocente && matchTurno;
+    });
+    
+    atualizarTabelaImportados(dadosFiltrados);
+    }
+
+    function limparFiltrosImportados() {
+    $('#filtroDocenteImportado, #filtroTurnoImportado').val('').trigger('change');
     atualizarTabelaImportados(dadosImportados);
-    preencherFiltrosImportados(dadosImportados);
-    
-  } catch (error) {
-    console.error("Erro ao carregar dados importados:", error);
-    alert('Erro ao carregar dados da planilha.');
-  }
-}
+    }
 
-async function carregarDocentesImportados() {
-  try {
-    const response = await fetch('/docentesImportado');
-    if (!response.ok) throw new Error("Erro ao carregar docentes");
-    
-    const docentes = await response.json();
-    const selectDocente = document.getElementById("filtroDocenteImportado");
-    
-    // Limpa e prepara o select
-    selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
-    
-    // Preenche com os docentes
-    const docentesUnicos = [...new Set(docentes.map(d => d.nome))].filter(Boolean);
-    docentesUnicos.forEach(nomeDocente => {
-      const option = document.createElement("option");
-      option.value = nomeDocente;
-      option.textContent = nomeDocente;
-      selectDocente.appendChild(option);
-    });
-    
-    // Configura o Select2
-    $('#filtroDocenteImportado').select2({
-      placeholder: "Selecione o docente...",
-      allowClear: true,
-      width: '100%'
-    });
+    let exibindoAulas = true; // Começa mostrando a tabela aula
 
-    selectDocente.addEventListener('change', filtrarDadosImportados);
+    function alternarTabelas() {
+    exibindoAulas = !exibindoAulas;
     
-  } catch (error) {
-    console.error("Erro ao carregar docentes:", error);
-    alert('Não foi possível carregar a lista de docentes');
-  }
-}
+    if (exibindoAulas) {
+        document.getElementById('tabelaAulasContainer').style.display = 'block';
+        document.getElementById('tabelaImportadosContainer').style.display = 'none';
+        document.getElementById('btnAlternarTabelas').textContent = 'Ver Dados Importados';
+        carregarAulas();
+    } else {
+        document.getElementById('tabelaAulasContainer').style.display = 'none';
+        document.getElementById('tabelaImportadosContainer').style.display = 'block';
+        document.getElementById('btnAlternarTabelas').textContent = 'Voltar para Aulas';
+        carregarDadosImportados();
+    }
+    }
 
-function atualizarTabelaImportados(dados) {
-  const tbody = document.getElementById("tabelaImportadosCorpo");
-  tbody.innerHTML = '';
-
-  dados.forEach(item => {
-    const tr = document.createElement('tr');
+    document.addEventListener("DOMContentLoaded", function() {
+    carregarDadosUsuario();
     
-    const campos = ['docente', 'nome', 'descricao', 'dias_semana', 
-                   'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
-    
-    campos.forEach(campo => {
-      const td = document.createElement('td');
-      td.textContent = formatarCampoImportado(item[campo], campo);
-      tr.appendChild(td);
-    });
-    
-    tbody.appendChild(tr);
-  });
-}
-
-function formatarCampoImportado(valor, campo) {
-  if (!valor) return 'N/A';
-  
-  switch(campo) {
-    case 'data_atividade':
-      return new Date(valor).toLocaleDateString('pt-BR');
-    case 'hora_inicio':
-    case 'hora_fim':
-      return valor.slice(0, 5); 
-    case 'dias_semana':
-      return formatarDiasSemana(valor);
-    default:
-      return valor;
-  }
-}
-
-function formatarDiasSemana(dias) {
-  const diasMap = {
-    'SEG': 'Segunda', 'TER': 'Terça', 'QUA': 'Quarta',
-    'QUI': 'Quinta', 'SEX': 'Sexta', 'SAB': 'Sábado', 'DOM': 'Domingo'
-  };
-  
-  return dias.split(',').map(dia => {
-    return diasMap[dia.trim().toUpperCase()] || dia.trim();
-  }).join(', ');
-}
-
-function preencherFiltrosImportados(dados) {
-  // Filtro por turno
-  const turnos = [...new Set(dados.map(item => item.turno))].filter(Boolean);
-  const turnoSelect = document.getElementById("filtroTurnoImportado");
-  
-  turnoSelect.innerHTML = '<option value="">Todos os turnos</option>';
-  turnos.forEach(turno => {
-    const option = document.createElement("option");
-    option.value = turno;
-    option.textContent = turno;
-    turnoSelect.appendChild(option);
-  });
-  
-  $(turnoSelect).select2({ 
-    placeholder: "Selecione o turno...", 
-    allowClear: true 
-  }).on('change', filtrarDadosImportados);
-}
-
-function filtrarDadosImportados() {
-  const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
-  const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
-  
-  const dadosFiltrados = dadosImportados.filter(item => {
-    // Filtro por docente (comparação exata)
-    const matchDocente = docenteSelecionado ? 
-      item.docente && item.docente.trim() === docenteSelecionado.trim() : true;
-    
-    // Filtro por turno (comparação case insensitive)
-    const matchTurno = turnoSelecionado ? 
-      item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
-    
-    return matchDocente && matchTurno;
-  });
-  
-  atualizarTabelaImportados(dadosFiltrados);
-}
-
-function limparFiltrosImportados() {
-  $('#filtroDocenteImportado, #filtroTurnoImportado').val('').trigger('change');
-  atualizarTabelaImportados(dadosImportados);
-}
-
-let exibindoAulas = true; // Começa mostrando a tabela aula
-
-function alternarTabelas() {
-  exibindoAulas = !exibindoAulas;
-  
-  if (exibindoAulas) {
-    document.getElementById('tabelaAulasContainer').style.display = 'block';
     document.getElementById('tabelaImportadosContainer').style.display = 'none';
-    document.getElementById('btnAlternarTabelas').textContent = 'Ver Dados Importados';
     carregarAulas();
-  } else {
-    document.getElementById('tabelaAulasContainer').style.display = 'none';
-    document.getElementById('tabelaImportadosContainer').style.display = 'block';
-    document.getElementById('btnAlternarTabelas').textContent = 'Voltar para Aulas';
-    carregarDadosImportados();
-  }
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-  carregarDadosUsuario();
-  
-  document.getElementById('tabelaImportadosContainer').style.display = 'none';
-  carregarAulas();
-  
-  document.getElementById('btnAlternarTabelas').addEventListener('click', alternarTabelas);
-  
-  // Configurar os eventos dos botões de filtro
-  document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
-  document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
-  
-  // Inicializar Select2
-  $('.select-filtro-importado').select2({
-    placeholder: "Selecione...",
-    allowClear: true,
-    width: '100%'
-  });
-});
-  </script>
+    
+    document.getElementById('btnAlternarTabelas').addEventListener('click', alternarTabelas);
+    
+    // Configurar os eventos dos botões de filtro
+    document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
+    document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
+    
+    // Inicializar Select2
+    $('.select-filtro-importado').select2({
+        placeholder: "Selecione...",
+        allowClear: true,
+        width: '100%'
+    });
+    });
+    </script>
 
 </body>
 </html>
