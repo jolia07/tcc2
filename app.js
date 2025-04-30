@@ -1781,11 +1781,10 @@ app.get('/exportar-excel-importado', async (req, res) => {
     const planilha = new excelJS.Workbook();
     const aba = planilha.addWorksheet('Aulas');
 
-    // Preencher informações do docente (simplificado já que não temos todos os dados)
     aba.getCell('B2').value = docenteNome;    // Nome do docente
-    aba.getCell('B3').value = "";            // E-mail (não disponível)
-    aba.getCell('B4').value = "";            // Telefone 1 (não disponível)
-    aba.getCell('B5').value = "";            // Telefone 2 (não disponível)
+    aba.getCell('B3').value = "";            // E-mail 
+    aba.getCell('B4').value = "";            // Telefone 1 
+    aba.getCell('B5').value = "";            // Telefone 2 
 
     // Configuração dos horários
     const horariosDia = [
@@ -1800,11 +1799,20 @@ app.get('/exportar-excel-importado', async (req, res) => {
     linhaHorario.forEach((linhaBase) => {
       horariosDia.forEach((horario, indice) => {
         const linhaAtual = linhaBase + indice;
-        aba.getCell(linhaAtual, 1).value = horario;
-        aba.getCell(linhaAtual, 1).fill = {
+        const cell = aba.getCell(linhaAtual, 1);
+        
+        cell.value = horario;
+        cell.fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: 'FFD9D9D9' },
+          fgColor: { argb: 'FFD9D9D9' }
+        };
+        cell.font = {  
+          size: 18    
+        };
+        cell.alignment = { 
+          horizontal: 'center', 
+          vertical: 'middle'
         };
       });
     });
@@ -1871,6 +1879,22 @@ app.get('/exportar-excel-importado', async (req, res) => {
       };
     });
 
+    const centralizadorDeLinhasEColunas = [1, 2, 3, 4, 5, 6];
+    centralizadorDeLinhasEColunas.forEach(linha => {
+      for (let coluna = 0; coluna < 33; coluna++) {
+          const cell = aba.getCell(linha, coluna + 1);
+          cell.alignment = { 
+            horizontal: 'center', 
+            vertical: 'middle' 
+          };
+          cell.font = {
+            size: 18,
+            bold: true
+          }
+      }
+    });
+
+
     // Cabeçalho dos meses (JAN, FEV, etc.) (igual ao original)
     const mesesAbreviados = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
     mesesAbreviados.forEach((mes, indice) => {
@@ -1919,7 +1943,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
       };
       aba.getCell(`${colunaLetra}2`).font = {
         bold: true,
-        color: { argb: 'FF000000' }
+        color: { argb: 'FF000000' },
+        size: 14
       };
       aba.getCell(`${colunaLetra}2`).alignment = {
         horizontal: 'center',
@@ -1949,7 +1974,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
       };
       celula.font = {
         bold: true,
-        color: { argb: 'FFFFFFFF' }
+        color: { argb: 'FFFFFFFF' },
+        size: 24
       };
     });
 
@@ -1963,7 +1989,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
       };
       celula.font = {
         bold: true,
-        color: { argb: 'FFFFFFFF' }
+        color: { argb: 'FFFFFFFF' },
+        size: 20
       };
     });
 
@@ -2034,7 +2061,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
         };
         celula.font = {
           bold: true,
-          color: { argb: 'FFFFFFFF' }
+          color: { argb: 'FFFFFFFF' },
+          size: 20
         };
         celula.alignment = {
           horizontal: 'center',
@@ -2053,7 +2081,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
         };
         celula.font = {
           bold: true,
-          color: { argb: 'FFFFFFFF' }
+          color: { argb: 'FFFFFFFF' },
+          size: 22
         };
         celula.alignment = {
           horizontal: 'center',
@@ -2061,6 +2090,22 @@ app.get('/exportar-excel-importado', async (req, res) => {
         };
       });
     });
+
+    const celulasParaFormatar = ['B1', 'H1', 'T1', 'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1', 'AA1', 'AB1', 'AC1', 'AD1', 'AE1'];
+    celulasParaFormatar.forEach(celula => {
+      aba.getCell(celula).font = {
+        size: 20,
+        blod: true
+      };
+    });
+
+    celulaCronograma = ['A8'];
+    celulaCronograma.forEach(celula =>{
+      aba.getCell(celula).font = {
+        size: 24,
+        bold: true
+      }
+    })
 
     // Mapeamento de meses para linhas na planilha (igual ao original)
     const mesesLinhas = {
@@ -2227,7 +2272,6 @@ app.get('/exportar-excel-importado', async (req, res) => {
           celula.value = {
             richText: [
               { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
-              { text: `${aulaPadronizada.professor}\n` },
               { text: `${aulaPadronizada.laboratorio}` }
             ]
           };
@@ -2250,6 +2294,11 @@ app.get('/exportar-excel-importado', async (req, res) => {
             bottom: { style: 'thin', color: { argb: 'FF000000' } },
             right: { style: 'thin', color: { argb: 'FF000000' } }
           };
+
+          celula.font = {
+            size: 11,
+            bold: true
+          }
         }
    
       } catch (error) {
@@ -2257,16 +2306,33 @@ app.get('/exportar-excel-importado', async (req, res) => {
       }
     });
 
+    aba.views = [
+      {
+        zoomScale: 36
+      }
+    ];
+    
     // Ajustar largura das colunas (igual ao original)
     function cmParaUnidadeExcel(cm) {
       const cmPorUnidade = 0.144;
       return cm / cmPorUnidade;
     }
 
-    const largura = cmParaUnidadeExcel(2.3);
+    const largura = cmParaUnidadeExcel(5);
     aba.columns.forEach((coluna, index) => {
       coluna.width = largura;
     });
+
+    function cmParaAlturaExcel(cm) {
+      return cm * 28.3465; 
+    }
+  
+    const altura = cmParaAlturaExcel(2);
+    aba.eachRow(row => {
+      row.height = altura;
+    });
+
+
    
     // Enviar a planilha
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
