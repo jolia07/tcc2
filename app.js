@@ -646,6 +646,105 @@ app.get('/materia', async (req, res) => {
   }
 });
 
+app.get('/eventos', async (req, res) => {
+  try {
+    const userType = req.session.user?.tipo;
+    const userId = req.session.user?.id;
+
+    let query = `
+      SELECT 
+          a.id,
+          m.uc AS materia,
+          t.nome AS turma,
+          a.turno,
+          a.diasSemana,
+          a.dataInicio,
+          CONCAT('Cimatec ', l.cimatec, ' - Sala ', l.sala) AS laboratorio,
+          a.usuario_id
+      FROM aula a
+      JOIN materia m ON a.materia_id = m.id
+      JOIN turma t ON a.turma_id = t.id
+      LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
+    `;
+
+    let params = [];
+    if (userType === 'Docente') {
+      query += " WHERE a.usuario_id = $1";
+      params.push(userId);
+    }
+
+    const { rows } = await pool.query(query, params);
+
+    const eventos = [];
+
+    for (const aula of rows) {
+      const diasSemana = (aula.diassemana || aula.diasSemana || '').split(',').map(dia => dia.trim());
+      const inicioBase = new Date(aula.datainicio);
+
+       const diaParaNumero = {
+   'Domingo': 0, 'Segunda': 1, 'Terça': 2,
+   'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6, 'Sabado': 6,
+ };
+
+      const diasNumeros = diasSemana.map(d => diaParaNumero[d]);
+
+      // Gera eventos para 12 semanas
+      for (let semana = 0; semana < 12; semana++) {
+        diasNumeros.forEach(diaNumero => {
+          const dataEvento = new Date(inicioBase);
+          let diasAdicionais = (diaNumero - dataEvento.getDay() + 7) % 7;
+          diasAdicionais += semana * 7;
+          dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
+
+          let horaInicio = 8, horaFim = 12;
+          if (aula.turno === 'Vespertino') {
+            horaInicio = 13; horaFim = 17;
+          } else if (aula.turno === 'Noturno') {
+            horaInicio = 19; horaFim = 22;
+          }
+
+          const inicio = new Date(dataEvento);
+          inicio.setHours(horaInicio, 0, 0, 0);
+          const fim = new Date(dataEvento);
+          fim.setHours(horaFim, 0, 0, 0);
+
+          eventos.push({
+            id: `${aula.id}-${semana}-${diaNumero}`,
+            text: `${aula.materia}\nTurma: ${aula.turma}\nLab: ${aula.laboratorio}`,
+            start_date: inicio,
+            end_date: fim,
+            tipo: "AULA",
+            color: "#37516d",
+            textColor: "#fff"
+          });
+        });
+      }
+    }
+
+    res.json(eventos);
+  } catch (error) {
+    console.error('Erro ao carregar eventos:', error);
+    res.status(500).json({ error: "Erro ao carregar eventos" });
+  }
+});
+
+
+// Adicionar middleware de autenticação e verificação de admin
+app.get('/docentes', 
+  verificarAutenticacao,
+  verificarTipoUsuario(['Administrador']),
+  async (req, res) => {
+      try {
+          const { rows } = await pool.query(
+              "SELECT id, nome FROM usuarios WHERE tipo = 'Docente' ORDER BY nome"
+          );
+          res.json(rows);
+      } catch (error) {
+          console.error("Erro ao buscar docentes:", error);
+          res.status(500).json({ error: "Erro ao buscar docentes" });
+      }
+  }
+);
 
 // Rota para cadastrar aula - Versão Corrigida
 app.post('/aulas', async (req, res) => {
