@@ -72,7 +72,7 @@
         box-shadow: var(--shadow); 
         position: relative;
         z-index: 90;
-        height: calc(100vh - 60px);
+        height: 100%;
     }
 
     .sidebar-nav { 
@@ -98,7 +98,7 @@
         margin-top: auto;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         padding: 5px 0;
-        margin-bottom: 5px;
+        margin-bottom: auto;
     }
 
     .sidebar-nav a { 
@@ -642,14 +642,14 @@
     .main-layout {
         display: flex;
         flex: 1;
-        height: calc(100vh - 60px);
+        height: auto;
     }
 
     .main-container {
         flex: 1;
         display: flex;
         flex-direction: column;
-        overflow-y: auto;
+        overflow: auto;
     }
 
     @media (max-width: 992px) {
