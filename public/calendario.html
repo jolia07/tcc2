@@ -37,7 +37,6 @@
                     <li><a href="calendario2.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
-                    <!-- Adicione return false para prevenir comportamento padrão -->
                     <a onclick="sair(event); return false;" href="#" data-tooltip="Sair">
                         <i class="fas fa-sign-out-alt"></i>
                         <span class="menu-text">Sair</span>
@@ -47,39 +46,7 @@
         </div>
 
 
-        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
-            <div class="controles-calendario">
-                <div class="filtro-topo">
-                    <div class="filtro-grupo">
-                        <label for="calendario">Período:</label>
-                        <select id="calendario">
-                            <option value="2025R1">2025 - 1º Semestre</option>
-                            <option value="2024R2">2024 - 2º Semestre</option>
-                            <option value="2024R1">2024 - 1º Semestre</option>
-                        </select>
-                    </div>
-                    <div class="filtro-grupo">
-                        <label for="tipo-evento">Tipo:</label>
-                        <select id="tipo-evento">
-                            <option value="TODOS">Todos</option>
-                            <option value="AULA">Aulas</option>
-                            <option value="EVENTO">Eventos</option>
-                            <option value="FERIADO">Feriados</option>
-                            <option value="PROVA">Provas</option>
-                        </select>
-                    </div>
-                    <div class="filtro-grupo">
-                        <label for="pesquisa-evento">Pesquisar:</label>
-                        <div class="pesquisa-container">
-                            <input type="text" id="pesquisa-evento" placeholder="Buscar eventos...">
-                            <button id="btn-pesquisar"><i class="fas fa-search"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
+    <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
 
     <div id="profile-container">
         <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
@@ -97,14 +64,6 @@
         <button id="btnCadastrarMateria" onclick="openModal('modalMateria')">Cadastrar Matéria</button>
         <button id="btnCadastrarAula" onclick="openModal('modalAula')">Cadastrar Aula</button>
         <button onclick="exportarParaExcel()">Exportar para Excel</button>
-       
-  <form id="uploadForm">
-    <input type="file" name="planilha" required />
-    <button type="submit">Enviar</button>
-  </form>
-
-
-  <div id="resultado"></div>
 
     </div>
 
@@ -326,12 +285,34 @@
         </div>
     </div>
 
-    <!-- Botão para alternar entre as tabelas -->
-<button id="btnAlternarTabelas" class="btn-alternar">Ver Dados Importados</button>
+    <div class="uploadPlanilha">
+        <div class="upload-container">
+            <form id="uploadForm" class="upload-form">
+              <div class="form-group">
+                <label for="planilhaUpload" class="upload-label">
+                  <i class="fas fa-file-excel"></i> Selecione a planilha
+                </label>    
+                <input type="file" id="planilhaUpload" name="planilha" required/>
+              </div>
+              <button type="submit" class="upload-button">
+                <i class="fas fa-upload"></i> Enviar
+              </button>
+            </form>
+            <br>
+            <div id="resultado"></div>
+            <button type="button" id="btnLimparResultados" class="btn-limpar">
+                <i class="fas fa-broom"></i> Limpar Resultados
+            </button>
+           <button id="btnAlternarTabelas" class="upload-button">Ver Dados Importados</button>
+          </div>
+    </div>
 
 <!-- Container da tabela Aula -->
 <div id="tabelaAulasContainer">
-  <h2>Agendamento de Aulas</h2>
+  <h2>Agendamento de Aulas</h2> <br>
+  <div class="btn-group">
+    
+  </div>
   <!-- Filtros existentes para a tabela aula -->
   <div class="filtros-container">
     <!-- ... filtros existentes ... -->
@@ -355,10 +336,13 @@
 <!-- Container da tabela Importado -->
 <div id="tabelaImportadosContainer">
   <h2>Dados Importados da Planilha</h2>
+  <br>
   <!-- Filtros específicos para dados importados -->
   <div class="filtros-importados">
     <div class="filtro-group">
       <select id="filtroDocenteImportado" class="select-filtro-importado"></select>
+      <br>
+      <br>
       <select id="filtroTurnoImportado" class="select-filtro-importado"></select>
     </div>
     <div class="btn-group">
@@ -1447,6 +1431,31 @@
         width: '100%'
     });
     });
+
+    // Configuração do botão de limpar resultados
+document.addEventListener("DOMContentLoaded", function() {
+    // Busca o botão de limpar resultados
+    const btnLimparResultados = document.getElementById('btnLimparResultados');
+    
+    // Adiciona o evento de clique ao botão
+    if (btnLimparResultados) {
+        btnLimparResultados.addEventListener('click', function() {
+            // Limpa a div de resultados
+            const resultadoDiv = document.getElementById('resultado');
+            if (resultadoDiv) {
+                resultadoDiv.innerHTML = '';
+                
+                // Opcional: Exibir uma mensagem temporária de confirmação
+                resultadoDiv.innerHTML = '<p class="sucesso-mensagem">Resultados limpos com sucesso!</p>';
+                
+                // Remove a mensagem após 3 segundos
+                setTimeout(function() {
+                    resultadoDiv.innerHTML = '';
+                }, 3000);
+            }
+        });
+    }
+});
     </script>
 
 </body>
