@@ -18,32 +18,31 @@
 
     <header class="top-bar">
         <div class="header-left">
-            <span class="sepa-title">SEPA - NOTIFICAÇÕES</span>
-        </div>
-        <div class="header-right">
-            <div class="user-info">
-                <i class="fas fa-user-circle"></i>
-            </div>
+            <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
         </div>
     </header>
 
-    <div class="main-layout" style="display: flex; flex: 1;">
+
+    <div class="main-layout">
         <div class="sidebar" id="sidebar">
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="calendario.html" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
+                    <li><a href="calendario.html" class="active" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
                     <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
-                    <li><a href="notificacoes.html" class="active" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
                     <li><a href="calendario2.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
-                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                    <a onclick="sair(event); return false;" href="#" data-tooltip="Sair">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="menu-text">Sair</span>
+                    </a>
                 </div>
             </nav>
         </div>
 
-        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
 
+    <div class="main-container">
     <div id="profile-container">
         <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
         <div>
@@ -51,23 +50,30 @@
             <p id="userRole"></p>
         </div>
     </div>
+          
 
     <div id="listaNotificacoes"></div>
 
     <script>
         async function carregarDadosUsuario() {
-            try {
+          try {
                 const response = await fetch('/getUserData');
-                const data = await response.json();
+                if (!response.ok) throw new Error("Não autenticado");
                 
-                // Atualizar as informações do perfil
+                const data = await response.json();
+
                 document.getElementById('userName').innerText = data.nome;
                 document.getElementById('userRole').innerText = data.tipo;
                 if (data.profilePic) {
                     document.getElementById('profilePic').src = '/img/' + data.profilePic;
                 } else {
-                    document.getElementById('profilePic').src = '/img/default.png'; 
+                    document.getElementById('profilePic').src = '/img/default.png';
                 }
+                
+                if (data.foto) {
+                    document.getElementById('profilePic').src = data.foto;
+                }
+                carregarNotificacoes();
                 } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
                 alert('Erro ao carregar perfil.');
