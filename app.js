@@ -1222,623 +1222,6 @@ app.get('/importado', async (req, res) => {
   }
 });
 
-
-//Rota da planilha(montagem)
-app.get('/exportar-excel', async (req, res) => {
-  try {
-    if (!req.session || !req.session.user || !req.session.user.id) {
-      return res.status(401).json({ error: "Usuário não autenticado" });
-    }
-      
-    const isAdmin = req.session.user.tipo === 'Administrador';
-    let docenteId;
-    let docenteNome;
-
-    // Lógica para obter o docente (por nome para admin, por ID para docente normal)
-    if (isAdmin && req.query.docente_nome) {
-      // Busca o docente pelo nome
-      docenteNome = req.query.docente_nome.trim();
-      
-      const { rows: docenteCheck } = await pool.query(
-        'SELECT id, nome FROM usuarios WHERE nome = $1 AND tipo = $2',
-        [docenteNome, 'Docente']
-      );
-      
-      if (docenteCheck.length === 0) {
-        return res.status(404).json({ 
-          error: "Docente não encontrado",
-          details: `Nenhum docente encontrado com o nome "${docenteNome}"`
-        });
-      }
-      
-      // Se houver mais de um docente com o mesmo nome
-      if (docenteCheck.length > 1) {
-        return res.status(400).json({
-          error: "Múltiplos docentes encontrados",
-          details: `Foram encontrados ${docenteCheck.length} docentes com o nome "${docenteNome}".`,
-          sugestoes: docenteCheck.map(d => ({ id: d.id, nome: d.nome }))
-        });
-      }
-      
-      docenteId = docenteCheck[0].id;
-      docenteNome = docenteCheck[0].nome;
-    } else {
-      // Usa o ID do usuário logado (para docentes não-admins)
-      docenteId = req.session.user.id;
-    }
-      
-    // Buscar dados do docente
-    const {rows: userData} = await pool.query(
-       'SELECT nome, email, telefone1, telefone2 FROM usuarios WHERE id = $1',
-       [docenteId]
-    );
-      
-      if (userData.length === 0) {
-       return res.status(404).json({ error: "Usuário não encontrado" });
-      }
-      
-    const docente = userData[0];
-    docenteNome = docente.nome; 
-      
-    const {rows: aulas} = await pool.query(`
-     SELECT
-      a.id,
-     u.nome AS professor,
-     c.nome AS curso,
-      m.uc AS materia,
-     m.ch AS cargaHoraria,
-     t.nome AS turma,
-     CONCAT('CIMATEC ', l.cimatec, ' - Andar ', l.andar, ' - Sala ', l.sala) AS laboratorio,
-     a.turno,
-     a.diasSemana,
-     a.dataInicio
-      FROM aula a
-       LEFT JOIN usuarios u ON a.usuario_id = u.id
-       LEFT JOIN curso c ON a.curso_id = c.id
-       LEFT JOIN materia m ON a.materia_id = m.id
-       LEFT JOIN turma t ON a.turma_id = t.id
-       LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
-       WHERE a.usuario_id = $1
-    `, [docenteId]);
-      
-    if (aulas.length === 0) {
-      const msg = isAdmin
-      ? `Nenhuma aula encontrada para o docente ${docente.nome}`
-      : "Nenhuma aula cadastrada para o seu usuário";
-     return res.status(404).json({ error: msg });
-    }
-
-    const planilha = new excelJS.Workbook();
-    const aba = planilha.addWorksheet('Aulas');
-    // Preencher informações do docente
-    aba.getCell('B2').value = docente.nome;    // Nome do docente
-    aba.getCell('B3').value = docente.email;   // E-mail
-    aba.getCell('B4').value = docente.telefone1 || '';  // Telefone 1
-    aba.getCell('B5').value = docente.telefone2 || '';  // Telefone 2
-    // Configuração dos horários
-    const horariosDia = [
-      "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
-      "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "",
-      "18:40 - 21:40", ""
-    ];
-   
-    const linhaHorario = [12, 27, 42, 57, 72, 87, 102, 117, 132, 147, 162, 177];
-
-    // Preencher horários na coluna A
-    linhaHorario.forEach((linhaBase) => {
-      horariosDia.forEach((horario, indice) => {
-        const linhaAtual = linhaBase + indice;
-        aba.getCell(linhaAtual, 1).value = horario;
-        aba.getCell(linhaAtual, 1).fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFD9D9D9' },
-        };
-      });
-    });
-
-    // Configuração de mesclagem de células
-    aba.mergeCells('B1:F1');
-    aba.mergeCells('B2:F2');
-    aba.mergeCells('B3:F3');
-    aba.mergeCells('B4:F4');
-    aba.mergeCells('B5:F5');
-    aba.mergeCells('A6:AF6');
-    aba.mergeCells('H1:R1');
-    aba.mergeCells('AF1:AF5');
-    aba.mergeCells('G1:G5');
-
-    // Mesclagem de células dos meses
-    aba.mergeCells('A9:AF9');
-    aba.mergeCells('A8:AF8');
-    aba.mergeCells('A24:AD24');
-    aba.mergeCells('A39:AF39');
-    aba.mergeCells('A54:AE54');
-    aba.mergeCells('A69:AF69');
-    aba.mergeCells('A84:AE84');
-    aba.mergeCells('A99:AF99');
-    aba.mergeCells('A114:AF114');
-    aba.mergeCells('A129:AE129');
-    aba.mergeCells('A144:AF144');
-    aba.mergeCells('A159:AE159');
-    aba.mergeCells('A174:AF174');
-
-    // Cabeçalhos e títulos
-    aba.getCell('B1').value = "Dados do Docente";
-    aba.getCell('A8').value = "Cronograma do período letivo";
-
-
-    // Nomes dos meses
-    const meses = [
-      {nome: "Janeiro", linha: 9},
-      {nome: "Fevereiro", linha: 24},
-      {nome: "Março", linha: 39},
-      {nome: "Abril", linha: 54},
-      {nome: "Maio", linha: 69},
-      {nome: "Junho", linha: 84},
-      {nome: "Julho", linha: 99},
-      {nome: "Agosto", linha: 114},
-      {nome: "Setembro", linha: 129},
-      {nome: "Outubro", linha: 144},
-      {nome: "Novembro", linha: 159},
-      {nome: "Dezembro", linha: 174}
-    ];
-
-    meses.forEach(mes => {
-      aba.getCell(`A${mes.linha}`).value = mes.nome;
-    });
-
-    // Centralização
-    aba.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
-    aba.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle' };
-
-    const linhasParaCentralizar = [8, ...meses.map(m => m.linha)];
-    linhasParaCentralizar.forEach(linha => {
-      aba.getCell(`A${linha}`).alignment = {
-        horizontal: 'center',
-        vertical: 'middle'
-      };
-    });
-
-    // Cabeçalho dos meses (JAN, FEV, etc.)
-    const mesesAbreviados = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-    mesesAbreviados.forEach((mes, indice) => {
-      const celula = aba.getCell(1, indice + 20);
-      celula.value = mes;
-      celula.alignment = { horizontal: 'center' };
-    });
-
-    // Estilo do cabeçalho
-    aba.getRow(1).eachCell((celula) => {
-      celula.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF1E3A5F' }
-      };
-      celula.font = {
-        bold: true,
-        color: { argb: 'FFFFFFFF' }
-      };
-    });
-
-    // Labels e legendas
-    aba.getCell('A2').value = "Docente:";
-    aba.getCell('A3').value = "E-mail:";
-    aba.getCell('A4').value = "Tel.1:";
-    aba.getCell('A5').value = "Tel.2:";
-    aba.getCell('S2').value = "Dias Úteis:";
-    aba.getCell('S3').value = "Horas Úteis:";
-    aba.getCell('S4').value = "Horas Alocadas:";
-    aba.getCell('H1').value = "Legenda";
-
-    const materiasUnicas = [...new Set(aulas.map(aula => aula.materia))];
-
-    let colunaAtual = 8;
-
-    materiasUnicas.forEach((materia, index) => {
-      const corMateria = getColorForMateria(materia);
-      const colunaLetra = String.fromCharCode(64 + colunaAtual);
-     
-      // Célula com nome da matéria
-      aba.getCell(`${colunaLetra}2`).value = materia;
-      aba.getCell(`${colunaLetra}2`).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: corMateria }
-      };
-      aba.getCell(`${colunaLetra}2`).font = {
-        bold: true,
-        color: { argb: 'FF000000' } // Texto preto para melhor contraste
-      };
-      aba.getCell(`${colunaLetra}2`).alignment = {
-        horizontal: 'center',
-        vertical: 'middle',
-        wrapText: true
-      };
-      aba.getCell(`${colunaLetra}2`).border = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
-      };
-     
-      // Ajustar largura da coluna
-      aba.getColumn(colunaAtual).width = 20;
-     
-      colunaAtual++;
-     
-      // Limitar a quantidade de matérias para não ultrapassar o limite da planilha
-      if (colunaAtual > 50) return; // Limite arbitrário para não estourar colunas
-    });
-    
-
-    // Estilo dos meses
-    meses.forEach(mes => {
-      const celula = aba.getCell(`A${mes.linha}`);
-      celula.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF33658A' }
-      };
-      celula.font = {
-        bold: true,
-        color: { argb: 'FFFFFFFF' }
-      };
-    });
-
-    // Estilo das células de cabeçalho
-    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", "S1", "S2", "S3", "S4", 'S5', 'AF1', 'G1', 'S1'].forEach(endereco => {
-      const celula = aba.getCell(endereco);
-      celula.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF1E3A5F' }
-      };
-      celula.font = {
-        bold: true,
-        color: { argb: 'FFFFFFFF' }
-      };
-    });
-
-    // Configuração dos dias da semana e dias do mês
-    const semanaPorMes = {
-      "Dom": [85],
-      "Seg": [130, 175],
-      "Ter": [55, 100],
-      "Qua": [10, 145],
-      "Qui": [70],
-      "Sex": [115],
-      "Sáb": [25, 40, 160],
-    };
-   
-    const diasPorMes = {
-      31: [11, 41, 71, 101, 116, 146, 176],
-      30: [56, 86, 131, 161],
-      29: [26]
-    };
-   
-    const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-   
-    const mapaInicioSemana = {};
-    Object.entries(semanaPorMes).forEach(([dia, linhas]) => {
-      linhas.forEach(linhaSemana => {
-        mapaInicioSemana[linhaSemana + 1] = dia;
-      });
-    });
-
-    const gerarDiasDoMes = (quantidade) => Array.from({ length: quantidade }, (_, i) => (i + 1).toString().padStart(2, '0'));
-   
-    Object.entries(diasPorMes).forEach(([quantidadeDias, linhasMes]) => {
-      const totalDias = Number(quantidadeDias);
-   
-      linhasMes.forEach(linhaMes => {
-        const linhaSemana = linhaMes - 1;
-        const diaInicial = mapaInicioSemana[linhaMes];
-   
-        if (!diaInicial) {
-          console.warn(`Não foi possível identificar o dia da semana para a linha ${linhaMes}`);
-          return;
-        }
-   
-        const indiceInicial = diasDaSemana.indexOf(diaInicial);
-        const diasSemana = Array.from({ length: totalDias }, (_, i) =>
-          diasDaSemana[(indiceInicial + i) % 7]
-        );
-   
-        const diasMes = gerarDiasDoMes(totalDias);
-   
-        diasSemana.forEach((dia, indice) => {
-          aba.getCell(linhaSemana, indice + 2).value = dia;
-        });
-   
-        diasMes.forEach((dia, indice) => {
-          aba.getCell(linhaMes, indice + 2).value = dia;
-        });
-      });
-    });  
-   
-    // Estilo dos dias do mês
-    [11, 26, 41, 56, 71, 86, 101, 116, 131, 146, 161, 176].forEach((linhaDia) => {
-      aba.getRow(linhaDia).eachCell({ includeEmpty: true }, (celula) => {
-        celula.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFB7B7B7' }
-        };
-        celula.font = {
-          bold: true,
-          color: { argb: 'FFFFFFFF' }
-        };
-        celula.alignment = {
-          horizontal: 'center',
-          vertical: 'middle'
-        };
-      });
-    });
-   
-    // Estilo dos dias da semana
-    [10, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175].forEach((linha) => {
-      aba.getRow(linha).eachCell({ includeEmpty: true }, (celula) => {
-        celula.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FF5A7D9A' }
-        };
-        celula.font = {
-          bold: true,
-          color: { argb: 'FFFFFFFF' }
-        };
-        celula.alignment = {
-          horizontal: 'center',
-          vertical: 'middle'
-        };
-      });
-    });
-
-    // Mapeamento de meses para linhas na planilha
-    const mesesLinhas = {
-      0: 12,   // Janeiro
-      1: 27,   // Fevereiro
-      2: 42,   // Março
-      3: 57,   // Abril
-      4: 72,   // Maio
-      5: 87,   // Junho
-      6: 102,  // Julho
-      7: 117,  // Agosto
-      8: 132,  // Setembro
-      9: 147,  // Outubro
-      10: 162, // Novembro
-      11: 177  // Dezembro
-    };
-
-    // Mapeamento de dias da semana para colunas
-    const diasColunas = {
-      "Dom": 1,
-      "Seg": 2,
-      "Ter": 3,
-      "Qua": 4,
-      "Qui": 5,
-      "Sex": 6,
-      "Sáb": 7
-    };
-
-    // Mapeamento de turnos para linhas de horário
-    const turnoHorarios = {
-      "Matutino": {
-        linhas: [0, 1, 2, 3], // 07:30-08:30, 08:30-09:30, 09:30-10:30, 10:30-11:30
-        horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30"]
-      },
-      "Vespertino": {
-        linhas: [5, 6, 7, 8], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00
-        horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"]
-      },
-      "Noturno": {
-        linhas: [10], // 18:40-21:40
-        horarios: ["18:40 - 21:40"]
-      }
-    };
-   
-    // Agrupar aulas por matéria para a legenda
-    const materias = {};
-        aulas.forEach(aula => {
-        if (!materias[aula.materia]) {
-        materias[aula.materia] = {
-          color: getColorForMateria(aula.materia),
-          curso: aula.curso,
-          turma: aula.turma
-        };
-      }
-    });
-
-   
-    // Ajustar largura das colunas da legenda
-    aba.getColumn('A').width = 15; // Coluna estreita para os quadrados de cor
-    aba.getColumn('B').width = 30; // Coluna mais larga para as descrições
-
-
-    // Processar cada aula
-    // Modifique a parte de processamento das aulas para:
-aulas.forEach(aula => {
-  try {
-    // Padroniza os nomes dos campos (convertendo para camelCase)
-    const aulaPadronizada = {
-      id: aula.id,
-      materia: aula.materia,
-      professor: aula.professor,
-      turma: aula.turma,
-      diasSemana: aula.diasSemana || aula.diassemana || aula.diaSemana, // Corrige para o nome do campo
-      dataInicio: aula.dataInicio || aula.datainicio, // Corrige para o nome do campo
-      turno: aula.turno,
-      cargaHoraria: aula.cargaHoraria || aula.cargahoraria // Corrige para o nome do campo
-    };
-
-    // Validação robusta dos dados
-    if (!aulaPadronizada.diasSemana || !aulaPadronizada.dataInicio || !aulaPadronizada.turno) {
-      console.error('Aula com dados incompletos:', aulaPadronizada);
-      return;
-    }
-
-    const dataInicio = new Date(aulaPadronizada.dataInicio);
-    if (isNaN(dataInicio.getTime())) {
-      console.error(`Data inválida: ${aulaPadronizada.dataInicio}`);
-      return;
-    }
-
-    // Função auxiliar para converter dias completos para abreviações
-    const diasAula = aulaPadronizada.diasSemana.split(',')
-      .map(dia => {
-        const diaLimpo = dia.trim();
-        // Converte dias completos para abreviações
-        if (diaLimpo === 'Segunda') return 'Seg';
-        if (diaLimpo === 'Terça') return 'Ter';
-        if (diaLimpo === 'Quarta') return 'Qua';
-        if (diaLimpo === 'Quinta') return 'Qui';
-        if (diaLimpo === 'Sexta') return 'Sex';
-        if (diaLimpo === 'Sábado' || diaLimpo === 'Sabado') return 'Sáb';
-        if (diaLimpo === 'Domingo') return 'Dom';
-        return diaLimpo.substring(0, 3); // Pega os 3 primeiros caracteres
-      });
-
-    if (diasAula.length === 0) {
-      console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
-      return;
-    }
-
-    console.log(`Processando aula ${aulaPadronizada.id} nos dias: ${diasAula.join(', ')}`);
-
-    const materiaColor = getColorForMateria(aulaPadronizada.materia);
-    let dataAtual = new Date(dataInicio);
-    
-    // Configuração de carga horária
-    const cargaHoraria = parseInt(aulaPadronizada.cargaHoraria) || 60;
-    const horasPorDia = aulaPadronizada.turno === "Noturno" ? 3 : 4;
-    let totalHorasAgendadas = 0;
-    let diasProcessados = 0;
-    const maxDias = 180; // Limite de 6 meses para busca
-
-    // Loop de agendamento
-    while (totalHorasAgendadas < cargaHoraria && diasProcessados < maxDias) {
-      diasProcessados++;
-      const mes = dataAtual.getMonth();
-      const diaMes = dataAtual.getDate();
-      const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAtual.getDay()];
-
-      // Verificar se é um dia de aula válido
-      if (!diasAula.includes(diaSemana)) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-        continue;
-      }
-
-      // Encontrar a linha do mês
-      const linhaMes = mesesLinhas[mes];
-      if (!linhaMes) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-        continue;
-      }
-
-      // Encontrar coluna do dia
-      let colunaDia = 0;
-      for (let col = 2; col <= 32; col++) {
-        const celulaDia = aba.getCell(linhaMes - 1, col);
-        if (parseInt(celulaDia.value) === diaMes) {
-          colunaDia = col;
-          break;
-        }
-      }
-
-      if (!colunaDia) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-        continue;
-      }
-
-      // Verificar turno e horários
-      const turno = turnoHorarios[aulaPadronizada.turno];
-      if (!turno) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-        continue;
-      }
-
-      // Preencher horários
-      let horariosPreenchidos = 0;
-      for (const offset of turno.linhas) {
-        const linha = linhaMes + offset;
-        const celula = aba.getCell(linha, colunaDia);
-
-        // Verificar se célula já está ocupada
-        if (celula.value) {
-          console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
-          continue;
-        }
-
-        // Preencher célula
-        celula.value = {
-          richText: [
-            { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
-            { text: `${aulaPadronizada.professor}\n` },
-            { text: `${aulaPadronizada.turma}` }
-          ]
-        };
-
-        celula.alignment = { 
-          wrapText: true, 
-          vertical: 'middle', 
-          horizontal: 'center' 
-        };
-
-        celula.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: materiaColor }
-        };
-
-        celula.border = {
-          top: { style: 'thin', color: { argb: 'FF000000' } },
-          left: { style: 'thin', color: { argb: 'FF000000' } },
-          bottom: { style: 'thin', color: { argb: 'FF000000' } },
-          right: { style: 'thin', color: { argb: 'FF000000' } }
-        };
-
-        horariosPreenchidos++;
-        totalHorasAgendadas += (aulaPadronizada.turno === "Noturno" ? 3 : 1);
-
-        if (totalHorasAgendadas >= cargaHoraria) break;
-      }
-
-      dataAtual.setDate(dataAtual.getDate() + 1);
-    }
-
-    if (totalHorasAgendadas < cargaHoraria) {
-      console.warn(`Carga horária incompleta para ${aulaPadronizada.materia}: ${totalHorasAgendadas}/${cargaHoraria}h`);
-    }
-
-  } catch (error) {
-    console.error(`Erro ao processar aula ${aula?.id}:`, error);
-  }
-});
-
-    // Ajustar largura das colunas
-    function cmParaUnidadeExcel(cm) {
-      const cmPorUnidade = 0.144;
-      return cm / cmPorUnidade;
-    }
-
-    const largura = cmParaUnidadeExcel(2.3);
-    aba.columns.forEach((coluna, index) => {
-      coluna.width = largura;
-    });
-
-    // Enviar a planilha
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    // res.setHeader('Content-Disposition', 'attachment; filename=Aulas.xlsx');
-    res.setHeader('Content-Disposition', `attachment; filename=Aulas_${docente.nome.replace(/\s+/g, '_')}.xlsx`);
-    await planilha.xlsx.write(res);
-    res.end();
-  } catch (error) {
-    console.error("Erro ao gerar planilha:", error);
-    res.status(500).send("Erro ao gerar planilha");
-  }
-});
-
 app.get('/exportar-excel-importado', async (req, res) => {
   try {
     if (!req.session || !req.session.user || !req.session.user.id) {
@@ -1907,7 +1290,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           fgColor: { argb: 'FFD9D9D9' }
         };
         cell.font = {  
-          size: 18    
+          size: 24    
         };
         cell.alignment = { 
           horizontal: 'center', 
@@ -1923,7 +1306,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.mergeCells('B4:F4');
     aba.mergeCells('B5:F5');
     aba.mergeCells('A6:AF6');
-    aba.mergeCells('H1:R1');
+    aba.mergeCells('H1:AE1');
     aba.mergeCells('AF1:AF5');
     aba.mergeCells('G1:G5');
 
@@ -1966,11 +1349,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       aba.getCell(`A${mes.linha}`).value = mes.nome;
     });
 
-    // Centralização (igual ao original)
-    aba.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
-    aba.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle' };
-
-    const linhasParaCentralizar = [8, ...meses.map(m => m.linha)];
+    const linhasParaCentralizar = [1, 8, ...meses.map(m => m.linha)];
     linhasParaCentralizar.forEach(linha => {
       aba.getCell(`A${linha}`).alignment = {
         horizontal: 'center',
@@ -1987,7 +1366,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
             vertical: 'middle' 
           };
           cell.font = {
-            size: 18,
+            size: 26,
             bold: true
           }
       }
@@ -2020,48 +1399,106 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.getCell('A3').value = "E-mail:";
     aba.getCell('A4').value = "Tel.1:";
     aba.getCell('A5').value = "Tel.2:";
-    aba.getCell('S2').value = "Dias Úteis:";
-    aba.getCell('S3').value = "Horas Úteis:";
-    aba.getCell('S4').value = "Horas Alocadas:";
     aba.getCell('H1').value = "Legenda";
 
-    const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.nome))];
-
-    let colunaAtual = 8;
-
-    materiasUnicas.forEach((materia, index) => {
-      const corMateria = getColorForMateria(materia);
-      const colunaLetra = String.fromCharCode(64 + colunaAtual);
-     
-      // Célula com nome da matéria
-      aba.getCell(`${colunaLetra}2`).value = materia;
-      aba.getCell(`${colunaLetra}2`).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: corMateria }
-      };
-      aba.getCell(`${colunaLetra}2`).font = {
-        bold: true,
-        color: { argb: 'FF000000' },
-        size: 14
-      };
-      aba.getCell(`${colunaLetra}2`).alignment = {
-        horizontal: 'center',
-        vertical: 'middle',
-        wrapText: true
-      };
-      aba.getCell(`${colunaLetra}2`).border = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
-      };
-     
-      aba.getColumn(colunaAtual).width = 20;
-      colunaAtual++;
-     
-      if (colunaAtual > 50) return;
-    });
+    try {
+      if (!aba) {
+          throw new Error('A aba/worksheet não foi definida corretamente');
+      }
+  
+      const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.nome))];
+      const maxColunas = 31; // AE é a coluna 31 (A=1, B=2, ..., AE=31)
+      const maxLinhas = 5;   // Limite até a linha 5
+      let materiasExcedentes = 0;
+  
+      let colunaAtual = 8; // H é a coluna 8
+      let linhaAtual = 2;   // Começa na linha 2
+  
+      for (const materia of materiasUnicas) {
+          // Verifica se ultrapassou o limite máximo de linhas
+          if (linhaAtual > maxLinhas) {
+              materiasExcedentes++;
+              continue;
+          }
+  
+          // Verifica se precisa mudar de linha
+          if (colunaAtual > maxColunas) {
+              linhaAtual++;
+              colunaAtual = 8; // Volta para a coluna H
+              
+              // Verifica se a nova linha existe, se não, cria
+              if (!aba.getRow(linhaAtual)) {
+                  aba.addRow({});
+              }
+              
+              // Se ultrapassou o limite de linhas após mudança
+              if (linhaAtual > maxLinhas) {
+                  materiasExcedentes++;
+                  continue;
+              }
+          }
+  
+          const row = aba.getRow(linhaAtual);
+          if (!row) {
+              throw new Error(`Falha ao obter/criar a linha ${linhaAtual}`);
+          }
+  
+          const corMateria = getColorForMateria(materia);
+          
+          // Verificar se a coluna existe antes de acessar
+          if (!aba.getColumn(colunaAtual)) {
+              aba.columns[colunaAtual] = { width: 20 };
+          }
+  
+          // Acessar a célula de forma segura
+          const cell = row.getCell(colunaAtual);
+          if (!cell) {
+              throw new Error(`Falha ao acessar célula na coluna ${colunaAtual}`);
+          }
+  
+          // Definir os valores
+          cell.value = materia;
+          cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: corMateria }
+          };
+          cell.font = {
+              bold: true,
+              color: { argb: 'FF000000' }
+          };
+          cell.alignment = {
+              horizontal: 'center',
+              vertical: 'middle',
+              wrapText: true
+          };
+          cell.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
+          };
+          cell.font = {
+            size: 16
+          }
+  
+          // Garantir largura da coluna
+          aba.getColumn(colunaAtual).width = 20;
+          
+          colunaAtual++;
+      }
+  
+      if (materiasExcedentes > 0) {
+          console.warn(`Atenção: Limite de legendas atingido. ${materiasExcedentes} matérias não foram incluídas.`);
+          // Você pode também exibir um alerta para o usuário aqui
+          alert(`Limite de legendas atingido. ${materiasExcedentes} matérias não foram incluídas.`);
+      }
+  
+      console.log('Matérias adicionadas com sucesso');
+  } catch (error) {
+      console.error('Erro detalhado:', error);
+      throw new Error(`Falha ao gerar planilha: ${error.message}`);
+  }
    
     // Estilo dos meses (igual ao original)
     meses.forEach(mes => {
@@ -2074,12 +1511,12 @@ app.get('/exportar-excel-importado', async (req, res) => {
       celula.font = {
         bold: true,
         color: { argb: 'FFFFFFFF' },
-        size: 24
+        size: 28
       };
     });
 
     // Estilo das células de cabeçalho (igual ao original)
-    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", "S1", "S2", "S3", "S4", 'S5', 'AF1', 'G1', 'S1'].forEach(endereco => {
+    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", 'AF1', 'G1'].forEach(endereco => {
       const celula = aba.getCell(endereco);
       celula.fill = {
         type: 'pattern',
@@ -2089,7 +1526,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       celula.font = {
         bold: true,
         color: { argb: 'FFFFFFFF' },
-        size: 20
+        size: 26
       };
     });
 
@@ -2161,7 +1598,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         celula.font = {
           bold: true,
           color: { argb: 'FFFFFFFF' },
-          size: 20
+          size: 26
         };
         celula.alignment = {
           horizontal: 'center',
@@ -2181,7 +1618,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         celula.font = {
           bold: true,
           color: { argb: 'FFFFFFFF' },
-          size: 22
+          size: 26
         };
         celula.alignment = {
           horizontal: 'center',
@@ -2190,18 +1627,22 @@ app.get('/exportar-excel-importado', async (req, res) => {
       });
     });
 
-    const celulasParaFormatar = ['B1', 'H1', 'T1', 'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1', 'AA1', 'AB1', 'AC1', 'AD1', 'AE1'];
+    const celulasParaFormatar = ['B1', 'H1'];
     celulasParaFormatar.forEach(celula => {
       aba.getCell(celula).font = {
-        size: 20,
-        blod: true
+        size: 26,
+        bold: true
       };
+      aba.getCell(celula).alignment = {
+        horizontal: 'center',
+        vertical: 'middle'
+      }
     });
 
     celulaCronograma = ['A8'];
     celulaCronograma.forEach(celula =>{
       aba.getCell(celula).font = {
-        size: 24,
+        size: 30,
         bold: true
       }
     })
@@ -2370,8 +1811,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
           // Preencher célula com informações da aula
           celula.value = {
             richText: [
-              { text: `${aulaPadronizada.materia}\n`, font: { bold: true } },
-              { text: `${aulaPadronizada.laboratorio}` }
+              { text: `${aulaPadronizada.materia}\n`, font: { size: 13, bold: true } },
+              { text: `${aulaPadronizada.laboratorio}`  }
             ]
           };
    
@@ -2395,7 +1836,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           };
 
           celula.font = {
-            size: 11,
+            size: 13,
             bold: true
           }
         }
@@ -2407,7 +1848,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
     aba.views = [
       {
-        zoomScale: 36
+        zoomScale: 28
       }
     ];
     
@@ -2417,7 +1858,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return cm / cmPorUnidade;
     }
 
-    const largura = cmParaUnidadeExcel(5);
+    const largura = cmParaUnidadeExcel(7);
     aba.columns.forEach((coluna, index) => {
       coluna.width = largura;
     });
@@ -2426,7 +1867,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return cm * 28.3465; 
     }
   
-    const altura = cmParaAlturaExcel(2);
+    const altura = cmParaAlturaExcel(3);
     aba.eachRow(row => {
       row.height = altura;
     });
