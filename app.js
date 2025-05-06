@@ -732,7 +732,6 @@ app.get('/eventos', async (req, res) => {
 // Adicionar middleware de autenticação e verificação de admin
 app.get('/docentes', 
   verificarAutenticacao,
-  verificarTipoUsuario(['Administrador']),
   async (req, res) => {
       try {
           const { rows } = await pool.query(
@@ -890,7 +889,7 @@ app.get('/aulas', async (req, res) => {
 // Rota para pegar todas as aulas (apenas admin)
 app.get('/todasAulas', async (req, res) => {
   try {
-    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+    if (!req.session?.user) {
       return res.status(403).json({ error: 'Acesso negado' });
     }
     
@@ -1007,7 +1006,7 @@ app.get('/adm', async (req, res) => {
 
 app.get('/docentes', async (req, res) => {
   try {
-    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+    if (!req.session?.user) {
       return res.status(403).json({ error: "Acesso não autorizado" });
     }
     const {rows} = await pool.query(
@@ -1024,7 +1023,7 @@ app.get('/docentes', async (req, res) => {
 // Rota para obter docentes da tabela importado
 app.get('/docentesImportado', async (req, res) => {
   try {
-    if (!req.session?.user || req.session.user.tipo !== 'Administrador') {
+    if (!req.session?.user) {
       return res.status(403).json({ error: "Acesso não autorizado" });
     }
     const { rows } = await pool.query(

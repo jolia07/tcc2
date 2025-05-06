@@ -49,226 +49,7 @@
             <p id="userRole"></p>
         </div>
     </div>
-
-
-    <div class="button-container">
-        <button id="btnCadastrarCurso" onclick="openModal('modalCurso')">Cadastrar Curso</button>
-        <button id="btnCadastrarTurma" onclick="openModal('modalTurma')">Cadastrar Turma</button>
-        <button id="btnCadastrarlaboratorio" onclick="openModal('modalLaboratorio')">Cadastrar Laboratório</button>
-        <button id="btnCadastrarMateria" onclick="openModal('modalMateria')">Cadastrar Matéria</button>
-        <button id="btnCadastrarAula" onclick="openModal('modalAula')">Cadastrar Aula</button>
-        <button onclick="exportarParaExcel()">Exportar para Excel</button>
-
-    </div>
-
-
-    <div id="modalCurso" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalCurso')">&times;</span>
-            <h2>Cadastrar Curso</h2>
-            <form id="cursoForm">
-                <label for="nome">Nome do Curso:</label>
-                <input type="text" id="nome" name="nome" required><br><br>
-
-
-                <button type="submit">Salvar Curso</button>
-            </form>
-        </div>
-    </div>
-
-
-    <div id="modalTurma" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalTurma')">&times;</span>
-            <h2>Cadastrar Turma</h2>
-            <form id="turmaForm">
-                <label for="nome">Nome da Turma:</label>
-                <input type="text" id="nomeTurma" name="nome" required><br><br>
-
-
-                <label for="curso">Curso:</label>
-                <select id="curso" name="curso" required></select><br><br>
-
-
-                <button type="submit">Salvar Turma</button>
-            </form>
-        </div>
-    </div>
-
-
-    <div id="modalLaboratorio" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalLaboratorio')">&times;</span>
-            <h2>Cadastrar Laboratorio</h2>
-            <form id="laboratorioForm">
-                <label for="cimatec">Cimatec:</label>
-                <input type="number" id="cimatec" name="cimatec" required><br><br>
-
-
-                <label for="andar">Andar:</label>
-                <input type="number" id="andar" name="andar" required><br><br>
-
-
-                <label for="sala">Laboratório:</label>
-                <input type="text" id="sala" name="sala" required><br><br>
-
-
-                <button type="submit">Salvar Laboratório</button>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- Modal de Cadastro de Matérias -->
-    <div id="modalMateria" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalMateria')">&times;</span>
-            <h2>Cadastrar Matéria</h2>
-            <form id="materiaForm">
-                <label for="uc">Nome da Matéria:</label>
-                <input type="text" id="uc" name="uc" required><br><br>
-
-
-                <label for="ch">Carga Horária:</label>
-                <input type="number" id="ch" name="ch" required><br><br>
-
-
-                <label for="curso">Curso:</label>
-                <select id="curso" name="curso" required></select><br><br>
-
-
-                <button type="submit">Salvar Matéria</button>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- Modal de Cadastro de Aulas -->
-    <div id="modalAula" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modalAula')">&times;</span>
-            <h2>Cadastrar Aula</h2>
-            <form id="aulaForm">
-                <label for="curso">Curso:</label>
-                <select id="curso" name="curso" required></select><br><br>
-
-
-                <label for="materia">Matéria:</label>
-                <select id="materia" name="materia" required></select><br><br>
-
-
-                <label for="turma">Turma:</label>
-                <select id="turma" name="turma" required></select><br><br>
-
-
-                <label for="laboratorio">Laboratório:</label>
-                <select id="laboratorio" name="laboratorio" required></select><br><br>
-
-
-                <label for="turno">Turno:</label>
-                <select id="turno" name="turno" required>
-                    <option value="Matutino">Matutino</option>
-                    <option value="Vespertino">Vespertino</option>
-                    <option value="Noturno">Noturno</option>
-                </select><br><br>
-
-
-                <label>Dias da Semana:</label><br>
-                <input type="checkbox" name="diasSemana" value="Segunda"> Segunda
-                <input type="checkbox" name="diasSemana" value="Terça"> Terça
-                <input type="checkbox" name="diasSemana" value="Quarta"> Quarta
-                <input type="checkbox" name="diasSemana" value="Quinta"> Quinta
-                <input type="checkbox" name="diasSemana" value="Sexta"> Sexta
-                <input type="checkbox" name="diasSemana" value="Sabado"> Sábado<br><br>
-
-                <label for="dataInicio">Data de Início:</label>
-                <input type="date" id="dataInicio" name="dataInicio" required>
-
-
-                <button type="submit">Salvar Aula</button>
-            </form>
-        </div>
-    </div>
-
-
-    <!--Filtragem de aulas-->
-    <div class="filtros">
-        <div class="filtro-grupo">
-            <label for="filtroCurso">Curso</label>
-            <select id="filtroCurso" class="select-filtro">
-                <option value=""></option>
-            </select>
-        </div>
-    
-        <div class="filtro-grupo">
-            <label for="filtroMateria">Matéria</label>
-            <select id="filtroMateria" class="select-filtro">
-                <option value=""></option>
-            </select>
-        </div>
-    
-        <div class="filtro-grupo">
-            <label for="filtroTurma">Turma</label>
-            <select id="filtroTurma" class="select-filtro">
-                <option value=""></option>
-            </select>
-        </div>
-    
-        <div class="filtro-grupo">
-            <label for="filtroTurno">Turno</label>
-            <select id="filtroTurno" class="select-filtro">
-                <option value=""></option>
-                <option value="Matutino">Matutino</option>
-                <option value="Vespertino">Vespertino</option>
-                <option value="Noturno">Noturno</option>
-            </select>
-        </div>
-    
-        <div class="filtro-grupo">
-            <label for="filtroDiaSemana">Dia da Semana</label>
-            <select id="filtroDiaSemana" class="select-filtro">
-                <option value=""></option>
-                <option value="Segunda">Segunda</option>
-                <option value="Terca">Terça</option>
-                <option value="Quarta">Quarta</option>
-                <option value="Quinta">Quinta</option>
-                <option value="Sexta">Sexta</option>
-                <option value="Sabado">Sábado</option>
-            </select>
-        </div>
-    
-        <div class="filtro-grupo btn-group">
-            <button class="btn-filtro" onclick="filtrarAulas()">
-                <i class="fas fa-filter"></i> Filtrar
-            </button>
-            <button class="btn-filtro btn-limpar" onclick="limparFiltros()">
-                <i class="fas fa-broom"></i> Limpar
-            </button>
-        </div>
-    </div>
-
-    <div class="filtro-admin" style="display: none;">
-        <label for="seletorDocente">Selecione o Docente:</label>
-        <select id="seletorDocente">
-            <option value=""></option>
-        </select>
-        <button id="btnExportarDocente" class="btn-exportar" onclick="exportarPlanilhaDocente()">Exportar planilha do docente</button>
-    </div>
-
-    <table id="tabelaAulas">
-        <thead>
-            <tr>
-                <th>Docente</th>
-                <th>Curso</th>
-                <th>Matéria</th>
-                <th>Turma</th>
-                <th>Turno</th>
-                <th>Dia da Semana</th>
-            </tr>
-        </thead>
-        <tbody id="tabelaCorpo">
-        </tbody>
-    </table>
+    <br>
 
     <!-- Pop-up de Notificação de Aulas -->
     <div id="popupAula" class="popup">
@@ -383,12 +164,6 @@
                     document.getElementById('profilePic').src = '/img/default.png';
                 }
                 //Verifica o tipo de usuário
-                if (data.tipo !== 'Administrador') {
-                 document.getElementById('btnCadastrarMateria').style.display = 'none';
-                 document.getElementById('btnCadastrarCurso').style.display = 'none';
-                 document.getElementById('btnCadastrarTurma').style.display = 'none';
-                 document.getElementById('btnCadastrarlaboratorio').style.display = 'none';
-                }
                 } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
                 alert('Erro ao carregar perfil.');
@@ -775,8 +550,6 @@
             const userResponse = await fetch('/adm');
             const { isAdmin } = await userResponse.json();
             
-            // Define a URL baseado no tipo de usuário
-            const url = isAdmin ? '/todasAulas' : '/aulas';
             
             const response = await fetch(url, {
             method: 'GET',
@@ -790,13 +563,9 @@
             atualizarTabela(aulas);
             
             // Mostra filtro de docente se for admin
-            if (isAdmin) {
-            document.querySelector('.filtro-admin').style.display = 'block';
-            carregarDocentes();
-            }
+            
         } catch (error) {
             console.error("Erro ao carregar as aulas:", error);
-            alert('Erro ao carregar aulas. Tente recarregar a página.');
         }
         }
 
