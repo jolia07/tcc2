@@ -90,7 +90,7 @@
                     <span class="material-symbols-rounded">calendar_month</span>
                     Calendário
                 </button>
-                <button onclick="logout()" class="btn-icon logout">
+                <button onclick="sair(event); return false;" href="#" data-tooltip="Sair" class="btn-icon logout">
                     <span class="material-symbols-rounded">logout</span>
                     Sair
                 </button>
@@ -260,15 +260,32 @@
                 }
             }
 
-            function logout() {
-                fetch('/logout', { method: 'POST' })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
+            function sair(event) {
+            // Previne o comportamento padrão do link
+            event.preventDefault();
+            
+            if (confirm("Você tem certeza que deseja sair?")) {
+                fetch('/logout', {
+                    method: 'POST',
+                    credentials: 'include', // Importante para enviar os cookies
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
                 })
-                .catch(error => console.error('Erro no logout:', error));
+                .then(response => {
+                    if (response.ok) {
+                        // Redireciona apenas se o logout foi bem-sucedido
+                        window.location.href = 'home.html';
+                    } else {
+                        throw new Error('Falha no logout');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro detalhado:', error);
+                    alert('Não foi possível conectar ao servidor. Tente novamente.');
+                });
             }
+        }
 
             // Carregar dados ao iniciar
             carregarDados();

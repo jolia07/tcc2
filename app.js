@@ -1929,17 +1929,6 @@ app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
   }
 });
 
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-      if (err) {
-          console.error('Erro ao destruir sessão:', err);
-          return res.status(500).json({ success: false });
-      }
-      res.clearCookie('connect.sid');
-      res.json({ success: true }); // Envia resposta JSON em vez de redirecionar
-  });
-});
-
 // Inicializar servidor
 app.listen(5505, () => {
   console.log('Servidor rodando na porta 5505');
