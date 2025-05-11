@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Aulas</title>
+    <link rel="stylesheet" href="css/calendario.css">
+    <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+</head>
+<body>
+
+
+    <header class="top-bar">
+        <div class="header-left">
+            <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
+        </div>
+    </header>
+
+
+    <div class="main-layout">
+        <div class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="calendario2.html" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
+                    <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
+                    <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="calendario.html" class="active" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a onclick="sair(event); return false;" href="#" data-tooltip="Sair">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="menu-text">Sair</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+
+    <div class="main-container">
+    <div id="profile-container">
+        <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
+        <div>
+            <p id="userName"></p>
+            <p id="userRole"></p>
+        </div>
+    </div>
+    <br>
+
+    <div class="uploadPlanilha">
+        <div class="upload-container">
+            <form id="uploadForm" class="upload-form">
+              <div class="form-group">
+                <label for="planilhaUpload" class="upload-label">
+                  <i class="fas fa-file-excel"></i> Selecione a planilha
+                </label>    
+                <input type="file" id="planilhaUpload" name="planilha" required/>
+              </div>
+              <button type="submit" class="upload-button">
+                <i class="fas fa-upload"></i> Enviar
+              </button>
+            </form>
+            <br>
+            <div id="resultado"></div>
+            <button type="button" id="btnLimparResultados" class="btn-limpar">
+                <i class="fas fa-broom"></i> Limpar Resultados
+            </button>
+            <button id="btnLimparDadosImportados" class="btn-limpar" style="display: none;">
+                <i class="fas fa-trash-alt"></i> Limpar Dados Importados
+            </button>
+          </div>
+    </div>
+
+<!-- Container da tabela Importado -->
+<div id="tabelaImportadosContainer">
+  <h2>Dados Importados da Planilha</h2>
+  <br>
+  <!-- Filtros específicos para dados importados -->
+  <div class="filtros-importados">
+    <div class="filtro-group">
+      <select id="filtroDocenteImportado" class="select-filtro-importado"></select>
+      <br>
+      <br>
+      <select id="filtroTurnoImportado" class="select-filtro-importado"></select>
+    </div>
+    <div class="btn-group">
+      <button id="btnFiltrarImportados" class="btn-filtro">Filtrar</button>
+      <button id="btnLimparFiltrosImportados" class="btn-limpar">Limpar Filtros</button>
+      <button id="btnExportarDocenteImportado" class="btn-exportar" onclick="exportarPlanilhaDocenteImportado()">Exportar planilha do docente</button>
+    </div>
+  </div>
+  
+  <table class="tabela-dados">
+    <thead>
+      <tr>
+        <th>Docente</th>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Dias da Semana</th>
+        <th>Hora Início</th>
+        <th>Hora Fim</th>
+        <th>Data</th>
+        <th>Turno</th>
+        <th>Localização</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaImportadosCorpo">
+      <!-- Dados serão inseridos aqui via JavaScript -->
+    </tbody>
+  </table>
+ </div>
+</div>
+</div>
+
+ <!-- Pop-up de Notificação de Aulas -->
+ <div id="popupAula" class="popup">
+    <div class="popup-content">
+        <h3>Notificação de Aulas de Hoje</h3>
+        <div id="aula-info"></div>
+        <button onclick="fecharPopup()">Fechar</button>
+    </div>
+</div>
+
+    <script>
+            async function carregarDadosUsuario() {
+                try {
+                    const response = await fetch('/getUserData');
+                    const data = await response.json();
+                
+                    // Atualizar as informações do perfil
+                    document.getElementById('userName').innerText = data.nome;
+                    document.getElementById('userRole').innerText = data.tipo;
+                    if (data.profilePic) {
+                        document.getElementById('profilePic').src = '/img/' + data.profilePic;
+                    } else {
+                        document.getElementById('profilePic').src = '/img/default.png';
+                    }
+                    if (data.tipo === 'Administrador') {
+                document.getElementById('btnLimparDadosImportados').style.display = 'inline-block';
+                document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+            }
+                    } catch (error) {
+                    console.error('Erro ao carregar dados do usuário:', error);
+                    alert('Erro ao carregar perfil.');
+                }
+            }
+            
+
+            document.getElementById('btnExportarDocenteImportado').addEventListener('click', exportarPlanilhaDocenteImportado);
+
+            function exportarPlanilhaDocenteImportado() {
+                const docenteImportadoNome = document.getElementById('filtroDocenteImportado').value;
+
+                if (!docenteImportadoNome) {
+                    alert('Por favor, selecione um docente para exportar');
+                    return;
+                }
+
+                const nomeCodificado = encodeURIComponent(docenteImportadoNome);
+                const url = `/exportar-excel-importado?docente_nome=${nomeCodificado}`;
+                
+                window.open(url, '_blank');
+            }
+
+            // Função para verificar e exibir aulas do dia
+            async function verificarAulasHoje() {
+                console.log('Iniciando verificação de aulas...');
+                
+                try {
+                    const userResponse = await fetch('/getUserData', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    console.log('Status da resposta do usuário:', userResponse.status);
+                    
+                    if (!userResponse.ok) {
+                        console.log("Usuário não autenticado");
+                        return;
+                    }
+
+                    const userData = await userResponse.json();
+                    console.log("Dados do usuário recebidos:", userData);
+
+                    const aulasResponse = await fetch('/aulasHoje', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    console.log('Status da resposta das aulas:', aulasResponse.status);
+                    
+                    if (!aulasResponse.ok) {
+                        console.error("Erro ao buscar aulas:", aulasResponse.statusText);
+                        return;
+                    }
+
+                    const aulas = await aulasResponse.json();
+                    console.log("Aulas recebidas:", aulas);
+                    
+                    exibirPopupAula(aulas); // Passa as aulas como parâmetro
+                } catch (error) {
+                    console.error("Erro ao verificar aulas:", error);
+                }
+            }
+
+            function formatarHora(hora) {
+                if (!hora) return '';
+                return hora.substring(0, 5);
+            }
+
+            function exibirPopupAula(aulas) { // Recebe aulas como parâmetro
+                const popup = document.getElementById('popupAula');
+                const aulaInfo = document.getElementById('aula-info');
+
+                if (!popup || !aulaInfo) {
+                    console.error("Elementos do popup não encontrados no DOM");
+                    return;
+                }
+
+                if (aulas && aulas.length > 0) {
+                    aulaInfo.innerHTML = aulas.map(aula => `
+                        <div class="aula-notificacao">
+                            <h3>${aula.nome}</h3>
+                            <p>Docente: ${aula.docente || 'Não especificado'}</p>
+                            <p>Turno: ${aula.turno || 'Não especificado'}</p>
+                            <p>Horário: ${formatarHora(aula.hora_inicio)} - ${formatarHora(aula.hora_fim)}</p>
+                            <p>Local: ${aula.localizacao || 'Não informado'}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    aulaInfo.innerHTML = '<p>Nenhuma aula agendada para hoje</p>';
+                }
+                
+                popup.style.display = 'flex'; // Mostra o popup
+            }
+
+            // Chamada automática quando a página carrega
+            document.addEventListener('DOMContentLoaded', verificarAulasHoje);
+
+            function fecharPopup() {
+                document.getElementById('popupAula').style.display = 'none';
+            }
+
+            function exportarParaExcel() {
+                window.location.href = 'https://sepa-api.onrender.com/exportar-excel';
+            }
+
+            function sair(event) {
+                // Previne o comportamento padrão do link
+                event.preventDefault();
+                
+                if (confirm("Você tem certeza que deseja sair?")) {
+                    fetch('/logout', {
+                        method: 'POST',
+                        credentials: 'include', // Importante para enviar os cookies
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Redireciona apenas se o logout foi bem-sucedido
+                            window.location.href = 'home.html';
+                        } else {
+                            throw new Error('Falha no logout');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro detalhado:', error);
+                        alert('Não foi possível conectar ao servidor. Tente novamente.');
+                    });
+                }
+            }
+
+            document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const resultadoDiv = document.getElementById('resultado');
+                resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
+                
+                try {
+                    const res = await fetch('/upload-laboratorios', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.message || 'Erro ao processar planilha');
+                    }
+                    
+                    resultadoDiv.innerHTML = '<h2>Resultados do Processamento</h2>';
+                    
+                    // Exibe resultados por docente
+                    for (const [docente, info] of Object.entries(data.resultados)) {
+                        const docenteDiv = document.createElement('div');
+                        docenteDiv.innerHTML = `
+                            <h3>${docente}</h3>
+                            <p>Total de registros: ${info.total}</p>
+                            <p>Inseridos com sucesso: ${info.inseridos}</p>
+                            <p>Erros: ${info.erros}</p>
+                            <details>
+                            <summary>Detalhes</summary>
+                            <pre>${JSON.stringify(info.detalhes, null, 2)}</pre>
+                            </details>
+                            <hr>
+                        `;
+                        resultadoDiv.appendChild(docenteDiv);
+                    }
+                    
+                    // RECARREGA OS DADOS IMPORTADOS APÓS O UPLOAD
+                    await carregarDadosImportados();
+                    
+                    // Mostra mensagem de sucesso
+                    const successMsg = document.createElement('div');
+                    successMsg.innerHTML = '<p class="sucesso-mensagem">Dados importados com sucesso e tabela atualizada!</p>';
+                    resultadoDiv.appendChild(successMsg);
+                    
+                    // Remove a mensagem após 5 segundos
+                    setTimeout(() => {
+                        successMsg.remove();
+                    }, 5000);
+                    
+                } catch (error) {
+                    resultadoDiv.innerHTML = `
+                        <p style="color: red;">Erro: ${error.message}</p>
+                        <p>Verifique o console para mais detalhes.</p>
+                    `;
+                    console.error('Erro:', error);
+                }
+            });
+
+            let dadosImportados = []; 
+
+            async function carregarDadosImportados() {
+                const tabelaCorpo = document.getElementById('tabelaImportadosCorpo');
+                const tabelaContainer = document.getElementById('tabelaImportadosContainer');
+                
+                try {
+                    // Mostra mensagem de carregamento
+                    tabelaCorpo.innerHTML = '<tr><td colspan="9" class="loading-message">Carregando dados...</td></tr>';
+                    
+                    const response = await fetch('/importado');
+                    if (!response.ok) throw new Error("Erro ao carregar dados importados");
+                    
+                    dadosImportados = await response.json();
+                    
+                    if (dadosImportados.length === 0) {
+                        tabelaCorpo.innerHTML = '<tr><td colspan="9" class="empty-message">Nenhum dado importado encontrado</td></tr>';
+                    } else {
+                        await carregarDocentesImportados();
+                        atualizarTabelaImportados(dadosImportados);
+                        preencherFiltrosImportados(dadosImportados);
+                        
+                        // Adiciona uma animação para destacar a atualização
+                        tabelaContainer.style.animation = 'highlight 2s';
+                        setTimeout(() => {
+                            tabelaContainer.style.animation = '';
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados importados:", error);
+                    tabelaCorpo.innerHTML = '<tr><td colspan="9" class="error-message">Erro ao carregar dados</td></tr>';
+                }
+            }
+
+            async function carregarDocentesImportados() {
+                try {
+                    const response = await fetch('/docentesImportado');
+                    if (!response.ok) throw new Error("Erro ao carregar docentes");
+                    
+                    const docentes = await response.json();
+                    const selectDocente = document.getElementById("filtroDocenteImportado");
+                    
+                    // Limpa e prepara o select
+                    selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
+                    
+                    // Preenche com os docentes
+                    const docentesUnicos = [...new Set(docentes.map(d => d.nome))].filter(Boolean);
+                    docentesUnicos.forEach(nomeDocente => {
+                    const option = document.createElement("option");
+                    option.value = nomeDocente;
+                    option.textContent = nomeDocente;
+                    selectDocente.appendChild(option);
+                    });
+                    
+                    // Configura o Select2
+                    $('#filtroDocenteImportado').select2({
+                    placeholder: "Selecione o docente...",
+                    allowClear: true,
+                    width: '100%'
+                    });
+
+                    selectDocente.addEventListener('change', filtrarDadosImportados);
+                    
+                } catch (error) {
+                    console.error("Erro ao carregar docentes:", error);
+                    alert('Não foi possível carregar a lista de docentes');
+                }
+            }
+
+            function confirmarLimpezaDados() {
+                if (confirm("Tem certeza que deseja apagar TODOS os dados importados da planilha? Esta ação não pode ser desfeita.")) {
+                    limparDadosImportados();
+                }
+            }
+
+            async function limparDadosImportados() {
+                try {
+                    const response = await fetch('/limpar-dados-importados', {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Dados importados foram apagados com sucesso!');
+                        // Atualiza a tabela para refletir a limpeza
+                        dadosImportados = [];
+                        atualizarTabelaImportados(dadosImportados);
+                    } else {
+                        throw new Error(data.message || 'Erro ao limpar dados');
+                    }
+                } catch (error) {
+                    console.error('Erro ao limpar dados:', error);
+                    alert('Erro ao limpar dados: ' + error.message);
+                }
+            }
+
+            document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+
+            function atualizarTabelaImportados(dados) {
+                const tbody = document.getElementById("tabelaImportadosCorpo");
+                tbody.innerHTML = '';
+
+                dados.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    const campos = ['docente', 'nome', 'descricao', 'dias_semana', 
+                                'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
+                    
+                    campos.forEach(campo => {
+                    const td = document.createElement('td');
+                    td.textContent = formatarCampoImportado(item[campo], campo);
+                    tr.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function formatarCampoImportado(valor, campo) {
+                if (!valor) return 'N/A';
+                
+                switch(campo) {
+                    case 'data_atividade':
+                    return new Date(valor).toLocaleDateString('pt-BR');
+                    case 'hora_inicio':
+                    case 'hora_fim':
+                    return valor.slice(0, 5); 
+                    case 'dias_semana':
+                    return formatarDiasSemana(valor);
+                    default:
+                    return valor;
+                }
+            }
+
+            function formatarDiasSemana(dias) {
+                const diasMap = {
+                    'SEG': 'Segunda', 'TER': 'Terça', 'QUA': 'Quarta',
+                    'QUI': 'Quinta', 'SEX': 'Sexta', 'SAB': 'Sábado', 'DOM': 'Domingo'
+                };
+                
+                return dias.split(',').map(dia => {
+                    return diasMap[dia.trim().toUpperCase()] || dia.trim();
+                }).join(', ');
+            }
+
+            function preencherFiltrosImportados(dados) {
+                // Filtro por turno
+                const turnos = [...new Set(dados.map(item => item.turno))].filter(Boolean);
+                const turnoSelect = document.getElementById("filtroTurnoImportado");
+                
+                turnoSelect.innerHTML = '<option value="">Todos os turnos</option>';
+                turnos.forEach(turno => {
+                    const option = document.createElement("option");
+                    option.value = turno;
+                    option.textContent = turno;
+                    turnoSelect.appendChild(option);
+                });
+                
+                $(turnoSelect).select2({ 
+                    placeholder: "Selecione o turno...", 
+                    allowClear: true 
+                }).on('change', filtrarDadosImportados);
+            }
+
+            function filtrarDadosImportados() {
+                const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
+                const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
+                
+                const dadosFiltrados = dadosImportados.filter(item => {
+                    // Filtro por docente (comparação exata)
+                    const matchDocente = docenteSelecionado ? 
+                    item.docente && item.docente.trim() === docenteSelecionado.trim() : true;
+                    
+                    // Filtro por turno (comparação case insensitive)
+                    const matchTurno = turnoSelecionado ? 
+                    item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
+                    
+                    return matchDocente && matchTurno;
+                });
+                
+                atualizarTabelaImportados(dadosFiltrados);
+            }
+
+            function limparFiltrosImportados() {
+                $('#filtroDocenteImportado, #filtroTurnoImportado').val('').trigger('change');
+                atualizarTabelaImportados(dadosImportados);
+            }
+
+            let exibindoAulas = true; // Começa mostrando a tabela aula
+
+            document.addEventListener("DOMContentLoaded", function() {
+                carregarDadosUsuario();
+                carregarDadosImportados(); // Carrega os dados imediatamente
+                
+                // Configurar os eventos dos botões de filtro
+                document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
+                document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
+                
+                // Inicializar Select2
+                $('.select-filtro-importado').select2({
+                    placeholder: "Selecione...",
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+
+            // Configuração do botão de limpar resultados
+        document.addEventListener("DOMContentLoaded", function() {
+            // Busca o botão de limpar resultados
+            const btnLimparResultados = document.getElementById('btnLimparResultados');
+            
+            // Adiciona o evento de clique ao botão
+            if (btnLimparResultados) {
+                btnLimparResultados.addEventListener('click', function() {
+                    // Limpa a div de resultados
+                    const resultadoDiv = document.getElementById('resultado');
+                    if (resultadoDiv) {
+                        resultadoDiv.innerHTML = '';
+                        
+                        // Opcional: Exibir uma mensagem temporária de confirmação
+                        resultadoDiv.innerHTML = '<p class="sucesso-mensagem">Resultados limpos com sucesso!</p>';
+                        
+                        // Remove a mensagem após 3 segundos
+                        setTimeout(function() {
+                            resultadoDiv.innerHTML = '';
+                        }, 3000);
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

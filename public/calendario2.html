@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEPA - Calendário Acadêmico</title>
+    <link rel="stylesheet" href="css/calendario2.css">
+    <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js"></script>
+    <style>
+        .filtro-botoes {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .btn-filtro {
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: normal;
+            transition: all 0.3s;
+        }
+        
+        .btn-filtro.ativo {
+            background-color: #4a89dc;
+            color: white;
+            border-color: #3a79cc;
+            font-weight: bold;
+        }
+        
+        .btn-filtro:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .btn-filtro.ativo:hover {
+            background-color: #3a79cc;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <div class="header-left">
+            <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-layout" style="display: flex; flex: 1;">
+        <div class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="calendario2.html" class="active" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
+                    <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
+                    <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="calendario.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                </div>
+            </nav>
+        </div>
+
+        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
+            <div class="controles-calendario">
+                <!-- Botões de filtro para aulas e dados importados -->
+                <div class="filtro-botoes">
+                    <button id="btn-todos" class="btn-filtro ativo" data-filtro="TODOS">Todos os Registros</button>
+                    <button id="btn-aulas" class="btn-filtro" data-filtro="AULAS">Apenas Aulas</button>
+                    <button id="btn-importados" class="btn-filtro" data-filtro="IMPORTADOS">Apenas Dados Importados</button>
+                </div>
+            </div>
+
+            <!-- Scheduler -->
+            <div id="scheduler" style="width: 100%; height: 600px;"></div>
+
+            <div class="main-container">
+                <div id="profile-container">
+                    <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
+                    <div>
+                        <p id="userName"></p>
+                        <p id="userRole"></p>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <script>
+        // Variáveis globais para armazenar dados e filtros
+        let todosEventos = [];
+        let filtroOrigem = "TODOS";
+        let filtroTipo = "TODOS";
+        let termoPesquisa = "";
+        
+        // Inicialização do scheduler
+        document.addEventListener("DOMContentLoaded", function() {
+            // Configuração do locale
+            scheduler.locale = {
+                date: {
+                    month_full: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+                    month_short: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+                    day_full: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
+                    day_short: ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+                },
+                labels: {
+                    dhx_cal_today_button: "Hoje",
+                    day_tab: "Dia",
+                    week_tab: "Semana",
+                    month_tab: "Mês",
+                    new_event: "Novo evento",
+                    icon_save: "Salvar",
+                    icon_cancel: "Cancelar",
+                    icon_details: "Detalhes",
+                    icon_edit: "Editar",
+                    icon_delete: "Excluir"
+                }
+            };
+
+            // Configurações básicas
+            scheduler.config.event_duration = 60;
+            scheduler.config.readonly = true;
+            scheduler.config.drag_resize = false;
+            scheduler.config.drag_move = false;
+            scheduler.config.dblclick_create = false;
+            scheduler.config.xml_date = "%Y-%m-%d %H:%i";
+            scheduler.config.first_hour = 7;
+            scheduler.config.last_hour = 22;
+            scheduler.config.hour_date = "%H:%i";
+            scheduler.config.time_step = 30;
+            scheduler.config.mark_now = true;
+            
+            // Templates para formatação visual dos eventos
+            scheduler.templates.event_text = function(start, end, event) {
+                return `<div style="padding: 5px;">
+                    <strong>${event.text.split('\n')[0]}</strong><br>
+                    ${event.text.split('\n').slice(1).join('<br>')}
+                    <div style="margin-top: 5px; font-size: 0.9em;">
+                        ${scheduler.templates.event_date(start)} - ${scheduler.templates.event_date(end)}
+                    </div>
+                </div>`;
+            };
+
+            scheduler.templates.event_date = function(date) {
+                return date.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                });
+            };
+
+            scheduler.templates.event_bar_text = function(start, end, event) {
+                return event.text.split('\n')[0];
+            };
+            
+            // Inicialização
+            scheduler.init('scheduler', new Date(), "month");
+            
+            // Event handlers
+            scheduler.attachEvent("onEmptyClick", function(date, e) {
+                if (scheduler.getState().mode === 'month') {
+                    scheduler.setCurrentView(date, 'day');
+                    return false;
+                }
+                return true;
+            });
+
+            scheduler.attachEvent("onClick", function(id, e) {
+                var ev = scheduler.getEvent(id);
+                if (ev && scheduler.getState().mode === 'month') {
+                    scheduler.setCurrentView(ev.start_date, 'day');
+                    return false;
+                }
+                return true;
+            });
+            
+            // Configuração dos event listeners para filtros
+            document.querySelectorAll('.btn-filtro').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove classe ativo de todos os botões
+                    document.querySelectorAll('.btn-filtro').forEach(b => {
+                        b.classList.remove('ativo');
+                    });
+                    
+                    // Adiciona classe ativo ao botão clicado
+                    this.classList.add('ativo');
+                    
+                    // Aplica o filtro
+                    filtroOrigem = this.getAttribute('data-filtro');
+                    aplicarFiltros();
+                });
+            });
+            
+            // Carrega os dados iniciais
+            carregarDadosUsuario();
+        });
+        
+        // Função para aplicar os filtros aos eventos
+        function aplicarFiltros() {
+            scheduler.clearAll();
+            
+            const eventosFiltrados = todosEventos.filter(evento => {
+                // Verifica o filtro de origem
+                if (filtroOrigem !== "TODOS") {
+                    const isImportado = evento.id.toString().startsWith('imp-');
+                    if (filtroOrigem === "AULAS" && isImportado) return false;
+                    if (filtroOrigem === "IMPORTADOS" && !isImportado) return false;
+                }
+                
+                // Verifica o filtro de tipo
+                if (filtroTipo !== "TODOS") {
+                    const tipoEvento = evento.tipo ? evento.tipo.toUpperCase() : "";
+                    if (tipoEvento !== filtroTipo) return false;
+                }
+                
+                // Verifica o termo de pesquisa
+                if (termoPesquisa) {
+                    const textoEvento = evento.text.toLowerCase();
+                    if (!textoEvento.includes(termoPesquisa)) return false;
+                }
+                
+                return true;
+            });
+            
+            // Carrega os eventos filtrados no scheduler
+            scheduler.parse(eventosFiltrados, "json");
+        }
+        
+        // Função para carregar dados do usuário
+        async function carregarDadosUsuario() {
+            try {
+                const response = await fetch('/getUserData');
+                if (!response.ok) throw new Error("Não autenticado");
+                
+                const data = await response.json();
+
+                document.getElementById('userName').innerText = data.nome;
+                document.getElementById('userRole').innerText = data.tipo;
+                if (data.profilePic) {
+                    document.getElementById('profilePic').src = '/img/' + data.profilePic;
+                } else {
+                    document.getElementById('profilePic').src = '/img/default.png';
+                }
+                
+                if (data.foto) {
+                    document.getElementById('profilePic').src = data.foto;
+                }
+                
+                // Carrega eventos após autenticação
+                carregarEventos();
+            } catch (error) {
+                console.error('Erro ao carregar dados do usuário:', error);
+                alert('Erro de autenticação. Faça login novamente.');
+                window.location.href = '/';
+            }
+        }
+        
+        // Função para carregar eventos
+        async function carregarEventos() {
+            try {
+                // 1) Busca eventos "normais"
+                const respEv = await fetch('/eventos', { credentials: 'include' });
+                if (!respEv.ok) throw new Error('Erro ao buscar eventos');
+                const eventos = await respEv.json();
+
+                // 2) Busca registros importados
+                const respImp = await fetch('/importado', { credentials: 'include' });
+                if (!respImp.ok) throw new Error('Erro ao buscar dados importados');
+                const importados = await respImp.json();
+
+                // 3) Formata eventos "normais"
+                const evFormatados = eventos.map(ev => ({
+                    id: ev.id,
+                    text: ev.text,
+                    start_date: new Date(ev.start_date),
+                    end_date: new Date(ev.end_date),
+                    color: ev.color || "#3174ad",
+                    textColor: ev.textColor || "#FFFFFF",
+                    tipo: ev.tipo || "AULA"
+                }));
+
+                // 4) Formata registros importados
+                const impFormatados = importados.map(item => {
+                    const dateStr = item.data_atividade;
+                    const [hIni, mIni] = item.hora_inicio.split(':');
+                    const [hFim, mFim] = item.hora_fim.split(':');
+                    const start = new Date(dateStr);
+                    start.setHours(+hIni, +mIni, 0, 0);
+                    const end = new Date(dateStr);
+                    end.setHours(+hFim, +mFim, 0, 0);
+                    return {
+                        id: `imp-${item.id}`,
+                        text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
+                        start_date: start,
+                        end_date: end,
+                        tipo: item.turno || "IMPORTADO",
+                        color: "#228B22",
+                        textColor: "#FFFFFF"
+                    };
+                });
+
+                // 5) Junta e filtra por ID único
+                const tudo = [...evFormatados, ...impFormatados];
+                const vistos = new Set();
+                todosEventos = tudo.filter(ev => {
+                    if (vistos.has(ev.id)) return false;
+                    vistos.add(ev.id);
+                    return true;
+                });
+
+                // 6) Aplica os filtros ativos
+                aplicarFiltros();
+
+            } catch (error) {
+                console.error('Erro ao carregar eventos:', error);
+                alert('Erro ao carregar eventos. Faça login novamente.');
+                window.location.href = '/';
+            }
+        }
+        
+        // Função de logout
+        function sair() {
+            if (confirm("Você tem certeza que deseja sair?")) {
+                fetch('/logout', { method: 'POST' })
+                    .then(() => {
+                        window.location.href = '/';
+                    })
+                    .catch(error => {
+                        console.error('Erro ao sair:', error);
+                        alert('Erro ao fazer logout.');
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
