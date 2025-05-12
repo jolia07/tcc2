@@ -775,21 +775,19 @@ function getColorForMateria(materia) {
   return `FF${pastelR}${pastelG}${pastelB}`; // Formato ARGB (FF = alpha totalmente opaco)
 }
 
-// Upload e processamento do Excel
 app.post('/upload-laboratorios', async (req, res) => {
   if (!req.files || !req.files.planilha) {
     return res.status(400).send('Nenhum arquivo enviado.');
   }
 
   try {
+    const nomePlanilha = req.body.nomePlanilha || 'planilha_sem_nome';
     const workbook = xlsx.read(req.files.planilha.data, { type: 'buffer' });
     const primeiraAba = workbook.SheetNames[0];
     const dados = xlsx.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
 
-    // Objeto para agrupar por docente
     const agrupadoPorDocente = {};
 
-    //Na parte do código que processa os dados:
     dados.forEach(linha => {
       const docente = linha['Nome do pessoal atribuído'] || 'Sem docente';
       
@@ -797,16 +795,13 @@ app.post('/upload-laboratorios', async (req, res) => {
         agrupadoPorDocente[docente] = [];
       }
 
-      // Processa as datas
       const datas = linha['Datas da atividade (Individual)'] 
         ? linha['Datas da atividade (Individual)'].split(';').map(d => d.trim())
         : [];
 
-      // Converte os horários para formato adequado
       const horaInicio = converterHoraExcel(linha['Hora de início agendada']);
       const horaFim = converterHoraExcel(linha['Fim Agendado']);
 
-      // Cria um registro para cada data
       datas.forEach(data => {
         agrupadoPorDocente[docente].push({
           nome: linha['Nome'],
@@ -819,12 +814,12 @@ app.post('/upload-laboratorios', async (req, res) => {
           descricao_localizacao: linha['Descrição da localização atribuída'],
           data_atividade: data,
           agendado: linha['Agendado'],
-          turno: determinarTurno(horaInicio)
+          turno: determinarTurno(horaInicio),
+          nome_planilha: nomePlanilha // Adiciona o nome da planilha
         });
       });
     });
 
-    // Agora insere no banco de dados para cada docente
     const resultados = {};
     
     for (const [docente, registros] of Object.entries(agrupadoPorDocente)) {
@@ -837,17 +832,16 @@ app.post('/upload-laboratorios', async (req, res) => {
 
       for (const registro of registros) {
         try {
-          // Formata a data para o padrão YYYY-MM-DD
           const dataFormatada = registro.data_atividade.split('/').reverse().join('-');
           
-          // Insere na tabela importado
+          // Modifique a query SQL para incluir nome_planilha
           const insertRes = await pool.query(
             `INSERT INTO importado (
               nome, descricao, docente, dias_semana, 
               hora_inicio, hora_fim, localizacao, 
               descricao_localizacao, data_atividade, 
-              agendado, turno
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+              agendado, turno, nome_planilha
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
             [
               registro.nome,
               registro.descricao,
@@ -859,7 +853,8 @@ app.post('/upload-laboratorios', async (req, res) => {
               registro.descricao_localizacao,
               dataFormatada,
               registro.agendado,
-              registro.turno
+              registro.turno,
+              registro.nome_planilha // Adiciona o nome da planilha
             ]
           );
 

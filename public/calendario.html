@@ -279,7 +279,12 @@
 
             document.getElementById('uploadForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
+                const fileInput = document.getElementById('planilhaUpload');
+                const fileName = fileInput.files[0]?.name || 'planilha_sem_nome';
+                
                 const formData = new FormData(this);
+                formData.append('nomePlanilha', fileName); // Adiciona o nome do arquivo ao FormData
+                
                 const resultadoDiv = document.getElementById('resultado');
                 resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
                 
@@ -407,18 +412,13 @@
 
             async function carregarPlanilhasImportadas() {
                 try {
-                    const response = await fetch('/listar-planilhas-importadas', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    
+                    const response = await fetch('/listar-planilhas-importadas');
                     const data = await response.json();
                     
-                    if (data.success) {
-                        const seletor = document.getElementById('seletorPlanilhas');
-                        // Mantém a primeira opção e adiciona as novas
-                        seletor.innerHTML = '<option value="">-- Todas as Planilhas --</option>';
-                        
+                    const seletor = document.getElementById('seletorPlanilhas');
+                    seletor.innerHTML = '<option value=""> </option>';
+                    
+                    if (data.success && data.planilhas.length > 0) {
                         data.planilhas.forEach(planilha => {
                             const option = document.createElement('option');
                             option.value = planilha.nome_planilha;
@@ -426,9 +426,9 @@
                             seletor.appendChild(option);
                         });
                         
-                        // Mostra o botão se houver planilhas
-                        document.getElementById('btnLimparDadosImportados').style.display = 
-                            data.planilhas.length > 0 ? 'inline-block' : 'none';
+                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
+                    } else {
+                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
                     }
                 } catch (error) {
                     console.error('Erro ao carregar planilhas:', error);
@@ -580,6 +580,7 @@
             document.addEventListener("DOMContentLoaded", function() {
                 carregarDadosUsuario();
                 carregarDadosImportados(); // Carrega os dados imediatamente
+                carregarPlanilhasImportadas();
                 
                 // Configurar os eventos dos botões de filtro
                 document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
