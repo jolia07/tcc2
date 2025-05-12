@@ -62,6 +62,15 @@
                 </div>
             </div>
 
+            <div id="popupTelefone" class="popup" style="display: none;">
+                <h2>Adicionar/Editar Telefone Secundário</h2>
+                <input type="tel" id="telefone2Input" placeholder="(00) 00000-0000" pattern="[0-9]{10,11}" maxlength="11">
+                <div class="popup-actions">
+                    <button onclick="salvarTelefone2()" class="btn-primary">Salvar</button>
+                    <button class="btn-secondary" onclick="fecharPopup('popupTelefone')">Cancelar</button>
+                </div>
+            </div>
+
             <!-- Troca de Senha -->
 
             <!-- Recuperação de Senha -->
@@ -130,34 +139,56 @@
              document.getElementById("popupTelefone").style.display = "block";
             }
 
+            function abrirPopupTelefone() {
+                // Preenche o campo com o telefone atual (se existir)
+                const telefoneAtual = document.getElementById('userTelefone2').textContent;
+                if (telefoneAtual && telefoneAtual !== 'Não informado') {
+                    document.getElementById('telefone2Input').value = telefoneAtual;
+                } else {
+                    document.getElementById('telefone2Input').value = '';
+                }
+                document.getElementById('popupTelefone').style.display = 'block';
+            }
+
             async function salvarTelefone2() {
-            const telefone2 = document.getElementById("telefone2Input").value.trim();
+                const telefone2 = document.getElementById('telefone2Input').value.trim();
+                
+                // Validação básica do telefone
                 if (!telefone2) {
-                    alert("O telefone não pode estar vazio.");
+                    alert('Por favor, insira um número de telefone válido.');
                     return;
                 }
-            
+                
+                if (telefone2.length < 10 || telefone2.length > 11) {
+                    alert('O telefone deve ter 10 ou 11 dígitos (DDD + número).');
+                    return;
+                }
+
                 try {
-                    // Atualiza a sessão do usuário antes de enviar ao backend
-                    const response = await fetch("/definirTelefone2", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                    const response = await fetch('/atualizar-telefone2', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({ telefone2 })
                     });
 
                     const data = await response.json();
+                    
                     if (data.success) {
-                        document.getElementById("userTelefone2").textContent = telefone2;
-                        alert("Telefone2 atualizado com sucesso!");
-                        // Fechar popup após salvar
-                         fecharPopup("popupTelefone");
+                        // Atualiza a exibição
+                        document.getElementById('userTelefone2').textContent = telefone2;
+                        fecharPopup('popupTelefone');
+                        alert('Telefone secundário atualizado com sucesso!');
                     } else {
-                        alert("Erro ao atualizar Telefone2.");
+                        alert(data.message || 'Erro ao atualizar telefone.');
                     }
-                } catch (err) {
-                    console.log("Erro:", error);
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao conectar com o servidor.');
                 }
             }
+
 
             function fecharPopup(id) {
                 document.getElementById(id).style.display = "none";

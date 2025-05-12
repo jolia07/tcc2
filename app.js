@@ -147,38 +147,50 @@ function verificarAutenticacao(req, res, next) {
 
 
 //Rota para segundo telefone
-app.post('/definirTelefone2', async (req, res) => {
-  const { telefone2 } = req.body;
+// Adicione esta rota no seu app.js
+app.post('/atualizar-telefone2', async (req, res) => {
+    if (!req.session || !req.session.user || !req.session.user.id) {
+        return res.status(401).json({ success: false, message: 'Usuário não autenticado' });
+    }
 
+    const { telefone2 } = req.body;
+    
+    // Validação básica
+    if (!telefone2 || telefone2.length < 10 || telefone2.length > 11) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Telefone inválido. Deve ter 10 ou 11 dígitos.' 
+        });
+    }
 
-  if (!req.session.user) {
-      return res.status(401).json({ error: "Usuário não autenticado" });
-  }
+    try {
+        // Atualiza no banco de dados
+        const result = await pool.query(
+            'UPDATE usuarios SET telefone2 = $1 WHERE id = $2 RETURNING *',
+            [telefone2, req.session.user.id]
+        );
 
+        if (result.rowCount === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuário não encontrado' 
+            });
+        }
 
-  try {
-      await pool.query(
-          "UPDATE usuarios SET telefone2 = $1 WHERE id = $2",
-          [telefone2 || null, req.session.user.id]
-      );
-
-
-      // Atualiza a sessão do usuário com o novo telefone
-      req.session.user.telefone2 = telefone2 || null;
-
-
-      req.session.save(err => {
-          if (err) {
-              console.error("Erro ao salvar sessão:", err);
-              return res.status(500).json({ error: "Erro ao salvar sessão" });
-          }
-          res.json({ success: true });
-      });
-
-
-  } catch (err) {
-      console.log("Erro ao atualizar Telefone2:", error);
-  }
+        // Atualiza na sessão
+        req.session.user.telefone2 = telefone2;
+        
+        return res.json({ 
+            success: true, 
+            message: 'Telefone secundário atualizado com sucesso' 
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar telefone:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Erro interno ao atualizar telefone' 
+        });
+    }
 });
 
 
@@ -676,6 +688,28 @@ app.get('/aulasHoje', async (req, res) => {
   }
 });
 
+// Nova rota para listar planilhas
+app.get('/listar-planilhas-importadas', async (req, res) => {
+  if (!req.session.user || req.session.user.tipo !== 'Administrador') {
+      return res.status(403).json({ success: false, message: 'Acesso negado' });
+  }
+
+  try {
+      const result = await pool.query('SELECT DISTINCT nome_planilha FROM importado');
+      res.json({ 
+          success: true, 
+          planilhas: result.rows
+      });
+  } catch (error) {
+      console.error('Erro ao listar planilhas:', error);
+      res.status(500).json({ 
+          success: false, 
+          message: 'Erro ao listar planilhas',
+          error: error.message
+      });
+  }
+});
+
 //Rota de ADM para limpar as informações do banco(planilhas)
 app.delete('/limpar-dados-importados', async (req, res) => {
   if (!req.session.user || req.session.user.tipo !== 'Administrador') {
@@ -918,8 +952,16 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return res.status(400).json({ error: "Nome do docente não fornecido" });
     }
 
+     // Buscar dados do perfil do docente autenticado
+    const { rows: docentePerfil } = await pool.query(
+      `SELECT email, telefone1, telefone2 
+       FROM usuarios 
+       WHERE nome = $1`,
+      [docenteNome]
+    );
+
     // Buscar dados do docente importado - ajustado para os campos reais da tabela
-    const {rows: aulasImportadas} = await pool.query(
+     const {rows: aulasImportadas} = await pool.query(
       `SELECT
         id,
         nome,
@@ -948,9 +990,10 @@ app.get('/exportar-excel-importado', async (req, res) => {
     const aba = planilha.addWorksheet('Aulas');
 
     aba.getCell('B2').value = docenteNome;    // Nome do docente
-    aba.getCell('B3').value = "";            // E-mail 
-    aba.getCell('B4').value = "";            // Telefone 1 
-    aba.getCell('B5').value = "";            // Telefone 2 
+    aba.getCell('B3').value = docentePerfil.length > 0 ? docentePerfil[0].email : "";    // E-mail 
+    aba.getCell('B4').value = docentePerfil.length > 0 ? docentePerfil[0].telefone1 : ""; // Telefone 1 
+    aba.getCell('B5').value = docentePerfil.length > 0 ? docentePerfil[0].telefone2 : ""; // Telefone 2 
+
 
     // Configuração dos horários
     const horariosDia = [

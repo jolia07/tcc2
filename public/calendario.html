@@ -69,6 +69,7 @@
             <button type="button" id="btnLimparResultados" class="btn-limpar">
                 <i class="fas fa-broom"></i> Limpar Resultados
             </button>
+            <select id="seletorPlanilhas" class="form-control" style="width: 200px;"></select>
             <button id="btnLimparDadosImportados" class="btn-limpar" style="display: none;">
                 <i class="fas fa-trash-alt"></i> Limpar Dados Importados
             </button>
@@ -404,15 +405,56 @@
                 }
             }
 
-            function confirmarLimpezaDados() {
-                if (confirm("Tem certeza que deseja apagar TODOS os dados importados da planilha? Esta ação não pode ser desfeita.")) {
-                    limparDadosImportados();
+            async function carregarPlanilhasImportadas() {
+                try {
+                    const response = await fetch('/listar-planilhas-importadas', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const seletor = document.getElementById('seletorPlanilhas');
+                        // Mantém a primeira opção e adiciona as novas
+                        seletor.innerHTML = '<option value="">-- Todas as Planilhas --</option>';
+                        
+                        data.planilhas.forEach(planilha => {
+                            const option = document.createElement('option');
+                            option.value = planilha.nome_planilha;
+                            option.textContent = planilha.nome_planilha;
+                            seletor.appendChild(option);
+                        });
+                        
+                        // Mostra o botão se houver planilhas
+                        document.getElementById('btnLimparDadosImportados').style.display = 
+                            data.planilhas.length > 0 ? 'inline-block' : 'none';
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar planilhas:', error);
                 }
             }
 
-            async function limparDadosImportados() {
+            async function confirmarLimpezaDados() {
+                const seletor = document.getElementById('seletorPlanilhas');
+                const nomePlanilha = seletor.value;
+                
+                const mensagem = nomePlanilha 
+                    ? `Tem certeza que deseja apagar os dados da planilha "${nomePlanilha}"? Esta ação não pode ser desfeita.`
+                    : "Tem certeza que deseja apagar TODOS os dados importados? Esta ação não pode ser desfeita.";
+                
+                if (confirm(mensagem)) {
+                    await limparDadosImportados(nomePlanilha);
+                }
+            }
+
+            async function limparDadosImportados(nomePlanilha) {
                 try {
-                    const response = await fetch('/limpar-dados-importados', {
+                    const url = nomePlanilha 
+                        ? `/limpar-dados-importados?planilha=${encodeURIComponent(nomePlanilha)}`
+                        : '/limpar-dados-importados';
+                        
+                    const response = await fetch(url, {
                         method: 'DELETE',
                         credentials: 'include',
                         headers: {
@@ -423,10 +465,15 @@
                     const data = await response.json();
 
                     if (data.success) {
-                        alert('Dados importados foram apagados com sucesso!');
-                        // Atualiza a tabela para refletir a limpeza
-                        dadosImportados = [];
+                        alert(data.message);
+                        // Atualiza a tabela
+                        dadosImportados = nomePlanilha
+                            ? dadosImportados.filter(item => item.nome_planilha !== nomePlanilha)
+                            : [];
                         atualizarTabelaImportados(dadosImportados);
+                        
+                        // Recarrega as planilhas disponíveis
+                        await carregarPlanilhasImportadas();
                     } else {
                         throw new Error(data.message || 'Erro ao limpar dados');
                     }

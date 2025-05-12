@@ -332,44 +332,68 @@ header {
 }
 
 /* Popup para adicionar telefone */
+/* Adicione ao seu arquivo perfil.css */
 .popup {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    backdrop-filter: blur(5px);
-    padding: 1rem;
+    width: 90%;
+    max-width: 400px;
 }
 
 .popup h2 {
-    color: white;
-    margin-bottom: 1.25rem;
-    text-align: center;
-    font-size: 1.2rem;
+    margin-top: 0;
+    color: #333;
 }
 
 .popup input {
     width: 100%;
-    max-width: 300px;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: none;
-    margin-bottom: 1.25rem;
-    font-size: 1rem;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
 }
 
-.popup-actions {
-    display: flex;
-    gap: 0.9375rem;
-    flex-wrap: wrap; /* Allow buttons to wrap on very small screens */
-    justify-content: center;
+/* Adicione ou atualize estas regras no seu arquivo perfil.css */
+.popup-actions .btn-primary, 
+.popup-actions .btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.popup-actions .btn-primary {
+    background-color: #2a3e52; 
+    color: white;
+}
+
+.popup-actions .btn-primary:hover {
+    background-color: #2a4d7a;
+}
+
+.popup-actions .btn-secondary {
+    background-color: #2a3e52; 
+    color: white;
+}
+
+.popup-actions .btn-secondary:hover {
+    background-color: #2a4d7a;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 14px;
 }
 
 /* Status mensagens */
