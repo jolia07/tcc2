@@ -506,41 +506,45 @@ app.get('/eventos', async (req, res) => {
     const userId = req.session.user?.id;
 
     let query = `
-      SELECT 
-          a.id,
-          m.uc AS materia,
-          t.nome AS turma,
-          a.turno,
-          a.diasSemana,
-          a.dataInicio,
-          CONCAT('Cimatec ', l.cimatec, ' - Sala ', l.sala) AS laboratorio,
-          a.usuario_id
-      FROMmateria aula a
-      JOIN  m ON a.materia_id = m.id
-      JOIN turma t ON a.turma_id = t.id
-      LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
+      SELECT
+        id,
+        descricao AS materia,
+        nome as turma,
+        docente AS usuario_id,
+        dias_semana AS diasSemana,
+        data_atividade AS dataInicio,
+        turno,
+        COALESCE(descricao_localizacao, localizacao) AS laboratorio,
+        'Importado' AS curso,
+        'Importado' AS turma
+      FROM importado
     `;
 
     let params = [];
     if (userType === 'Docente') {
-      query += " WHERE a.usuario_id = $1";
+      query += " WHERE docente = $1";
       params.push(userId);
     }
+
+    query += " ORDER BY data_atividade, hora_inicio";
 
     const { rows } = await pool.query(query, params);
 
     const eventos = [];
 
     for (const aula of rows) {
-      const diasSemana = (aula.diassemana || aula.diasSemana || '').split(',').map(dia => dia.trim());
-      const inicioBase = new Date(aula.datainicio);
+      const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim());
+      const inicioBase = new Date(aula.dataInicio);
 
-       const diaParaNumero = {
-   'Domingo': 0, 'Segunda': 1, 'Terça': 2,
-   'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6, 'Sabado': 6,
- };
+      const diaParaNumero = {
+        'Domingo': 0, 'Segunda': 1, 'Terça': 2,
+        'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6, 'Sabado': 6
+      };
 
-      const diasNumeros = diasSemana.map(d => diaParaNumero[d]);
+      const diasNumeros = diasSemana.map(d => {
+        const diaNormalizado = d === 'Sabado' ? 'Sábado' : d;
+        return diaParaNumero[diaNormalizado];
+      });
 
       // Gera eventos para 12 semanas
       for (let semana = 0; semana < 12; semana++) {
@@ -551,9 +555,9 @@ app.get('/eventos', async (req, res) => {
           dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
 
           let horaInicio = 8, horaFim = 12;
-          if (aula.turno === 'Vespertino') {
+          if (aula.turno === 'TARDE') {
             horaInicio = 13; horaFim = 17;
-          } else if (aula.turno === 'Noturno') {
+          } else if (aula.turno === 'NOITE') {
             horaInicio = 19; horaFim = 22;
           }
 
@@ -581,7 +585,6 @@ app.get('/eventos', async (req, res) => {
     res.status(500).json({ error: "Erro ao carregar eventos" });
   }
 });
-
 
 // Rota para pegar todas as aulas (apenas admin)
 app.get('/todasAulas', async (req, res) => {
