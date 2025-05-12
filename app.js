@@ -515,8 +515,8 @@ app.get('/eventos', async (req, res) => {
           a.dataInicio,
           CONCAT('Cimatec ', l.cimatec, ' - Sala ', l.sala) AS laboratorio,
           a.usuario_id
-      FROM aula a
-      JOIN materia m ON a.materia_id = m.id
+      FROMmateria aula a
+      JOIN  m ON a.materia_id = m.id
       JOIN turma t ON a.turma_id = t.id
       LEFT JOIN laboratorio l ON a.laboratorio_id = l.id
     `;
@@ -755,11 +755,11 @@ app.get('/docentesImportado', async (req, res) => {
   }
 });
 
-function getColorForMateria(materia) {
+function getColorForMateria(descricao) {
   // Usamos um hash simples para gerar um código de cor baseado no nome da matéria
   let hash = 0;
-  for (let i = 0; i < materia.length; i++) {
-    hash = materia.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < descricao.length; i++) {
+    hash = descricao.charCodeAt(i) + ((hash << 5) - hash);
   }
  
   // Gerar cores pastel
@@ -959,6 +959,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
      const {rows: aulasImportadas} = await pool.query(
       `SELECT
         id,
+        descricao,
         nome,
         docente,
         dias_semana,
@@ -1094,7 +1095,6 @@ app.get('/exportar-excel-importado', async (req, res) => {
       }
     });
 
-
     // Cabeçalho dos meses (JAN, FEV, etc.) (igual ao original)
     const mesesAbreviados = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
     mesesAbreviados.forEach((mes, indice) => {
@@ -1128,7 +1128,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           throw new Error('A aba/worksheet não foi definida corretamente');
       }
   
-      const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.nome))];
+      const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.descricao ))];
       const maxColunas = 31; // AE é a coluna 31 (A=1, B=2, ..., AE=31)
       const maxLinhas = 5;   // Limite até a linha 5
       let materiasExcedentes = 0;
@@ -1136,7 +1136,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       let colunaAtual = 8; // H é a coluna 8
       let linhaAtual = 2;   // Começa na linha 2
   
-      for (const materia of materiasUnicas) {
+      for (const descricao of materiasUnicas) {
           // Verifica se ultrapassou o limite máximo de linhas
           if (linhaAtual > maxLinhas) {
               materiasExcedentes++;
@@ -1165,7 +1165,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
               throw new Error(`Falha ao obter/criar a linha ${linhaAtual}`);
           }
   
-          const corMateria = getColorForMateria(materia);
+          const corMateria = getColorForMateria(descricao);
           
           // Verificar se a coluna existe antes de acessar
           if (!aba.getColumn(colunaAtual)) {
@@ -1179,7 +1179,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           }
   
           // Definir os valores
-          cell.value = materia;
+          cell.value = descricao;
           cell.fill = {
               type: 'pattern',
               pattern: 'solid',
@@ -1412,6 +1412,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           id: aula.id,
           materia: aula.nome,  // Usando o campo 'nome' da tabela
           professor: aula.docente,
+          descricao: aula.descricao,
           diasSemana: aula.dias_semana,
           data_atividade: aula.data_atividade,
           hora_inicio: aula.hora_inicio,
@@ -1457,7 +1458,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           return;
         }
    
-        const materiaColor = getColorForMateria(aulaPadronizada.materia);
+        const materiaColor = getColorForMateria(aulaPadronizada.descricao );
         const mes = dataAula.getMonth();
         const diaMes = dataAula.getDate();
         const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAula.getDay()];
@@ -1533,7 +1534,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           // Preencher célula com informações da aula
           celula.value = {
             richText: [
-              { text: `${aulaPadronizada.materia}\n`, font: { size: 13, bold: true } },
+              { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
               { text: `${aulaPadronizada.laboratorio}`  }
             ]
           };

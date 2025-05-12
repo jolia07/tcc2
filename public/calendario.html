@@ -100,7 +100,6 @@
       <tr>
         <th>Docente</th>
         <th>Nome</th>
-        <th>Descrição</th>
         <th>Dias da Semana</th>
         <th>Hora Início</th>
         <th>Hora Fim</th>
@@ -492,7 +491,7 @@
                 dados.forEach(item => {
                     const tr = document.createElement('tr');
                     
-                    const campos = ['docente', 'nome', 'descricao', 'dias_semana', 
+                    const campos = ['docente', 'descricao', 'dias_semana', 
                                 'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
                     
                     campos.forEach(campo => {
