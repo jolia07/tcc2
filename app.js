@@ -1070,9 +1070,10 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.mergeCells('B4:F4');
     aba.mergeCells('B5:F5');
     aba.mergeCells('A6:AF6');
-    aba.mergeCells('H1:AE1');
+    aba.mergeCells('H1:S1');
     aba.mergeCells('AF1:AF5');
     aba.mergeCells('G1:G5');
+    aba.mergeCells('S2:S5')
 
     // Mesclagem de células dos meses (igual ao original)
     aba.mergeCells('A9:AF9');
@@ -1141,7 +1142,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
     mesesAbreviados.forEach((mes, indice) => {
       const celula = aba.getCell(1, indice + 20);
       celula.value = mes;
-      celula.alignment = { horizontal: 'center' };
+      celula.alignment = { horizontal: 'center', vertical: "middle" };
+      celula.font = { size: 26, bold: true}
     });
 
     // Estilo do cabeçalho (igual ao original)
@@ -1170,7 +1172,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       }
   
       const materiasUnicas = [...new Set(aulasImportadas.map(aula => aula.descricao ))];
-      const maxColunas = 31; // AE é a coluna 31 (A=1, B=2, ..., AE=31)
+      const maxColunas = 18; // AE é a coluna 31 (A=1, B=2, ..., AE=31)
       const maxLinhas = 5;   // Limite até a linha 5
       let materiasExcedentes = 0;
   
@@ -1279,7 +1281,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
 
     // Estilo das células de cabeçalho (igual ao original)
-    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", 'AF1', 'G1'].forEach(endereco => {
+    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", 'AF1', 'G1', 'S2'].forEach(endereco => {
       const celula = aba.getCell(endereco);
       celula.fill = {
         type: 'pattern',
@@ -1651,7 +1653,6 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
   }
 });
-
 // Rota para a API de notificações (JSON)
 app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
   if (!req.session.user) {

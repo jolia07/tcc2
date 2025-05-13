@@ -13,6 +13,41 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <style>
+        /* Adição de estilos para os elementos retráteis */
+        .data-divisor {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        
+        .data-divisor:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-divisor .toggle-icon {
+            margin-left: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .data-divisor.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .notificacoes-container {
+            transition: max-height 0.5s ease, opacity 0.5s ease;
+            max-height: 2000px;
+            opacity: 1;
+            overflow: hidden;
+        }
+        
+        .notificacoes-container.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
 
@@ -51,12 +86,39 @@
         </div>
     </div>
           
-
     <div id="listaNotificacoes"></div>
 
     <script>
+        // Mapear abreviações de dias da semana
+        const mapaDias = {
+            'Segunda': 'S',
+            'Terça': 'T',
+            'Quarta': 'Q',
+            'Quinta': 'Q',
+            'Sexta': 'S',
+            'Sábado': 'S',
+            'Domingo': 'D',
+            'Segunda-feira': 'S',
+            'Terça-feira': 'T',
+            'Quarta-feira': 'Q',
+            'Quinta-feira': 'Q',
+            'Sexta-feira': 'S',
+            'Sábado': 'S',
+            'Domingo': 'D',
+            'Seg': 'S',
+            'Ter': 'T',
+            'Qua': 'Q',
+            'Qui': 'Q',
+            'Sex': 'S',
+            'Sáb': 'S',
+            'Dom': 'D'
+        };
+        
+        // Array com todos os dias da semana para referência
+        const todosDias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        
         async function carregarDadosUsuario() {
-          try {
+            try {
                 const response = await fetch('/getUserData');
                 if (!response.ok) throw new Error("Não autenticado");
                 
@@ -74,119 +136,880 @@
                     document.getElementById('profilePic').src = data.foto;
                 }
                 carregarNotificacoes();
-                } catch (error) {
+            } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
-                alert('Erro ao carregar perfil.');
+                mostrarErro('Erro ao carregar perfil do usuário', error.message);
             }
         }
         
-        async function carregarNotificacoes() {
-  const notificacoesDiv = document.getElementById('listaNotificacoes');
-  
-  try {
-    // Mostrar estado de carregamento
-    notificacoesDiv.innerHTML = '<div class="loading"><p>Carregando notificações...</p></div>';
-
-    const response = await fetch('/api/notificacoes', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include'
-    });
-
-    // Verificação robusta do tipo de conteúdo
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('O servidor retornou um formato inesperado');
-    }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-      throw new Error(error.message || `Erro ${response.status}`);
-    }
-
-    const aulas = await response.json();
-    exibirNotificacoes(aulas);
-  } catch (error) {
-    console.error("Erro ao carregar notificações:", error);
-    notificacoesDiv.innerHTML = `
-      <div class="notificacao erro">
-        <p>Erro ao carregar notificações</p>
-        <small>${escapeHtml(error.message)}</small>
-      </div>
-    `;
-  }
-}
-
-// Função para escapar HTML (prevenção XSS)
-function escapeHtml(unsafe) {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// Função para exibir as notificações na página
-function exibirNotificacoes(aulas) {
-  const notificacoesDiv = document.getElementById('listaNotificacoes');
-  notificacoesDiv.innerHTML = '';
-
-  if (aulas.length === 0) {
-    notificacoesDiv.innerHTML = `
-      <div class="notificacao">
-        <p>Nenhuma aula programada</p>
-        <small>Não há aulas agendadas no momento</small>
-      </div>
-    `;
-    return;
-  }
-
-  aulas.forEach(aula => {
-    const noti = document.createElement('div');
-    noti.classList.add('notificacao');
+      // Função corrigida para formatarData - substitui referências de data
+function formatarData(dataString) {
+    // Verificar se a data é válida
+    if (!dataString) return 'Data não especificada';
     
-    noti.innerHTML = `
-      <div class="notificacao-cabecalho">
-        <h4>${aula.materia}</h4>
-        <span class="notificacao-data">${aula.data}</span>
-      </div>
-      <div class="notificacao-corpo">
-        <p><i class="far fa-clock"></i> ${aula.hora_inicio} - ${aula.hora_fim}</p>
-        <p><i class="fas fa-map-marker-alt"></i> ${aula.localizacao || 'Local não informado'}</p>
-        ${aula.dias_semana ? `<p><i class="far fa-calendar-alt"></i> ${aula.dias_semana}</p>` : ''}
-        ${aula.professor ? `<p><i class="fas fa-chalkboard-teacher"></i> ${aula.professor}</p>` : ''}
-      </div>
-      <div class="notificacao-rodape">
-        <span class="turno ${aula.turno.toLowerCase()}">${aula.turno}</span>
-      </div>
-    `;
-
-    notificacoesDiv.appendChild(noti);
-  });
+    // Tentar diversos formatos de data
+    let data;
+    
+    // Tentar como ISO string (YYYY-MM-DD)
+    if (dataString.match(/^\d{4}-\d{2}-\d{2}/)) {
+        data = new Date(dataString);
+    } 
+    // Tentar como data brasileira (DD/MM/YYYY)
+    else if (dataString.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+        const partes = dataString.split('/');
+        data = new Date(partes[2], partes[1] - 1, partes[0]);
+    }
+    // Tentar formato DD/MM/YY
+    else if (dataString.match(/^\d{2}\/\d{2}\/\d{2}/)) {
+        const partes = dataString.split('/');
+        data = new Date(2000 + parseInt(partes[2]), partes[1] - 1, partes[0]);
+    }
+    // Tentar como timestamp
+    else if (!isNaN(dataString)) {
+        data = new Date(parseInt(dataString));
+    }
+    // Caso padrão
+    else {
+        data = new Date(dataString);
+    }
+    
+    // Verificar se a data é válida
+    if (isNaN(data.getTime())) {
+        console.warn(`Data inválida: ${dataString}`);
+        return 'Data não especificada';
+    }
+    
+    // Criar um objeto Date para a data atual, sem ajuste de fuso horário
+    const hoje = new Date();
+    const hojeAjustado = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    
+    // Corrigir a data da aula para usar apenas o ano, mês e dia (sem hora)
+    const dataAjustada = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+    
+    // Calcular ontem e amanhã com base na data de hoje ajustada
+    const ontem = new Date(hojeAjustado);
+    ontem.setDate(hojeAjustado.getDate() - 1);
+    
+    const amanha = new Date(hojeAjustado);
+    amanha.setDate(hojeAjustado.getDate() + 1);
+    
+    // Realizar comparações de datas usando getTime() para precisão
+    if (dataAjustada.getTime() === hojeAjustado.getTime()) {
+        return 'Amanhã'; // Alterado de 'Hoje' para 'Amanhã'
+    }
+    
+    if (dataAjustada.getTime() === amanha.getTime()) {
+        return 'Amanhã'; // Mantido como 'Amanhã'
+    }
+    
+    if (dataAjustada.getTime() === ontem.getTime()) {
+        return 'Hoje'; 
+    }
+    
+    // Para outras datas, formatar como dd/mm/aaaa
+    return dataAjustada.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 }
 
-// Atualizar notificações a cada 5 minutos
-setInterval(carregarNotificacoes, 5 * 60 * 1000);
+// Função para exibir notificações - com as datas atualizadas
+function exibirNotificacoes(aulas) {
+    const notificacoesDiv = document.getElementById('listaNotificacoes');
+    notificacoesDiv.innerHTML = '';
 
-// Carregar ao iniciar
-document.addEventListener('DOMContentLoaded', () => {
-    carregarDadosUsuario();
-});
-        function sair() {
-        if (confirm("Você tem certeza que deseja sair?")) {
-            fetch('https://sepa-api.onrender.com/', { method: 'POST' })
-                .then(() => {
-                    window.location.href = 'home.html';
-                })
-                .catch(error => {
-                    console.error('Erro ao sair:', error);
-                    alert('Erro ao fazer logout.');
+    if (!aulas || aulas.length === 0) {
+        notificacoesDiv.innerHTML = `
+            <div class="notificacao-vazia">
+                <i class="far fa-calendar-times"></i>
+                <p>Nenhuma aula programada</p>
+                <small>Não há aulas agendadas no momento</small>
+            </div>
+        `;
+        return;
+    }
+
+    // Agrupar aulas por data
+    const aulasPorData = agruparPorData(aulas);
+    
+    // Ordenar as datas (com Amanhã e Hj primeiro, depois em ordem cronológica)
+    const datasOrdenadas = Object.keys(aulasPorData).sort((a, b) => {
+        if (a === 'Amanhã') return -1;
+        if (b === 'Amanhã') return 1;
+        if (a === 'Hj') return -1;
+        if (b === 'Hj') return 1;
+        
+        // Para outras datas, converter para objetos Date e comparar
+        if (a.includes('/') && b.includes('/')) {
+            const [diaA, mesA, anoA] = a.split('/').map(Number);
+            const [diaB, mesB, anoB] = b.split('/').map(Number);
+            
+            const dataA = new Date(anoA, mesA - 1, diaA);
+            const dataB = new Date(anoB, mesB - 1, diaB);
+            
+            return dataA - dataB;
+        }
+        
+        return 0;
+    });
+    
+    // Criar elementos para cada grupo de data
+    datasOrdenadas.forEach(data => {
+        const grupo = document.createElement('div');
+        grupo.classList.add('grupo-data');
+        
+        // Criar o divisor de data com classe especial para Amanhã e Hj
+        const divisorClasse = data === 'Amanhã' ? 'data-hoje' : 
+                            data === 'Hj' ? 'data-ontem' : '';
+                            
+        const divisor = document.createElement('div');
+        divisor.classList.add('data-divisor');
+        if (divisorClasse) divisor.classList.add(divisorClasse);
+        divisor.innerHTML = `
+            <span>${data}</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        `;
+        
+        // Adicionar evento de clique para retrair/expandir
+        divisor.addEventListener('click', function() {
+            toggleNotificacoes(this);
+        });
+        
+        grupo.appendChild(divisor);
+        
+        // Container para as notificações em layout horizontal
+        const container = document.createElement('div');
+        container.classList.add('notificacoes-container');
+        
+        // Adicionar as notificações deste dia
+        aulasPorData[data].forEach(aula => {
+            const noti = document.createElement('div');
+            noti.classList.add('notificacao');
+            
+            // Adicionar classe para notificações de amanhã (considerar como não lidas)
+            if (data === 'Amanhã') {
+                noti.classList.add('notificacao-nao-lida');
+            }
+            
+            // Processar dias da semana
+            const diasArray = processarDiasSemana(aula.dias_semana || '');
+            const diasSemanaHtml = renderizarDiasSemana(diasArray);
+            
+            // Determinar o turno com base no horário
+            let turnoClass = 'indefinido';
+            let turnoText = 'Indefinido';
+            
+            if (aula.hora_inicio) {
+                const hora = parseInt(aula.hora_inicio.split(':')[0]);
+                if (hora >= 6 && hora < 12) {
+                    turnoClass = 'matutino';
+                    turnoText = 'Matutino';
+                } else if (hora >= 12 && hora < 18) {
+                    turnoClass = 'vespertino';
+                    turnoText = 'Vespertino';
+                } else {
+                    turnoClass = 'noturno';
+                    turnoText = 'Noturno';
+                }
+            }
+            
+            noti.innerHTML = `
+                <div class="notificacao-cabecalho">
+                    <h4>${escapeHtml(aula.materia)}</h4>
+                    ${aula.codigo ? `<small class="codigo-aula">${escapeHtml(aula.codigo)}</small>` : ''}
+                </div>
+                <div class="notificacao-corpo">
+                    <p><i class="far fa-clock"></i> ${escapeHtml(aula.hora_inicio || '--:--')} - ${escapeHtml(aula.hora_fim || '--:--')}</p>
+                    
+                    ${diasSemanaHtml}
+                    
+                    <div class="local-professor">
+                        <div class="local" title="Local da aula">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${escapeHtml(aula.localizacao || 'Local não informado')}</span>
+                        </div>
+                        
+                        ${aula.professor ? `
+                        <div class="professor" title="Professor">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span>${escapeHtml(aula.professor)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="notificacao-rodape">
+                    <span class="turno ${turnoClass}">${turnoText}</span>
+                </div>
+            `;
+            
+            container.appendChild(noti);
+        });
+        
+        grupo.appendChild(container);
+        notificacoesDiv.appendChild(grupo);
+    });
+}
+
+// Função adicional para debug - pode ser chamada para verificar as comparações de datas
+function verificarData(dataString) {
+    if (!dataString) return 'Data inválida';
+    
+    let data;
+    
+    // Tentar processar a data usando os mesmos métodos da função principal
+    if (dataString.match(/^\d{4}-\d{2}-\d{2}/)) {
+        data = new Date(dataString);
+    } else if (dataString.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+        const partes = dataString.split('/');
+        data = new Date(partes[2], partes[1] - 1, partes[0]);
+    } else if (dataString.match(/^\d{2}\/\d{2}\/\d{2}/)) {
+        const partes = dataString.split('/');
+        data = new Date(2000 + parseInt(partes[2]), partes[1] - 1, partes[0]);
+    } else if (!isNaN(dataString)) {
+        data = new Date(parseInt(dataString));
+    } else {
+        data = new Date(dataString);
+    }
+    
+    if (isNaN(data.getTime())) {
+        return 'Data inválida após processamento';
+    }
+    
+    // Criar data ajustada sem horário
+    const dataAjustada = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+    
+    // Verificar hoje
+    const hoje = new Date();
+    const hojeAjustado = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    
+    // Informações para debug
+    return {
+        dataOriginal: dataString,
+        dataProcessada: data.toString(),
+        dataAjustada: dataAjustada.toString(),
+        hojeAjustado: hojeAjustado.toString(),
+        comparacaoHoje: dataAjustada.getTime() === hojeAjustado.getTime() ? 'Igual a hoje' : 'Diferente de hoje',
+        diasDeDiferenca: Math.floor((dataAjustada - hojeAjustado) / (1000 * 60 * 60 * 24))
+    };
+}
+
+// Função para normalizar a data antes de processar
+function normalizarData(dataString) {
+    if (!dataString) return null;
+    
+    // Se já for um objeto Date, retornar
+    if (dataString instanceof Date) return dataString;
+    
+    // Se for uma string no formato DD/MM/YYYY
+    if (typeof dataString === 'string' && dataString.includes('/')) {
+        const partes = dataString.split('/');
+        if (partes.length === 3) {
+            // Converter para formato YYYY-MM-DD
+            return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+        }
+    }
+    
+    return dataString;
+}
+
+// 2. Função exibirNotificacoes atualizada para usar 'Hoje' em vez de 'Aulas seguintes'
+function exibirNotificacoes(aulas) {
+    const notificacoesDiv = document.getElementById('listaNotificacoes');
+    notificacoesDiv.innerHTML = '';
+
+    if (!aulas || aulas.length === 0) {
+        notificacoesDiv.innerHTML = `
+            <div class="notificacao-vazia">
+                <i class="far fa-calendar-times"></i>
+                <p>Nenhuma aula programada</p>
+                <small>Não há aulas agendadas no momento</small>
+            </div>
+        `;
+        return;
+    }
+
+    // Agrupar aulas por data
+    const aulasPorData = agruparPorData(aulas);
+    
+    // Ordenar as datas (com Hoje e Ontem primeiro, depois em ordem cronológica)
+    const datasOrdenadas = Object.keys(aulasPorData).sort((a, b) => {
+        if (a === 'Hoje') return -1;
+        if (b === 'Hoje') return 1;
+        if (a === 'Ontem') return -1;
+        if (b === 'Ontem') return 1;
+        
+        // Para outras datas, converter para objetos Date e comparar
+        if (a.includes('/') && b.includes('/')) {
+            const [diaA, mesA, anoA] = a.split('/').map(Number);
+            const [diaB, mesB, anoB] = b.split('/').map(Number);
+            
+            const dataA = new Date(anoA, mesA - 1, diaA);
+            const dataB = new Date(anoB, mesB - 1, diaB);
+            
+            return dataA - dataB;
+        }
+        
+        return 0;
+    });
+    
+    // Criar elementos para cada grupo de data
+    datasOrdenadas.forEach(data => {
+        const grupo = document.createElement('div');
+        grupo.classList.add('grupo-data');
+        
+        // Criar o divisor de data com classe especial para Hoje e Ontem
+        const divisorClasse = data === 'Hoje' ? 'data-hoje' : 
+                            data === 'Ontem' ? 'data-ontem' : '';
+                            
+        const divisor = document.createElement('div');
+        divisor.classList.add('data-divisor');
+        if (divisorClasse) divisor.classList.add(divisorClasse);
+        divisor.innerHTML = `
+            <span>${data}</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        `;
+        
+        // Adicionar evento de clique para retrair/expandir
+        divisor.addEventListener('click', function() {
+            toggleNotificacoes(this);
+        });
+        
+        grupo.appendChild(divisor);
+        
+        // Container para as notificações em layout horizontal
+        const container = document.createElement('div');
+        container.classList.add('notificacoes-container');
+        
+        // Adicionar as notificações deste dia
+        aulasPorData[data].forEach(aula => {
+            const noti = document.createElement('div');
+            noti.classList.add('notificacao');
+            
+            // Adicionar classe para notificações de hoje (considerar como não lidas)
+            if (data === 'Hoje') {
+                noti.classList.add('notificacao-nao-lida');
+            }
+            
+            // Processar dias da semana
+            const diasArray = processarDiasSemana(aula.dias_semana || '');
+            const diasSemanaHtml = renderizarDiasSemana(diasArray);
+            
+            // Determinar o turno com base no horário
+            let turnoClass = 'indefinido';
+            let turnoText = 'Indefinido';
+            
+            if (aula.hora_inicio) {
+                const hora = parseInt(aula.hora_inicio.split(':')[0]);
+                if (hora >= 6 && hora < 12) {
+                    turnoClass = 'matutino';
+                    turnoText = 'Matutino';
+                } else if (hora >= 12 && hora < 18) {
+                    turnoClass = 'vespertino';
+                    turnoText = 'Vespertino';
+                } else {
+                    turnoClass = 'noturno';
+                    turnoText = 'Noturno';
+                }
+            }
+            
+            noti.innerHTML = `
+                <div class="notificacao-cabecalho">
+                    <h4>${escapeHtml(aula.materia)}</h4>
+                    ${aula.codigo ? `<small class="codigo-aula">${escapeHtml(aula.codigo)}</small>` : ''}
+                </div>
+                <div class="notificacao-corpo">
+                    <p><i class="far fa-clock"></i> ${escapeHtml(aula.hora_inicio || '--:--')} - ${escapeHtml(aula.hora_fim || '--:--')}</p>
+                    
+                    ${diasSemanaHtml}
+                    
+                    <div class="local-professor">
+                        <div class="local" title="Local da aula">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${escapeHtml(aula.localizacao || 'Local não informado')}</span>
+                        </div>
+                        
+                        ${aula.professor ? `
+                        <div class="professor" title="Professor">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span>${escapeHtml(aula.professor)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="notificacao-rodape">
+                    <span class="turno ${turnoClass}">${turnoText}</span>
+                </div>
+            `;
+            
+            container.appendChild(noti);
+        });
+        
+        grupo.appendChild(container);
+        notificacoesDiv.appendChild(grupo);
+    });
+}
+        
+        function agruparPorData(aulas) {
+            const grupos = {};
+            
+            aulas.forEach(aula => {
+                // Normalizar a data antes de formatar
+                const dataAula = normalizarData(aula.data);
+                const dataFormatada = formatarData(dataAula);
+                
+                if (!grupos[dataFormatada]) {
+                    grupos[dataFormatada] = [];
+                }
+                
+                grupos[dataFormatada].push(aula);
+            });
+            
+            return grupos;
+        }
+        
+        // Função para normalizar a data recebida da API antes de processá-la
+        function normalizarData(data) {
+            if (!data) return null;
+            
+            // Se já for um objeto Date, retornar
+            if (data instanceof Date) return data;
+            
+            // Se for uma string no formato DD/MM/YYYY
+            if (typeof data === 'string' && data.includes('/')) {
+                const partes = data.split('/');
+                if (partes.length === 3) {
+                    // Converter para formato YYYY-MM-DD
+                    return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                }
+            }
+            
+            return data;
+        }
+        
+        function processarDiasSemana(diasSemanaStr) {
+            if (!diasSemanaStr) return [];
+            
+            const diasArray = [];
+            
+            // Verificar se os dias vêm em formato de lista
+            if (diasSemanaStr.includes(',') || diasSemanaStr.includes(';') || diasSemanaStr.includes(' e ')) {
+                const separadores = /[,;]\s*|\s+e\s+|\s+/;
+                const dias = diasSemanaStr.split(separadores).filter(d => d.trim());
+                
+                dias.forEach(dia => {
+                    const diaFormatado = dia.trim();
+                    if (mapaDias[diaFormatado]) {
+                        diasArray.push(diaFormatado);
+                    }
                 });
-        }}
+            } else {
+                // Caso seja apenas um dia
+                const diaFormatado = diasSemanaStr.trim();
+                if (mapaDias[diaFormatado]) {
+                    diasArray.push(diaFormatado);
+                }
+            }
+            
+            return diasArray;
+        }
+        
+        function renderizarDiasSemana(diasArray) {
+            const diasHtml = todosDias.map(dia => {
+                const ativo = diasArray.some(d => d.startsWith(dia) || d.toLowerCase().includes(dia.toLowerCase()));
+                return `<div class="dia${ativo ? ' ativo' : ''}">${dia.charAt(0)}</div>`;
+            }).join('');
+            
+            return `<div class="dias-semana">${diasHtml}</div>`;
+        }
+        
+        // Função para ajustar o sistema de notificações com debug opcional
+async function carregarNotificacoes(modoDebug = false) {
+    const notificacoesDiv = document.getElementById('listaNotificacoes');
+    
+    try {
+        // Mostrar estado de carregamento
+        notificacoesDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-pulse"></i><p>Carregando notificações...</p></div>';
+
+        const response = await fetch('/api/notificacoes', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
+        });
+
+        // Verificação robusta do tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('O servidor retornou um formato inesperado');
+        }
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+            throw new Error(error.message || `Erro ${response.status}`);
+        }
+
+        const aulas = await response.json();
+        
+        // Modo de depuração - mostra informações sobre as datas recebidas
+        if (modoDebug) {
+            console.group('Depuração de datas');
+            aulas.forEach(aula => {
+                console.log(`Aula: ${aula.materia}`);
+                console.log(`Data original: ${aula.data}`);
+                console.log('Análise de data:', verificarData(aula.data));
+                console.log('------');
+            });
+            console.groupEnd();
+        }
+        
+        exibirNotificacoes(aulas);
+    } catch (error) {
+        console.error("Erro ao carregar notificações:", error);
+        mostrarErro('Erro ao carregar notificações', error.message);
+    }
+}
+
+// Atualização completa da função exibirNotificacoes
+function exibirNotificacoes(aulas) {
+    const notificacoesDiv = document.getElementById('listaNotificacoes');
+    notificacoesDiv.innerHTML = '';
+
+    if (!aulas || aulas.length === 0) {
+        notificacoesDiv.innerHTML = `
+            <div class="notificacao-vazia">
+                <i class="far fa-calendar-times"></i>
+                <p>Nenhuma aula programada</p>
+                <small>Não há aulas agendadas no momento</small>
+            </div>
+        `;
+        return;
+    }
+
+    // Agrupar aulas por data
+    const aulasPorData = agruparPorData(aulas);
+    
+    // Ordenar as datas (com Hoje e Ontem primeiro, depois em ordem cronológica)
+    const datasOrdenadas = Object.keys(aulasPorData).sort((a, b) => {
+        if (a === 'Hoje') return -1;
+        if (b === 'Hoje') return 1;
+        if (a === 'Amanhã') return a === 'Hoje' ? 1 : -1;
+        if (b === 'Amanhã') return b === 'Hoje' ? 1 : -1;
+        if (a === 'Ontem') return -1;
+        if (b === 'Ontem') return 1;
+        
+        // Para outras datas, converter para objetos Date e comparar
+        if (a.includes('/') && b.includes('/')) {
+            const [diaA, mesA, anoA] = a.split('/').map(Number);
+            const [diaB, mesB, anoB] = b.split('/').map(Number);
+            
+            const dataA = new Date(anoA, mesA - 1, diaA);
+            const dataB = new Date(anoB, mesB - 1, diaB);
+            
+            return dataA - dataB;
+        }
+        
+        return 0;
+    });
+    
+    // Criar elementos para cada grupo de data
+    datasOrdenadas.forEach(data => {
+        const grupo = document.createElement('div');
+        grupo.classList.add('grupo-data');
+        
+        // Criar o divisor de data com classe especial para Hoje e Ontem
+        const divisorClasse = data === 'Hoje' ? 'data-hoje' : 
+                            data === 'Ontem' ? 'data-ontem' : '';
+                            
+        const divisor = document.createElement('div');
+        divisor.classList.add('data-divisor');
+        if (divisorClasse) divisor.classList.add(divisorClasse);
+        divisor.innerHTML = `
+            <span>${data}</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        `;
+        
+        // Adicionar evento de clique para retrair/expandir
+        divisor.addEventListener('click', function() {
+            toggleNotificacoes(this);
+        });
+        
+        grupo.appendChild(divisor);
+        
+        // Container para as notificações em layout horizontal
+        const container = document.createElement('div');
+        container.classList.add('notificacoes-container');
+        
+        // Adicionar as notificações deste dia
+        aulasPorData[data].forEach(aula => {
+            const noti = document.createElement('div');
+            noti.classList.add('notificacao');
+            
+            // Adicionar classe para notificações de hoje (considerar como não lidas)
+            if (data === 'Hoje') {
+                noti.classList.add('notificacao-nao-lida');
+            }
+            
+            // Processar dias da semana
+            const diasArray = processarDiasSemana(aula.dias_semana || '');
+            const diasSemanaHtml = renderizarDiasSemana(diasArray);
+            
+            // Determinar o turno com base no horário
+            let turnoClass = 'indefinido';
+            let turnoText = 'Indefinido';
+            
+            if (aula.hora_inicio) {
+                const hora = parseInt(aula.hora_inicio.split(':')[0]);
+                if (hora >= 6 && hora < 12) {
+                    turnoClass = 'matutino';
+                    turnoText = 'Matutino';
+                } else if (hora >= 12 && hora < 18) {
+                    turnoClass = 'vespertino';
+                    turnoText = 'Vespertino';
+                } else {
+                    turnoClass = 'noturno';
+                    turnoText = 'Noturno';
+                }
+            }
+            
+            noti.innerHTML = `
+                <div class="notificacao-cabecalho">
+                    <h4>${escapeHtml(aula.materia)}</h4>
+                    ${aula.codigo ? `<small class="codigo-aula">${escapeHtml(aula.codigo)}</small>` : ''}
+                </div>
+                <div class="notificacao-corpo">
+                    <p><i class="far fa-clock"></i> ${escapeHtml(aula.hora_inicio || '--:--')} - ${escapeHtml(aula.hora_fim || '--:--')}</p>
+                    
+                    ${diasSemanaHtml}
+                    
+                    <div class="local-professor">
+                        <div class="local" title="Local da aula">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${escapeHtml(aula.localizacao || 'Local não informado')}</span>
+                        </div>
+                        
+                        ${aula.professor ? `
+                        <div class="professor" title="Professor">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span>${escapeHtml(aula.professor)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="notificacao-rodape">
+                    <span class="turno ${turnoClass}">${turnoText}</span>
+                </div>
+            `;
+            
+            container.appendChild(noti);
+        });
+        
+        grupo.appendChild(container);
+        notificacoesDiv.appendChild(grupo);
+    });
+}
+
+        // Função para mostrar erros de forma padronizada
+        function mostrarErro(titulo, mensagem) {
+            const notificacoesDiv = document.getElementById('listaNotificacoes');
+            notificacoesDiv.innerHTML = `
+                <div class="notificacoes-container">
+                    <div class="notificacao erro">
+                        <strong>${escapeHtml(titulo)}</strong>
+                        <p>${escapeHtml(mensagem)}</p>
+                        <button class="retry-button" onclick="carregarNotificacoes()">
+                            <i class="fas fa-sync-alt"></i> Tentar novamente
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função para escapar HTML (prevenção XSS)
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Função para alternar a visibilidade das notificações
+        function toggleNotificacoes(divisor) {
+            const grupo = divisor.closest('.grupo-data');
+            const container = grupo.querySelector('.notificacoes-container');
+            const icon = divisor.querySelector('.toggle-icon');
+            
+            divisor.classList.toggle('collapsed');
+            container.classList.toggle('collapsed');
+        }
+
+        // Função para exibir as notificações na página agrupadas por data
+        function exibirNotificacoes(aulas) {
+            const notificacoesDiv = document.getElementById('listaNotificacoes');
+            notificacoesDiv.innerHTML = '';
+
+            if (!aulas || aulas.length === 0) {
+                notificacoesDiv.innerHTML = `
+                    <div class="notificacao-vazia">
+                        <i class="far fa-calendar-times"></i>
+                        <p>Nenhuma aula programada</p>
+                        <small>Não há aulas agendadas no momento</small>
+                    </div>
+                `;
+                return;
+            }
+
+            // Agrupar aulas por data
+            const aulasPorData = agruparPorData(aulas);
+            
+            // Ordenar as datas (com Aulas seguintes e Ontem primeiro, depois em ordem cronológica)
+            const datasOrdenadas = Object.keys(aulasPorData).sort((a, b) => {
+                if (a === 'Aulas seguintes') return -1;
+                if (b === 'Aulas seguintes') return 1;
+                if (a === 'Ontem') return -1;
+                if (b === 'Ontem') return 1;
+                
+                // Para outras datas, converter para objetos Date e comparar
+                if (a.includes('/') && b.includes('/')) {
+                    const [diaA, mesA, anoA] = a.split('/').map(Number);
+                    const [diaB, mesB, anoB] = b.split('/').map(Number);
+                    
+                    const dataA = new Date(anoA, mesA - 1, diaA);
+                    const dataB = new Date(anoB, mesB - 1, diaB);
+                    
+                    return dataA - dataB;
+                }
+                
+                return 0;
+            });
+            
+            // Criar elementos para cada grupo de data
+            datasOrdenadas.forEach(data => {
+                const grupo = document.createElement('div');
+                grupo.classList.add('grupo-data');
+                
+                // Criar o divisor de data com classe especial para Aulas seguintes e Ontem
+                const divisorClasse = data === 'Aulas seguintes' ? 'data-hoje' : 
+                                    data === 'Ontem' ? 'data-ontem' : '';
+                                    
+                const divisor = document.createElement('div');
+                divisor.classList.add('data-divisor');
+                if (divisorClasse) divisor.classList.add(divisorClasse);
+                divisor.innerHTML = `
+                    <span>${data}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                `;
+                
+                // Adicionar evento de clique para retrair/expandir
+                divisor.addEventListener('click', function() {
+                    toggleNotificacoes(this);
+                });
+                
+                grupo.appendChild(divisor);
+                
+                // Container para as notificações em layout horizontal
+                const container = document.createElement('div');
+                container.classList.add('notificacoes-container');
+                
+                // Adicionar as notificações deste dia
+                aulasPorData[data].forEach(aula => {
+                    const noti = document.createElement('div');
+                    noti.classList.add('notificacao');
+                    
+                    // Adicionar classe para notificações de hoje (considerar como não lidas)
+                    if (data === 'Aulas seguintes') {
+                        noti.classList.add('notificacao-nao-lida');
+                    }
+                    
+                    // Processar dias da semana
+                    const diasArray = processarDiasSemana(aula.dias_semana || '');
+                    const diasSemanaHtml = renderizarDiasSemana(diasArray);
+                    
+                    // Determinar o turno com base no horário
+                    let turnoClass = 'indefinido';
+                    let turnoText = 'Indefinido';
+                    
+                    if (aula.hora_inicio) {
+                        const hora = parseInt(aula.hora_inicio.split(':')[0]);
+                        if (hora >= 6 && hora < 12) {
+                            turnoClass = 'matutino';
+                            turnoText = 'Matutino';
+                        } else if (hora >= 12 && hora < 18) {
+                            turnoClass = 'vespertino';
+                            turnoText = 'Vespertino';
+                        } else {
+                            turnoClass = 'noturno';
+                            turnoText = 'Noturno';
+                        }
+                    }
+                    
+                    noti.innerHTML = `
+                        <div class="notificacao-cabecalho">
+                            <h4>${escapeHtml(aula.materia)}</h4>
+                            ${aula.codigo ? `<small class="codigo-aula">${escapeHtml(aula.codigo)}</small>` : ''}
+                        </div>
+                        <div class="notificacao-corpo">
+                            <p><i class="far fa-clock"></i> ${escapeHtml(aula.hora_inicio || '--:--')} - ${escapeHtml(aula.hora_fim || '--:--')}</p>
+                            
+                            ${diasSemanaHtml}
+                            
+                            <div class="local-professor">
+                                <div class="local" title="Local da aula">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>${escapeHtml(aula.localizacao || 'Local não informado')}</span>
+                                </div>
+                                
+                                ${aula.professor ? `
+                                <div class="professor" title="Professor">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    <span>${escapeHtml(aula.professor)}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="notificacao-rodape">
+                            <span class="turno ${turnoClass}">${turnoText}</span>
+                        </div>
+                    `;
+                    
+                    container.appendChild(noti);
+                });
+                
+                grupo.appendChild(container);
+                notificacoesDiv.appendChild(grupo);
+            });
+        }
+
+        // Atualizar notificações a cada 5 minutos
+        setInterval(carregarNotificacoes, 5 * 60 * 1000);
+
+        // Carregar ao iniciar
+        document.addEventListener('DOMContentLoaded', carregarDadosUsuario);
+
+        function sair(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
+            if (confirm("Você tem certeza que deseja sair?")) {
+                fetch('https://sepa-api.onrender.com/', { method: 'POST' })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Erro ao fazer logout');
+                        }
+                        window.location.href = 'home.html';
+                    })
+                    .catch(error => {
+                        console.error('Erro ao sair:', error);
+                        alert('Erro ao fazer logout: ' + error.message);
+                    });
+            }
+        }
     </script>
 </body>
 </html>

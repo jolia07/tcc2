@@ -1,26 +1,299 @@
 #listaNotificacoes {
-    padding: 10px;
-    max-width: 800px;
+    padding: 20px;
+    max-width: 1200px;
     margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Estilização dos grupos de notificações por data */
+.grupo-data {
+    margin-bottom: 30px;
+}
+
+.data-divisor {
+    display: flex;
+    align-items: center;
+    margin: 25px 0 15px;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+}
+
+.data-divisor span {
+    background-color: #f8f8f8;
+    padding: 0 12px;
+    border-radius: 15px;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.data-divisor::before {
+    content: "";
+    flex-grow: 1;
+    height: 1px;
+    background-color: #e6e6e6;
+    margin-right: 15px;
+}
+
+.data-divisor::after {
+    content: "";
+    flex-grow: 1;
+    height: 1px;
+    background-color: #e6e6e6;
+    margin-left: 15px;
+}
+
+.data-hoje span {
+    background-color: #edf7ed;
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.data-ontem span {
+    background-color: #f5f5f5;
+    color: #424242;
+}
+
+/* Layout horizontal para as notificações */
+.notificacoes-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 15px;
 }
 
 .notificacao {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease-in-out;
+    flex: 1;
+    min-width: 280px;
+    max-width: calc(33.33% - 16px);
+}
+
+.notificacao:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 .notificacao p {
-    margin: 5px 0;
-    font-size: 14px;
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #555;
 }
 
 .notificacao strong {
-    color: #333;
-    font-size: 16px;
+    color: #222;
+    font-size: 17px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 12px;
 }
 
+.notificacao-hora {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.notificacao-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Variações de notificações */
+.notificacao-nao-lida {
+    border-left: 4px solid #4285f4;
+}
+
+/* Dias da semana */
+.dias-semana {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.dia {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.dia.ativo {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+/* Estilização dos turnos */
+.turno {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.turno.matutino {
+    background-color: #fff8e1;
+    color: #ff8f00;
+}
+
+.turno.vespertino {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.turno.noturno {
+    background-color: #e8eaf6;
+    color: #3949ab;
+}
+
+.turno.indefinido {
+    background-color: #f5f5f5;
+    color: #757575;
+}
+
+/* Estado de carregamento e erro */
+.loading {
+    text-align: center;
+    padding: 30px 0;
+    color: #666;
+    width: 100%;
+}
+
+.loading i {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #4285f4;
+}
+
+.erro {
+    background-color: #fff1f0;
+    border-left: 4px solid #e53935;
+    width: 100%;
+}
+
+.erro p {
+    color: #c62828;
+}
+
+.erro .retry-button {
+    background-color: #f0f0f0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.erro .retry-button:hover {
+    background-color: #e0e0e0;
+}
+
+.notificacao-vazia {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    background-color: #f9f9f9;
+    border: 1px dashed #ddd;
+    border-radius: 12px;
+    margin: 30px 0;
+    width: 100%;
+}
+
+.notificacao-vazia i {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Ícones nas notificações */
+.notificacao i {
+    width: 18px;
+    text-align: center;
+    margin-right: 8px;
+    color: #666;
+}
+
+/* Localizador e professor */
+.local-professor {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.local, .professor {
+    display: flex;
+    align-items: center;
+}
+
+.local i, .professor i {
+    margin-right: 5px;
+    color: #666;
+}
+
+/* Adiciona responsividade */
+@media (max-width: 992px) {
+    .notificacao {
+        max-width: calc(50% - 16px);
+    }
+}
+
+@media (max-width: 768px) {
+    #listaNotificacoes {
+        padding: 15px;
+    }
+    
+    .notificacao {
+        max-width: 100%;
+        padding: 14px;
+    }
+    
+    .data-divisor {
+        margin: 20px 0 12px;
+        font-size: 13px;
+    }
+    
+    .notificacao strong {
+        font-size: 16px;
+    }
+    
+    .notificacao p {
+        font-size: 14px;
+    }
+    
+    .notificacoes-container {
+        flex-direction: column;
+    }
+}
+
+/* Animação sutil ao carregar novas notificações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notificacao-nova {
+    animation: fadeIn 0.4s ease-out;
+}
 
