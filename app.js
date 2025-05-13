@@ -62,8 +62,13 @@ const transporter = nodemailer.createTransport({
 });
 
 
+app.get('/calendario2', verificarAutenticacao, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'calendario2.html'));
+});
+
+
 // Rota protegida - Página inicial
-app.get('/calendario', (req, res) => {
+app.get('/calendario', verificarAutenticacao, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'calendario.html'));
 });
 
@@ -74,7 +79,7 @@ app.get('/perfil', verificarAutenticacao, (req, res) => {
 });
 
 
-app.get('/notificacoes-page', (req, res) => {
+app.get('/notificacoes-page', verificarAutenticacao, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'notificacoes.html'));
 });
 
