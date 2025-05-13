@@ -383,11 +383,12 @@ app.post('/solicitar-redefinicao', async (req, res) => {
   try {
     console.log('Solicitação de redefinição recebida para:', email);
    
-    const {user} = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    if (!user.length) {
+    const { rows } = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+    if (!rows.length) {
       console.log('E-mail não encontrado:', email);
       return res.status(200).json({ message: 'Se existir uma conta com este email, um link foi enviado.' });
     }
+    const usuario = rows[0];
 
     // Geração do token e link
     const token = crypto.randomBytes(32).toString('hex');
@@ -395,7 +396,7 @@ app.post('/solicitar-redefinicao', async (req, res) => {
     const resetLink = `https://sepa-api.onrender.com/redefinir-senha.html?token=${token}`;    
     await pool.query(
       'INSERT INTO reset_tokens (user_id, token, expires) VALUES ($1, $2, $3)',
-      [user[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL
+      [rows[0].id, token, expires.toISOString().slice(0, 19).replace('T', ' ')] // Formato MySQL
     );
 
     console.log('Token inserido:', token); // Log para depuração
@@ -437,30 +438,34 @@ app.post('/redefinir-senha', async (req, res) => {
   const { token, newPassword } = req.body;
 
   try {
-    const {tokenData} = await pool.query(
+    const { rows } = await pool.query(
       `SELECT * FROM reset_tokens
-      WHERE token = $1
-      AND used = FALSE
-      AND expires > (NOW() AT TIME ZONE 'UTC')`, // Usar UTC para evitar problemas de fuso
+       WHERE token = $1
+       AND used = FALSE
+       AND expires > (NOW() AT TIME ZONE 'UTC')`,
       [token]
     );
 
-    if (!tokenData || tokenData.length === 0) {
+    if (rows.length === 0) {
       return res.status(400).json({ message: 'Link inválido ou expirado' });
     }
 
+    const tokenData = rows[0];
+
     const senhaCriptografada = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE usuarios SET senha = $1 WHERE id = $2',
-        [senhaCriptografada, tokenData[0].user_id]);
+        [senhaCriptografada, tokenData.user_id]);
 
     await pool.query('UPDATE reset_tokens SET used = TRUE WHERE token = $1', [token]);
-     
+
     res.json({ message: 'Senha redefinida com sucesso! Você pode fazer login agora.' });
-  }catch (err) {
-    console.error('Erro detalhado:', err.message); // Log detalhado
+
+  } catch (err) {
+    console.error('Erro detalhado:', err.message);
     res.status(500).send('Erro no servidor');
   }
 });
+
 
 
 //Verificando informações
@@ -550,8 +555,7 @@ app.get('/eventos', async (req, res) => {
       for (let semana = 0; semana < 12; semana++) {
         diasNumeros.forEach(diaNumero => {
           const dataEvento = new Date(inicioBase);
-          let diasAdicionais = (diaNumero - dataEvento.getDay() + 7) % 7;
-          diasAdicionais += semana * 7;
+          let diasAdicionais = (semana === 0) ? 0 : (diaNumero - dataEvento.getDay() + 7) % 7 + (semana * 7);
           dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
 
           let horaInicio = 8, horaFim = 12;

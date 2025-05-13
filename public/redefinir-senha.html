@@ -27,45 +27,50 @@
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = decodeURIComponent(urlParams.get('token')); // Decodifica caracteres especiais
-        console.log('Token recebido:', token); // Adicione este log
+       const urlParams = new URLSearchParams(window.location.search);
+const token = decodeURIComponent(urlParams.get('token'));
+console.log('📦 Token recebido da URL:', token);
 
+document.getElementById('resetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        document.getElementById('resetForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
 
-            if(newPassword !== confirmPassword) {
-                showMessage('As senhas não coincidem!', 'error');
-                return;
-            }
+    if (newPassword !== confirmPassword) {
+        showMessage('As senhas não coincidem!', 'error');
+        return;
+    }
 
-            try {
-                const response = await fetch('/redefinir-senha', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token, newPassword })
-                });
+    try {
+        const payload = { token, newPassword };
+        console.log('🚀 Enviando nova senha com payload:', payload);
 
-                const data = await response.json();
-                
-                if(response.ok) {
-                    showMessage(data.message, 'success');
-                    setTimeout(() => {
-                        window.location.href = '/home.html';
-                    }, 2000);
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Erro na conexão. Tente novamente.', 'error');
-            }
+        const baseUrl = window.location.origin.includes('localhost') 
+    ? 'http://localhost:5505' 
+    : 'https://sepa-api.onrender.com';
+
+const response = await fetch(`${baseUrl}/redefinir-senha`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
+
+        const data = await response.json();
+        console.log('📥 Resposta recebida do servidor:', data);
+
+        if (response.ok) {
+            showMessage(data.message, 'success');
+            setTimeout(() => window.location.href = '/home.html', 2000);
+        } else {
+            showMessage(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('🔥 Erro na requisição:', error);
+        showMessage('Erro na conexão. Tente novamente.', 'error');
+    }
+});
+
 
         function showMessage(text, type) {
             const messageDiv = document.getElementById('message');
