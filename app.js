@@ -586,7 +586,7 @@ app.get('/eventos', async (req, res) => {
   }
 });
 
-// Rota para pegar todas as aulas (apenas admin)
+// Rota para pegar todas as aulas 
 app.get('/todasAulas', async (req, res) => {
   try {
     if (!req.session?.user) {
@@ -636,9 +636,9 @@ app.get('/aulasHoje', async (req, res) => {
   const hojeFormatado = hoje.toISOString().split('T')[0];
 
   try {
-    // 1. Busca o usuário
+    // 1. Buscar informações do usuário
     const userQuery = await pool.query(
-      'SELECT id, nome, email FROM usuarios WHERE id = $1', 
+      'SELECT id, nome, email, tipo FROM usuarios WHERE id = $1',
       [req.session.user.id]
     );
     
@@ -648,33 +648,29 @@ app.get('/aulasHoje', async (req, res) => {
     
     const usuario = userQuery.rows[0];
 
-    // 2. Primeira tentativa: busca com filtro de docente
-    let aulasResult = await pool.query(`
-      SELECT id, nome, docente, turno, data_atividade,
-             hora_inicio, hora_fim, localizacao
-      FROM importado
-      WHERE (docente = $1 OR docente ILIKE $2 OR docente ILIKE $3)
-        AND data_atividade = $4
-      ORDER BY hora_inicio`, 
-      [
-        usuario.nome, 
-        `%${usuario.nome}%`,
-        `%${usuario.email.split('@')[0]}%`,
-        hojeFormatado
-      ]);
-
-    // 3. Segunda tentativa: se não encontrou, busca todas as aulas do dia
-    if (aulasResult.rows.length === 0) {
+    // 2. Lógica diferente para docentes e outros usuários
+    let aulasResult;
+    if (usuario.tipo === 'Docente') {
+      // Para docentes: buscar apenas aulas onde o nome do docente coincide
+      aulasResult = await pool.query(`
+        SELECT id, nome, docente, turno, data_atividade,
+               hora_inicio, hora_fim, localizacao
+        FROM importado
+        WHERE docente = $1 AND data_atividade = $2
+        ORDER BY hora_inicio`,
+        [usuario.nome, hojeFormatado]);
+    } else {
+      // Para outros usuários: buscar todas as aulas do dia
       aulasResult = await pool.query(`
         SELECT id, nome, docente, turno, data_atividade,
                hora_inicio, hora_fim, localizacao
         FROM importado 
         WHERE data_atividade = $1
-        ORDER BY hora_inicio`, 
+        ORDER BY hora_inicio`,
         [hojeFormatado]);
     }
 
-    // 4. Formata os dados para o front-end
+    // 3. Formatar os resultados
     const aulasFormatadas = aulasResult.rows.map(aula => ({
       ...aula,
       hora_inicio: aula.hora_inicio?.substring(0, 5) || '',
@@ -693,49 +689,51 @@ app.get('/aulasHoje', async (req, res) => {
 
 // Nova rota para listar planilhas
 app.get('/listar-planilhas-importadas', async (req, res) => {
-  if (!req.session.user || req.session.user.tipo !== 'Administrador') {
+  if (!req.session.user) {
       return res.status(403).json({ success: false, message: 'Acesso negado' });
   }
 
+
   try {
       const result = await pool.query('SELECT DISTINCT nome_planilha FROM importado');
-      res.json({ 
-          success: true, 
+      res.json({
+          success: true,
           planilhas: result.rows
       });
   } catch (error) {
       console.error('Erro ao listar planilhas:', error);
-      res.status(500).json({ 
-          success: false, 
+      res.status(500).json({
+          success: false,
           message: 'Erro ao listar planilhas',
           error: error.message
       });
   }
 });
 
+
 //Rota de ADM para limpar as informações do banco(planilhas)
 app.delete('/limpar-dados-importados', async (req, res) => {
-  if (!req.session.user || req.session.user.tipo !== 'Administrador') {
+  if (!req.session.user) {
       return res.status(403).json({ success: false, message: 'Acesso negado' });
   }
 
   try {
       // Cria backup (opcional)
       const backup = await pool.query('SELECT * FROM importado');
-      
+     
       // Deleta os dados
       const result = await pool.query('DELETE FROM importado RETURNING *');
-      
-      res.json({ 
-          success: true, 
+     
+      res.json({
+          success: true,
           message: `Dados removidos (${result.rowCount} registros)`,
           backup_count: backup.rowCount,
           deleted: result.rows
       });
   } catch (error) {
       console.error('Erro ao limpar dados:', error);
-      res.status(500).json({ 
-          success: false, 
+      res.status(500).json({
+          success: false,
           message: 'Erro ao limpar dados',
           error: error.message
       });
@@ -785,6 +783,20 @@ app.post('/upload-laboratorios', async (req, res) => {
 
   try {
     const nomePlanilha = req.body.nomePlanilha || 'planilha_sem_nome';
+
+     // Verifica se a planilha já foi importada antes
+    const planilhaExistente = await pool.query(
+      'SELECT 1 FROM importado WHERE nome_planilha = $1 LIMIT 1',
+      [nomePlanilha]
+    );
+
+    if (planilhaExistente.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Esta planilha (${nomePlanilha}) já foi importada anteriormente.`
+      });
+    }
+
     const workbook = xlsx.read(req.files.planilha.data, { type: 'buffer' });
     const primeiraAba = workbook.SheetNames[0];
     const dados = xlsx.utils.sheet_to_json(workbook.Sheets[primeiraAba]);
@@ -927,14 +939,24 @@ function determinarTurno(hora) {
   return 'NOITE';
 }
 
-// No seu servidor Node.js (backend)
 app.get('/importado', async (req, res) => {
   try {
-      const result = await pool.query('SELECT * FROM importado ORDER BY data_atividade DESC');
-      res.json(result.rows);
+      let query = 'SELECT * FROM importado';
+      let params = [];
+     
+      // Se foi passado o parâmetro docente, filtra os resultados
+      if (req.query.docente) {
+          query += ' WHERE docente = $1';
+          params = [req.query.docente];
+      }
+     
+      query += ' ORDER BY data_atividade, hora_inicio';
+     
+      const { rows } = await pool.query(query, params);
+      res.json(rows);
   } catch (error) {
       console.error('Erro ao buscar dados importados:', error);
-      res.status(500).json({ error: 'Erro ao buscar dados' });
+      res.status(500).json({ error: 'Erro ao buscar dados importados' });
   }
 });
 
@@ -1616,13 +1638,19 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
 // Rota para a API de notificações (JSON)
 app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
+  if (!req.session.user) {
+    return res.status(403).json({ success: false, message: 'Acesso negado' });
+  }
+
+
   try {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const hojeFormatado = hoje.toISOString().split('T')[0];
-    
-    const { rows } = await pool.query(`
-      SELECT 
+   
+    // Consulta base
+    let query = `
+      SELECT
         id,
         nome AS materia,
         turno,
@@ -1632,11 +1660,23 @@ app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
         localizacao,
         docente AS professor,
         dias_semana
-      FROM importado 
-      WHERE data_atividade >= $1
-      ORDER BY data_atividade ASC, hora_inicio ASC
-      LIMIT 20`,
-      [hojeFormatado]);
+      FROM importado
+      WHERE data_atividade >= $1`;
+   
+    // Parâmetros da query
+    let params = [hojeFormatado];
+   
+    // Se for docente, adiciona filtro por nome
+    if (req.session.user.tipo === 'Docente') {
+      query += ' AND docente = $2';
+      params.push(req.session.user.nome);
+    }
+   
+    // Ordenação e limite
+    query += ' ORDER BY data_atividade ASC, hora_inicio ASC LIMIT 20';
+   
+    const { rows } = await pool.query(query, params);
+
 
     const notificacoes = rows.map(aula => ({
       ...aula,
@@ -1649,12 +1689,13 @@ app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
     res.json(notificacoes);
   } catch (error) {
     console.error('Erro na API de notificações:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro ao buscar notificações',
-      details: error.message 
+      details: error.message
     });
   }
 });
+
 
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {

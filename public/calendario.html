@@ -13,14 +13,11 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 </head>
 <body>
-
-
     <header class="top-bar">
         <div class="header-left">
             <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
         </div>
     </header>
-
 
     <div class="main-layout">
         <div class="sidebar" id="sidebar">
@@ -39,8 +36,6 @@
                 </div>
             </nav>
         </div>
-
-
     <div class="main-container">
     <div id="profile-container">
         <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
@@ -94,15 +89,15 @@
       <button id="btnExportarDocenteImportado" class="btn-exportar" onclick="exportarPlanilhaDocenteImportado()">Exportar planilha do docente</button>
     </div>
   </div>
-  
+ 
   <table class="tabela-dados">
     <thead>
       <tr>
         <th>Docente</th>
         <th>Nome</th>
         <th>Dias da Semana</th>
-        <th>Hora Início</th>
-        <th>Hora Fim</th>
+        <th>Início</th>
+        <th>Fim</th>
         <th>Data</th>
         <th>Turno</th>
         <th>Localização</th>
@@ -116,6 +111,7 @@
 </div>
 </div>
 
+
  <!-- Pop-up de Notificação de Aulas -->
  <div id="popupAula" class="popup">
     <div class="popup-content">
@@ -126,11 +122,21 @@
 </div>
 
     <script>
+            let usuarioLogado = {
+                nome: '',
+                tipo: ''
+            };
+
+            // Modifique a função carregarDadosUsuario
             async function carregarDadosUsuario() {
                 try {
                     const response = await fetch('/getUserData');
                     const data = await response.json();
-                
+               
+                    // Armazena os dados do usuário logado
+                    usuarioLogado.nome = data.nome;
+                    usuarioLogado.tipo = data.tipo;
+                   
                     // Atualizar as informações do perfil
                     document.getElementById('userName').innerText = data.nome;
                     document.getElementById('userRole').innerText = data.tipo;
@@ -140,43 +146,53 @@
                         document.getElementById('profilePic').src = '/img/default.png';
                     }
                     if (data.tipo === 'Administrador') {
-                document.getElementById('btnLimparDadosImportados').style.display = 'inline-block';
-                document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
-            }
-                    } catch (error) {
+                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
+                        document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+                    }
+                } catch (error) {
                     console.error('Erro ao carregar dados do usuário:', error);
                     alert('Erro ao carregar perfil.');
                 }
             }
-            
+
 
             document.getElementById('btnExportarDocenteImportado').addEventListener('click', exportarPlanilhaDocenteImportado);
 
+
             function exportarPlanilhaDocenteImportado() {
-                const docenteImportadoNome = document.getElementById('filtroDocenteImportado').value;
-
-                if (!docenteImportadoNome) {
-                    alert('Por favor, selecione um docente para exportar');
-                    return;
+                 let docenteNome;
+    
+                if (usuarioLogado.tipo === 'Docente') {
+                    // Para docentes, usa o próprio nome
+                    docenteNome = usuarioLogado.nome;
+                } else {
+                    // Para outros usuários, pega do filtro
+                    docenteNome = document.getElementById('filtroDocenteImportado').value;
+                    
+                    if (!docenteNome) {
+                        alert('Por favor, selecione um docente para exportar');
+                        return;
+                    }
                 }
-
-                const nomeCodificado = encodeURIComponent(docenteImportadoNome);
+                
+                const nomeCodificado = encodeURIComponent(docenteNome);
                 const url = `/exportar-excel-importado?docente_nome=${nomeCodificado}`;
                 
                 window.open(url, '_blank');
-            }
+                        }
+
+
 
             // Função para verificar e exibir aulas do dia
-            async function verificarAulasHoje() {
+           async function verificarAulasHoje() {
                 console.log('Iniciando verificação de aulas...');
                 
                 try {
+                    // 1. Buscar dados do usuário
                     const userResponse = await fetch('/getUserData', {
                         method: 'GET',
                         credentials: 'include'
                     });
-                    
-                    console.log('Status da resposta do usuário:', userResponse.status);
                     
                     if (!userResponse.ok) {
                         console.log("Usuário não autenticado");
@@ -186,12 +202,11 @@
                     const userData = await userResponse.json();
                     console.log("Dados do usuário recebidos:", userData);
 
+                    // 2. Buscar aulas (o backend já filtra conforme o tipo de usuário)
                     const aulasResponse = await fetch('/aulasHoje', {
                         method: 'GET',
                         credentials: 'include'
                     });
-                    
-                    console.log('Status da resposta das aulas:', aulasResponse.status);
                     
                     if (!aulasResponse.ok) {
                         console.error("Erro ao buscar aulas:", aulasResponse.statusText);
@@ -201,7 +216,7 @@
                     const aulas = await aulasResponse.json();
                     console.log("Aulas recebidas:", aulas);
                     
-                    exibirPopupAula(aulas); // Passa as aulas como parâmetro
+                    exibirPopupAula(aulas);
                 } catch (error) {
                     console.error("Erro ao verificar aulas:", error);
                 }
@@ -212,7 +227,7 @@
                 return hora.substring(0, 5);
             }
 
-            function exibirPopupAula(aulas) { // Recebe aulas como parâmetro
+            function exibirPopupAula(aulas) {
                 const popup = document.getElementById('popupAula');
                 const aulaInfo = document.getElementById('aula-info');
 
@@ -235,24 +250,27 @@
                     aulaInfo.innerHTML = '<p>Nenhuma aula agendada para hoje</p>';
                 }
                 
-                popup.style.display = 'flex'; // Mostra o popup
+                popup.style.display = 'flex';
             }
 
             // Chamada automática quando a página carrega
             document.addEventListener('DOMContentLoaded', verificarAulasHoje);
 
+
             function fecharPopup() {
                 document.getElementById('popupAula').style.display = 'none';
             }
+
 
             function exportarParaExcel() {
                 window.location.href = 'https://sepa-api.onrender.com/exportar-excel';
             }
 
+
             function sair(event) {
                 // Previne o comportamento padrão do link
                 event.preventDefault();
-                
+               
                 if (confirm("Você tem certeza que deseja sair?")) {
                     fetch('/logout', {
                         method: 'POST',
@@ -276,32 +294,41 @@
                 }
             }
 
+
             document.getElementById('uploadForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const fileInput = document.getElementById('planilhaUpload');
                 const fileName = fileInput.files[0]?.name || 'planilha_sem_nome';
-                
+               
                 const formData = new FormData(this);
-                formData.append('nomePlanilha', fileName); // Adiciona o nome do arquivo ao FormData
-                
+                formData.append('nomePlanilha', fileName);
+               
                 const resultadoDiv = document.getElementById('resultado');
                 resultadoDiv.innerHTML = '<p>Processando planilha...</p>';
-                
+               
                 try {
                     const res = await fetch('/upload-laboratorios', {
                         method: 'POST',
                         body: formData
                     });
+
+                    if (res.status === 400) {
+                        const data = await res.json();
+                        throw new Error(data.message);
+                    }
                     
+                    if (!res.ok) {
+                        throw new Error('Erro ao processar planilha');
+                    }
+                   
                     const data = await res.json();
-                    
+                   
                     if (!data.success) {
                         throw new Error(data.message || 'Erro ao processar planilha');
                     }
-                    
+                   
                     resultadoDiv.innerHTML = '<h2>Resultados do Processamento</h2>';
-                    
-                    // Exibe resultados por docente
+                   
                     for (const [docente, info] of Object.entries(data.resultados)) {
                         const docenteDiv = document.createElement('div');
                         docenteDiv.innerHTML = `
@@ -317,52 +344,69 @@
                         `;
                         resultadoDiv.appendChild(docenteDiv);
                     }
-                    
-                    // RECARREGA OS DADOS IMPORTADOS APÓS O UPLOAD
+                   
+                    // Atualiza os dados e o seletor de planilhas
                     await carregarDadosImportados();
-                    
-                    // Mostra mensagem de sucesso
+                    await atualizarSeletorPlanilhas(); // Adicionado esta linha
+                   
                     const successMsg = document.createElement('div');
                     successMsg.innerHTML = '<p class="sucesso-mensagem">Dados importados com sucesso e tabela atualizada!</p>';
                     resultadoDiv.appendChild(successMsg);
-                    
-                    // Remove a mensagem após 5 segundos
+                   
                     setTimeout(() => {
                         successMsg.remove();
                     }, 5000);
-                    
+                   
                 } catch (error) {
                     resultadoDiv.innerHTML = `
-                        <p style="color: red;">Erro: ${error.message}</p>
-                        <p>Verifique o console para mais detalhes.</p>
-                    `;
+                    <div class="alert alert-danger">
+                        <strong>Erro:</strong> ${error.message}
+                    </div>
+                    ${error.message.includes('já foi importado') ? 
+                    '<p>Por favor, verifique se você está tentando enviar o mesmo arquivo novamente.</p>' : ''}
+                `;
                     console.error('Erro:', error);
                 }
             });
 
-            let dadosImportados = []; 
+
+            let dadosImportados = [];
+
 
             async function carregarDadosImportados() {
                 const tabelaCorpo = document.getElementById('tabelaImportadosCorpo');
                 const tabelaContainer = document.getElementById('tabelaImportadosContainer');
-                
+            
                 try {
-                    // Mostra mensagem de carregamento
                     tabelaCorpo.innerHTML = '<tr><td colspan="9" class="loading-message">Carregando dados...</td></tr>';
-                    
+                
                     const response = await fetch('/importado');
                     if (!response.ok) throw new Error("Erro ao carregar dados importados");
+                
+                    let dados = await response.json();
+                
+                    // Filtra os dados se o usuário for do tipo 'Docente'
+                    if (usuarioLogado.tipo === 'Docente') {
+                        dados = dados.filter(item =>
+                            item.docente && item.docente.trim() === usuarioLogado.nome.trim()
+                        );
                     
-                    dadosImportados = await response.json();
-                    
+                        // Esconde os filtros e botões que não são relevantes para docentes
+             
+                        document.getElementById('btnExportarDocenteImportado').style.display = 'block';
+                    }
+                
+                    dadosImportados = dados;
+                
                     if (dadosImportados.length === 0) {
                         tabelaCorpo.innerHTML = '<tr><td colspan="9" class="empty-message">Nenhum dado importado encontrado</td></tr>';
                     } else {
-                        await carregarDocentesImportados();
+                        if (usuarioLogado.tipo !== 'Docente') {
+                            await carregarDocentesImportados();
+                            preencherFiltrosImportados(dadosImportados);
+                        }
                         atualizarTabelaImportados(dadosImportados);
-                        preencherFiltrosImportados(dadosImportados);
-                        
-                        // Adiciona uma animação para destacar a atualização
+                    
                         tabelaContainer.style.animation = 'highlight 2s';
                         setTimeout(() => {
                             tabelaContainer.style.animation = '';
@@ -374,17 +418,18 @@
                 }
             }
 
+
             async function carregarDocentesImportados() {
                 try {
                     const response = await fetch('/docentesImportado');
                     if (!response.ok) throw new Error("Erro ao carregar docentes");
-                    
+                   
                     const docentes = await response.json();
                     const selectDocente = document.getElementById("filtroDocenteImportado");
-                    
+                   
                     // Limpa e prepara o select
                     selectDocente.innerHTML = '<option value="">Todos os docentes</option>';
-                    
+                   
                     // Preenche com os docentes
                     const docentesUnicos = [...new Set(docentes.map(d => d.nome))].filter(Boolean);
                     docentesUnicos.forEach(nomeDocente => {
@@ -393,7 +438,7 @@
                     option.textContent = nomeDocente;
                     selectDocente.appendChild(option);
                     });
-                    
+                   
                     // Configura o Select2
                     $('#filtroDocenteImportado').select2({
                     placeholder: "Selecione o docente...",
@@ -401,22 +446,24 @@
                     width: '100%'
                     });
 
+
                     selectDocente.addEventListener('change', filtrarDadosImportados);
-                    
+                   
                 } catch (error) {
                     console.error("Erro ao carregar docentes:", error);
                     alert('Não foi possível carregar a lista de docentes');
                 }
             }
 
+
             async function carregarPlanilhasImportadas() {
                 try {
                     const response = await fetch('/listar-planilhas-importadas');
                     const data = await response.json();
-                    
+                   
                     const seletor = document.getElementById('seletorPlanilhas');
                     seletor.innerHTML = '<option value=""> </option>';
-                    
+                   
                     if (data.success && data.planilhas.length > 0) {
                         data.planilhas.forEach(planilha => {
                             const option = document.createElement('option');
@@ -424,7 +471,7 @@
                             option.textContent = planilha.nome_planilha;
                             seletor.appendChild(option);
                         });
-                        
+                       
                         document.getElementById('btnLimparDadosImportados').style.display = 'flex';
                     } else {
                         document.getElementById('btnLimparDadosImportados').style.display = 'flex';
@@ -434,25 +481,27 @@
                 }
             }
 
+
             async function confirmarLimpezaDados() {
                 const seletor = document.getElementById('seletorPlanilhas');
                 const nomePlanilha = seletor.value;
-                
-                const mensagem = nomePlanilha 
+               
+                const mensagem = nomePlanilha
                     ? `Tem certeza que deseja apagar os dados da planilha "${nomePlanilha}"? Esta ação não pode ser desfeita.`
                     : "Tem certeza que deseja apagar TODOS os dados importados? Esta ação não pode ser desfeita.";
-                
+               
                 if (confirm(mensagem)) {
                     await limparDadosImportados(nomePlanilha);
                 }
             }
 
+
             async function limparDadosImportados(nomePlanilha) {
                 try {
-                    const url = nomePlanilha 
+                    const url = nomePlanilha
                         ? `/limpar-dados-importados?planilha=${encodeURIComponent(nomePlanilha)}`
                         : '/limpar-dados-importados';
-                        
+                       
                     const response = await fetch(url, {
                         method: 'DELETE',
                         credentials: 'include',
@@ -461,18 +510,19 @@
                         }
                     });
 
+
                     const data = await response.json();
+
 
                     if (data.success) {
                         alert(data.message);
-                        // Atualiza a tabela
                         dadosImportados = nomePlanilha
                             ? dadosImportados.filter(item => item.nome_planilha !== nomePlanilha)
                             : [];
                         atualizarTabelaImportados(dadosImportados);
-                        
-                        // Recarrega as planilhas disponíveis
-                        await carregarPlanilhasImportadas();
+                       
+                        // Atualiza o seletor após limpar os dados
+                        await atualizarSeletorPlanilhas();
                     } else {
                         throw new Error(data.message || 'Erro ao limpar dados');
                     }
@@ -482,37 +532,70 @@
                 }
             }
 
+
             document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+
 
             function atualizarTabelaImportados(dados) {
                 const tbody = document.getElementById("tabelaImportadosCorpo");
                 tbody.innerHTML = '';
 
+
                 dados.forEach(item => {
                     const tr = document.createElement('tr');
-                    
-                    const campos = ['docente', 'descricao', 'dias_semana', 
+                   
+                     const campos = ['docente', 'descricao', 'dias_semana', 
                                 'hora_inicio', 'hora_fim', 'data_atividade', 'turno', 'localizacao'];
-                    
+                   
                     campos.forEach(campo => {
                     const td = document.createElement('td');
                     td.textContent = formatarCampoImportado(item[campo], campo);
                     tr.appendChild(td);
                     });
-                    
+                   
                     tbody.appendChild(tr);
                 });
             }
 
+
+            async function atualizarSeletorPlanilhas() {
+                try {
+                    const response = await fetch('/listar-planilhas-importadas');
+                    const data = await response.json();
+                   
+                    const seletor = document.getElementById('seletorPlanilhas');
+                    seletor.innerHTML = '<option value=""> </option>';
+                   
+                    if (data.success && data.planilhas.length > 0) {
+                        data.planilhas.forEach(planilha => {
+                            const option = document.createElement('option');
+                            option.value = planilha.nome_planilha;
+                            option.textContent = planilha.nome_planilha;
+                            seletor.appendChild(option);
+                        });
+                       
+                        // Atualiza o Select2 para refletir as mudanças
+                        $(seletor).trigger('change.select2');
+                       
+                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
+                    } else {
+                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar planilhas:', error);
+                }
+            }
+
+
             function formatarCampoImportado(valor, campo) {
                 if (!valor) return 'N/A';
-                
+               
                 switch(campo) {
                     case 'data_atividade':
                     return new Date(valor).toLocaleDateString('pt-BR');
                     case 'hora_inicio':
                     case 'hora_fim':
-                    return valor.slice(0, 5); 
+                    return valor.slice(0, 5);
                     case 'dias_semana':
                     return formatarDiasSemana(valor);
                     default:
@@ -520,22 +603,31 @@
                 }
             }
 
+
             function formatarDiasSemana(dias) {
                 const diasMap = {
                     'SEG': 'Segunda', 'TER': 'Terça', 'QUA': 'Quarta',
                     'QUI': 'Quinta', 'SEX': 'Sexta', 'SAB': 'Sábado', 'DOM': 'Domingo'
                 };
-                
+               
                 return dias.split(',').map(dia => {
                     return diasMap[dia.trim().toUpperCase()] || dia.trim();
                 }).join(', ');
             }
 
+
             function preencherFiltrosImportados(dados) {
+                // Não exibe filtros para docentes
+                if (usuarioLogado.tipo === 'Docente') {
+                    document.querySelector('.filtros-importados').style.display = 'none';
+                    return;
+                }
+
+
                 // Filtro por turno
                 const turnos = [...new Set(dados.map(item => item.turno))].filter(Boolean);
                 const turnoSelect = document.getElementById("filtroTurnoImportado");
-                
+            
                 turnoSelect.innerHTML = '<option value="">Todos os turnos</option>';
                 turnos.forEach(turno => {
                     const option = document.createElement("option");
@@ -543,28 +635,40 @@
                     option.textContent = turno;
                     turnoSelect.appendChild(option);
                 });
-                
-                $(turnoSelect).select2({ 
-                    placeholder: "Selecione o turno...", 
-                    allowClear: true 
+            
+                $(turnoSelect).select2({
+                    placeholder: "Selecione o turno...",
+                    allowClear: true
                 }).on('change', filtrarDadosImportados);
             }
 
+
             function filtrarDadosImportados() {
-                const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
                 const turnoSelecionado = document.getElementById("filtroTurnoImportado").value;
                 
-                const dadosFiltrados = dadosImportados.filter(item => {
-                    // Filtro por docente (comparação exata)
-                    const matchDocente = docenteSelecionado ? 
-                    item.docente && item.docente.trim() === docenteSelecionado.trim() : true;
-                    
-                    // Filtro por turno (comparação case insensitive)
-                    const matchTurno = turnoSelecionado ? 
-                    item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase() : true;
-                    
-                    return matchDocente && matchTurno;
-                });
+                let dadosFiltrados = [...dadosImportados];
+                
+                // Se for docente, filtra apenas as aulas dele
+                if (usuarioLogado.tipo === 'Docente') {
+                    dadosFiltrados = dadosFiltrados.filter(item =>
+                        item.docente && item.docente.trim() === usuarioLogado.nome.trim()
+                    );
+                } else {
+                    // Para não-docentes, aplica o filtro de docente se existir
+                    const docenteSelecionado = document.getElementById("filtroDocenteImportado").value;
+                    if (docenteSelecionado) {
+                        dadosFiltrados = dadosFiltrados.filter(item =>
+                            item.docente && item.docente.trim() === docenteSelecionado.trim()
+                        );
+                    }
+                }
+                
+                // Aplica filtro de turno para todos os usuários
+                if (turnoSelecionado) {
+                    dadosFiltrados = dadosFiltrados.filter(item =>
+                        item.turno && item.turno.toLowerCase() === turnoSelecionado.toLowerCase()
+                    );
+                }
                 
                 atualizarTabelaImportados(dadosFiltrados);
             }
@@ -574,50 +678,61 @@
                 atualizarTabelaImportados(dadosImportados);
             }
 
+
             let exibindoAulas = true; // Começa mostrando a tabela aula
 
+
             document.addEventListener("DOMContentLoaded", function() {
-                carregarDadosUsuario();
-                carregarDadosImportados(); // Carrega os dados imediatamente
-                carregarPlanilhasImportadas();
-                
-                // Configurar os eventos dos botões de filtro
-                document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
-                document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
-                
-                // Inicializar Select2
-                $('.select-filtro-importado').select2({
-                    placeholder: "Selecione...",
-                    allowClear: true,
-                    width: '100%'
+                carregarDadosUsuario().then(() => {
+                    carregarDadosImportados();
+                   
+                    // Configurar os eventos dos botões de filtro apenas para não-docentes
+                    if (usuarioLogado.tipo !== 'Docente') {
+                        document.getElementById('btnFiltrarImportados').addEventListener('click', filtrarDadosImportados);
+                        document.getElementById('btnLimparFiltrosImportados').addEventListener('click', limparFiltrosImportados);
+                       
+                        // Inicializar Select2
+                        $('.select-filtro-importado').select2({
+                            placeholder: "Selecione...",
+                            allowClear: true,
+                            width: '100%'
+                        });
+                    }
+
+
+                    carregarPlanilhasImportadas();
+                    atualizarSeletorPlanilhas();
                 });
             });
 
+
             // Configuração do botão de limpar resultados
-        document.addEventListener("DOMContentLoaded", function() {
-            // Busca o botão de limpar resultados
-            const btnLimparResultados = document.getElementById('btnLimparResultados');
+            document.addEventListener("DOMContentLoaded", function() {
+                // Busca o botão de limpar resultados
+                const btnLimparResultados = document.getElementById('btnLimparResultados');
             
-            // Adiciona o evento de clique ao botão
-            if (btnLimparResultados) {
-                btnLimparResultados.addEventListener('click', function() {
-                    // Limpa a div de resultados
-                    const resultadoDiv = document.getElementById('resultado');
-                    if (resultadoDiv) {
-                        resultadoDiv.innerHTML = '';
-                        
-                        // Opcional: Exibir uma mensagem temporária de confirmação
-                        resultadoDiv.innerHTML = '<p class="sucesso-mensagem">Resultados limpos com sucesso!</p>';
-                        
-                        // Remove a mensagem após 3 segundos
-                        setTimeout(function() {
+                // Adiciona o evento de clique ao botão
+                if (btnLimparResultados) {
+                    btnLimparResultados.addEventListener('click', function() {
+                        // Limpa a div de resultados
+                        const resultadoDiv = document.getElementById('resultado');
+                        if (resultadoDiv) {
                             resultadoDiv.innerHTML = '';
-                        }, 3000);
-                    }
-                });
-            }
-        });
+                        
+                            // Opcional: Exibir uma mensagem temporária de confirmação
+                            resultadoDiv.innerHTML = '<p class="sucesso-mensagem">Resultados limpos com sucesso!</p>';
+                        
+                            // Remove a mensagem após 3 segundos
+                            setTimeout(function() {
+                                resultadoDiv.innerHTML = '';
+                            }, 3000);
+                        }
+                    });
+                }
+            });
     </script>
+
 
 </body>
 </html>
+
