@@ -503,14 +503,14 @@ app.get('/getUserData', verificarAutenticacao, async (req, res) => {
 app.get('/eventos', async (req, res) => {
   try {
     const userType = req.session.user?.tipo;
-    const userId = req.session.user?.id;
+    const userName = req.session.user?.nome;
 
     let query = `
       SELECT
         id,
         descricao AS materia,
         nome as turma,
-        docente AS usuario_id,
+        docente,
         dias_semana AS diasSemana,
         data_atividade AS dataInicio,
         turno,
@@ -523,7 +523,7 @@ app.get('/eventos', async (req, res) => {
     let params = [];
     if (userType === 'Docente') {
       query += " WHERE docente = $1";
-      params.push(userId);
+      params.push(userName);
     }
 
     query += " ORDER BY data_atividade, hora_inicio";
@@ -573,7 +573,8 @@ app.get('/eventos', async (req, res) => {
             end_date: fim,
             tipo: "AULA",
             color: "#37516d",
-            textColor: "#fff"
+            textColor: "#fff",
+            docente: aula.docente // Adicionamos a propriedade docente
           });
         });
       }

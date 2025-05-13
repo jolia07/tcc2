@@ -262,66 +262,75 @@
         
         // Função para carregar eventos
         async function carregarEventos() {
-            try {
-                // 1) Busca eventos "normais"
-                const respEv = await fetch('/eventos', { credentials: 'include' });
-                if (!respEv.ok) throw new Error('Erro ao buscar eventos');
-                const eventos = await respEv.json();
+    try {
+        // 1) Busca eventos "normais"
+        const respEv = await fetch('/eventos', { credentials: 'include' });
+        if (!respEv.ok) throw new Error('Erro ao buscar eventos');
+        const eventos = await respEv.json();
 
-                // 2) Busca registros importados
-                const respImp = await fetch('/importado', { credentials: 'include' });
-                if (!respImp.ok) throw new Error('Erro ao buscar dados importados');
-                const importados = await respImp.json();
+        // 2) Busca registros importados
+        const respImp = await fetch('/importado', { credentials: 'include' });
+        if (!respImp.ok) throw new Error('Erro ao buscar dados importados');
+        const importados = await respImp.json();
 
-                // 3) Formata eventos "normais"
-                const evFormatados = eventos.map(ev => ({
-                    id: ev.id,
-                    text: ev.text,
-                    start_date: new Date(ev.start_date),
-                    end_date: new Date(ev.end_date),
-                    color: ev.color || "#3174ad",
-                    textColor: ev.textColor || "#FFFFFF",
-                    tipo: ev.tipo || "AULA"
-                }));
+        // 3) Formata eventos "normais"
+        const evFormatados = eventos.map(ev => ({
+            id: ev.id,
+            text: ev.text,
+            start_date: new Date(ev.start_date),
+            end_date: new Date(ev.end_date),
+            color: ev.color || "#3174ad",
+            textColor: ev.textColor || "#FFFFFF",
+            tipo: ev.tipo || "AULA"
+        }));
 
-                // 4) Formata registros importados
-                const impFormatados = importados.map(item => {
-                    const dateStr = item.data_atividade;
-                    const [hIni, mIni] = item.hora_inicio.split(':');
-                    const [hFim, mFim] = item.hora_fim.split(':');
-                    const start = new Date(dateStr);
-                    start.setHours(+hIni, +mIni, 0, 0);
-                    const end = new Date(dateStr);
-                    end.setHours(+hFim, +mFim, 0, 0);
-                    return {
-                        id: `imp-${item.id}`,
-                        text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
-                        start_date: start,
-                        end_date: end,
-                        tipo: item.turno || "IMPORTADO",
-                        color: "#228B22",
-                        textColor: "#FFFFFF"
-                    };
-                });
+        // 4) Formata registros importados
+        let impFormatados = importados.map(item => {
+            const dateStr = item.data_atividade;
+            const [hIni, mIni] = item.hora_inicio.split(':');
+            const [hFim, mFim] = item.hora_fim.split(':');
+            const start = new Date(dateStr);
+            start.setHours(+hIni, +mIni, 0, 0);
+            const end = new Date(dateStr);
+            end.setHours(+hFim, +mFim, 0, 0);
+            return {
+                id: `imp-${item.id}`,
+                text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
+                start_date: start,
+                end_date: end,
+                tipo: item.turno || "IMPORTADO",
+                color: "#228B22",
+                textColor: "#FFFFFF",
+                docente: item.docente // Adicionamos a propriedade docente para facilitar o filtro
+            };
+        });
 
-                // 5) Junta e filtra por ID único
-                const tudo = [...evFormatados, ...impFormatados];
-                const vistos = new Set();
-                todosEventos = tudo.filter(ev => {
-                    if (vistos.has(ev.id)) return false;
-                    vistos.add(ev.id);
-                    return true;
-                });
-
-                // 6) Aplica os filtros ativos
-                aplicarFiltros();
-
-            } catch (error) {
-                console.error('Erro ao carregar eventos:', error);
-                alert('Erro ao carregar eventos. Faça login novamente.');
-                window.location.href = '/';
-            }
+        // 5) Filtra os eventos importados se o usuário for do tipo 'Docente'
+        const userData = await (await fetch('/getUserData')).json();
+        if (userData.tipo === 'Docente') {
+            impFormatados = impFormatados.filter(evento => 
+                evento.docente && evento.docente.trim() === userData.nome.trim()
+            );
         }
+
+        // 6) Junta e filtra por ID único
+        const tudo = [...evFormatados, ...impFormatados];
+        const vistos = new Set();
+        todosEventos = tudo.filter(ev => {
+            if (vistos.has(ev.id)) return false;
+            vistos.add(ev.id);
+            return true;
+        });
+
+        // 7) Aplica os filtros ativos
+        aplicarFiltros();
+
+    } catch (error) {
+        console.error('Erro ao carregar eventos:', error);
+        alert('Erro ao carregar eventos. Faça login novamente.');
+        window.location.href = '/';
+    }
+}
         
         // Função de logout
         function sair() {
