@@ -173,8 +173,9 @@ function exibirNotificacoes(aulas) {
 setInterval(carregarNotificacoes, 5 * 60 * 1000);
 
 // Carregar ao iniciar
-document.addEventListener('DOMContentLoaded', carregarNotificacoes);
-
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosUsuario();
+});
         function sair() {
         if (confirm("Você tem certeza que deseja sair?")) {
             fetch('https://sepa-api.onrender.com/', { method: 'POST' })
