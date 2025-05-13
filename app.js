@@ -717,16 +717,27 @@ app.delete('/limpar-dados-importados', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Acesso negado' });
   }
 
+  const { planilha } = req.query;
+
   try {
-      // Cria backup (opcional)
-      const backup = await pool.query('SELECT * FROM importado');
+      // Cria backup (opcional) com filtro por planilha se especificado
+      const backupQuery = planilha 
+          ? 'SELECT * FROM importado WHERE nome_planilha = $1'
+          : 'SELECT * FROM importado';
+      const backupParams = planilha ? [planilha] : [];
+      const backup = await pool.query(backupQuery, backupParams);
      
-      // Deleta os dados
-      const result = await pool.query('DELETE FROM importado RETURNING *');
+      // Deleta os dados com filtro por planilha se especificado
+      const deleteQuery = planilha 
+          ? 'DELETE FROM importado WHERE nome_planilha = $1 RETURNING *'
+          : 'DELETE FROM importado RETURNING *';
+      const result = await pool.query(deleteQuery, backupParams);
      
       res.json({
           success: true,
-          message: `Dados removidos (${result.rowCount} registros)`,
+          message: planilha 
+              ? `Dados da planilha "${planilha}" removidos (${result.rowCount} registros)`
+              : `Todos os dados removidos (${result.rowCount} registros)`,
           backup_count: backup.rowCount,
           deleted: result.rows
       });

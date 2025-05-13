@@ -28,6 +28,10 @@
         overflow-x: hidden;
     }
 
+     .hidden-for-docente {
+        display: none !important;
+    }
+
     /* Top bar styling */
     .top-bar { 
         display: flex; 

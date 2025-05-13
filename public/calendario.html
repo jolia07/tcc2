@@ -132,11 +132,11 @@
                 try {
                     const response = await fetch('/getUserData');
                     const data = await response.json();
-               
+            
                     // Armazena os dados do usuário logado
                     usuarioLogado.nome = data.nome;
                     usuarioLogado.tipo = data.tipo;
-                   
+                
                     // Atualizar as informações do perfil
                     document.getElementById('userName').innerText = data.nome;
                     document.getElementById('userRole').innerText = data.tipo;
@@ -145,16 +145,29 @@
                     } else {
                         document.getElementById('profilePic').src = '/img/default.png';
                     }
-                    if (data.tipo === 'Administrador') {
-                        document.getElementById('btnLimparDadosImportados').style.display = 'flex';
-                        document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+
+                    if (data.tipo === 'Docente') {
+                        document.getElementById('filtroDocenteImportado').classList.add('hidden-for-docente');
+                        document.getElementById('filtroTurnoImportado').classList.add('hidden-for-docente');
+                        document.getElementById('btnFiltrarImportados').classList.add('hidden-for-docente');
+                        document.getElementById('btnLimparFiltrosImportados').classList.add('hidden-for-docente');
+                        document.getElementById('btnExportarDocenteImportado').style.display = 'block';
+                    } else {
+                        // Mostra todos os elementos para não-docentes
+                        document.getElementById('filtroDocenteImportado').classList.remove('hidden-for-docente');
+                        document.getElementById('filtroTurnoImportado').classList.remove('hidden-for-docente');
+                        document.getElementById('btnFiltrarImportados').classList.remove('hidden-for-docente');
+                        document.getElementById('btnLimparFiltrosImportados').classList.remove('hidden-for-docente');
+                        if (data.tipo === 'Administrador') {
+                            document.getElementById('btnLimparDadosImportados').style.display = 'flex';
+                            document.getElementById('btnLimparDadosImportados').addEventListener('click', confirmarLimpezaDados);
+                        }
                     }
                 } catch (error) {
                     console.error('Erro ao carregar dados do usuário:', error);
                     alert('Erro ao carregar perfil.');
                 }
             }
-
 
             document.getElementById('btnExportarDocenteImportado').addEventListener('click', exportarPlanilhaDocenteImportado);
 
@@ -163,12 +176,9 @@
                  let docenteNome;
     
                 if (usuarioLogado.tipo === 'Docente') {
-                    // Para docentes, usa o próprio nome
                     docenteNome = usuarioLogado.nome;
                 } else {
-                    // Para outros usuários, pega do filtro
                     docenteNome = document.getElementById('filtroDocenteImportado').value;
-                    
                     if (!docenteNome) {
                         alert('Por favor, selecione um docente para exportar');
                         return;
@@ -179,7 +189,7 @@
                 const url = `/exportar-excel-importado?docente_nome=${nomeCodificado}`;
                 
                 window.open(url, '_blank');
-                        }
+            }
 
 
 
@@ -485,12 +495,17 @@
             async function confirmarLimpezaDados() {
                 const seletor = document.getElementById('seletorPlanilhas');
                 const nomePlanilha = seletor.value;
-               
-                const mensagem = nomePlanilha
-                    ? `Tem certeza que deseja apagar os dados da planilha "${nomePlanilha}"? Esta ação não pode ser desfeita.`
-                    : "Tem certeza que deseja apagar TODOS os dados importados? Esta ação não pode ser desfeita.";
-               
-                if (confirm(mensagem)) {
+                
+                // Se nenhuma planilha estiver selecionada, confirma se quer apagar tudo
+                if (!nomePlanilha) {
+                    if (confirm("Tem certeza que deseja apagar TODOS os dados importados? Esta ação não pode ser desfeita.")) {
+                        await limparDadosImportados(null);
+                    }
+                    return;
+                }
+                
+                // Se uma planilha específica estiver selecionada
+                if (confirm(`Tem certeza que deseja apagar APENAS os dados da planilha "${nomePlanilha}"? Esta ação não pode ser desfeita.`)) {
                     await limparDadosImportados(nomePlanilha);
                 }
             }
@@ -501,7 +516,7 @@
                     const url = nomePlanilha
                         ? `/limpar-dados-importados?planilha=${encodeURIComponent(nomePlanilha)}`
                         : '/limpar-dados-importados';
-                       
+                    
                     const response = await fetch(url, {
                         method: 'DELETE',
                         credentials: 'include',
@@ -510,19 +525,26 @@
                         }
                     });
 
-
                     const data = await response.json();
-
 
                     if (data.success) {
                         alert(data.message);
-                        dadosImportados = nomePlanilha
-                            ? dadosImportados.filter(item => item.nome_planilha !== nomePlanilha)
-                            : [];
+                        // Atualiza a tabela removendo apenas os itens da planilha apagada
+                        if (nomePlanilha) {
+                            dadosImportados = dadosImportados.filter(item => item.nome_planilha !== nomePlanilha);
+                        } else {
+                            dadosImportados = [];
+                        }
                         atualizarTabelaImportados(dadosImportados);
-                       
-                        // Atualiza o seletor após limpar os dados
+                        
+                        // Atualiza o seletor de planilhas
                         await atualizarSeletorPlanilhas();
+                        
+                        // Se apagou uma planilha específica, limpa a seleção
+                        if (nomePlanilha) {
+                            document.getElementById('seletorPlanilhas').value = '';
+                            $('.select2').val('').trigger('change');
+                        }
                     } else {
                         throw new Error(data.message || 'Erro ao limpar dados');
                     }
