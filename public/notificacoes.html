@@ -550,24 +550,31 @@ function exibirNotificacoes(aulas) {
     });
 }
         
-        function agruparPorData(aulas) {
-            const grupos = {};
-            
-            aulas.forEach(aula => {
-                // Normalizar a data antes de formatar
-                const dataAula = normalizarData(aula.data);
-                const dataFormatada = formatarData(dataAula);
-                
-                if (!grupos[dataFormatada]) {
-                    grupos[dataFormatada] = [];
-                }
-                
-                grupos[dataFormatada].push(aula);
-            });
-            
-            return grupos;
-        }
+function agruparPorData(aulas) {
+    const grupos = {};
+    const aulasVistas = new Set();
+    
+    aulas.forEach(aula => {
+        // Criar chave única considerando todos os campos relevantes
+        const chaveUnica = `${aula.materia}-${aula.data}-${aula.hora_inicio}-${aula.hora_fim}-${aula.localizacao}-${aula.professor || ''}`;
         
+        if (!aulasVistas.has(chaveUnica)) {
+            aulasVistas.add(chaveUnica);
+            
+            const dataAula = normalizarData(aula.data);
+            const dataFormatada = formatarData(dataAula);
+            
+            if (!grupos[dataFormatada]) {
+                grupos[dataFormatada] = [];
+            }
+            
+            grupos[dataFormatada].push(aula);
+        }
+    });
+    
+    return grupos;
+}
+
         // Função para normalizar a data recebida da API antes de processá-la
         function normalizarData(data) {
             if (!data) return null;
@@ -624,53 +631,43 @@ function exibirNotificacoes(aulas) {
         }
         
         // Função para ajustar o sistema de notificações com debug opcional
-async function carregarNotificacoes(modoDebug = false) {
+// Função para carregar notificações com tratamento de duplicatas
+async function carregarNotificacoes() {
     const notificacoesDiv = document.getElementById('listaNotificacoes');
     
     try {
-        // Mostrar estado de carregamento
         notificacoesDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-pulse"></i><p>Carregando notificações...</p></div>';
 
-        const response = await fetch('/api/notificacoes', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include'
-        });
-
-        // Verificação robusta do tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('O servidor retornou um formato inesperado');
-        }
-
+        const response = await fetch('/api/notificacoes');
+        
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-            throw new Error(error.message || `Erro ${response.status}`);
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
         }
 
         const aulas = await response.json();
         
-        // Modo de depuração - mostra informações sobre as datas recebidas
-        if (modoDebug) {
-            console.group('Depuração de datas');
-            aulas.forEach(aula => {
-                console.log(`Aula: ${aula.materia}`);
-                console.log(`Data original: ${aula.data}`);
-                console.log('Análise de data:', verificarData(aula.data));
-                console.log('------');
-            });
-            console.groupEnd();
-        }
+        // Verificação adicional de duplicatas no frontend
+        const aulasUnicas = removerDuplicatas(aulas);
         
-        exibirNotificacoes(aulas);
+        exibirNotificacoes(aulasUnicas);
     } catch (error) {
         console.error("Erro ao carregar notificações:", error);
         mostrarErro('Erro ao carregar notificações', error.message);
     }
 }
+
+function removerDuplicatas(aulas) {
+    const visto = new Set();
+    return aulas.filter(aula => {
+        const chave = `${aula.materia}-${aula.data}-${aula.hora_inicio}-${aula.hora_fim}-${aula.localizacao}`;
+        if (visto.has(chave)) {
+            return false;
+        }
+        visto.add(chave);
+        return true;
+    });
+}
+
 
 // Atualização completa da função exibirNotificacoes
 function exibirNotificacoes(aulas) {
@@ -688,8 +685,20 @@ function exibirNotificacoes(aulas) {
         return;
     }
 
-    // Agrupar aulas por data
-    const aulasPorData = agruparPorData(aulas);
+    // Filtro para remover duplicatas
+    const aulasUnicas = [];
+    const aulasVistas = new Set();
+
+    aulas.forEach(aula => {
+        const chaveUnica = `${aula.materia}-${aula.data}-${aula.hora_inicio}-${aula.hora_fim}-${aula.localizacao}`;
+        if (!aulasVistas.has(chaveUnica)) {
+            aulasVistas.add(chaveUnica);
+            aulasUnicas.push(aula);
+        }
+    });
+
+    // Restante do código usando aulasUnicas em vez de aulas
+    const aulasPorData = agruparPorData(aulasUnicas);
     
     // Ordenar as datas (com Hoje e Ontem primeiro, depois em ordem cronológica)
     const datasOrdenadas = Object.keys(aulasPorData).sort((a, b) => {

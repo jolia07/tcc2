@@ -663,7 +663,7 @@ app.get('/aulasHoje', async (req, res) => {
     if (usuario.tipo === 'Docente') {
       // Para docentes: buscar apenas aulas onde o nome do docente coincide
       aulasResult = await pool.query(`
-        SELECT id, nome, docente, turno, data_atividade,
+        SELECT id, descricao, docente, turno, data_atividade,
                hora_inicio, hora_fim, localizacao
         FROM importado
         WHERE docente = $1 AND data_atividade = $2
@@ -672,7 +672,7 @@ app.get('/aulasHoje', async (req, res) => {
     } else {
       // Para outros usuários: buscar todas as aulas do dia
       aulasResult = await pool.query(`
-        SELECT id, nome, docente, turno, data_atividade,
+        SELECT id, descricao, docente, turno, data_atividade,
                hora_inicio, hora_fim, localizacao
         FROM importado 
         WHERE data_atividade = $1
@@ -1037,12 +1037,12 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.getCell('B5').value = docentePerfil.length > 0 ? docentePerfil[0].telefone2 : ""; // Telefone 2 
 
 
-    // Configuração dos horários
-    const horariosDia = [
-      "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
-      "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "",
-      "18:40 - 21:40", ""
-    ];
+    // Configuração dos horários (atualizada)
+      const horariosDia = [
+        "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
+        "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "16:20 - 18:20", "",
+        "18:40 - 21:40", ""
+      ];
    
     const linhaHorario = [12, 27, 42, 57, 72, 87, 102, 117, 132, 147, 162, 177];
 
@@ -1079,6 +1079,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.mergeCells('AF1:AF5');
     aba.mergeCells('G1:G5');
     aba.mergeCells('S2:S5')
+    aba.mergeCells('T1:AE1');
 
     // Mesclagem de células dos meses (igual ao original)
     aba.mergeCells('A9:AF9');
@@ -1098,6 +1099,10 @@ app.get('/exportar-excel-importado', async (req, res) => {
     // Cabeçalhos e títulos (igual ao original)
     aba.getCell('B1').value = "Dados do Docente";
     aba.getCell('A8').value = "Cronograma do período letivo";
+    aba.getCell('T1').value = "Matérias e Carga Horária";
+
+    aba.getCell('T1').font = { size: 26, bold: true };
+    aba.getCell('T1').alignment = { horizontal: 'center', vertical: 'middle' };
 
     // Nomes dos meses (igual ao original)
     const meses = [
@@ -1140,15 +1145,6 @@ app.get('/exportar-excel-importado', async (req, res) => {
             bold: true
           }
       }
-    });
-
-    // Cabeçalho dos meses (JAN, FEV, etc.) (igual ao original)
-    const mesesAbreviados = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-    mesesAbreviados.forEach((mes, indice) => {
-      const celula = aba.getCell(1, indice + 20);
-      celula.value = mes;
-      celula.alignment = { horizontal: 'center', vertical: "middle" };
-      celula.font = { size: 26, bold: true}
     });
 
     // Estilo do cabeçalho (igual ao original)
@@ -1286,7 +1282,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
 
     // Estilo das células de cabeçalho (igual ao original)
-    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", 'AF1', 'G1', 'S2'].forEach(endereco => {
+    ["A8", "A1", "A2", "A3", "A4", "A5", "A6", 'AF1', 'G1', 'S2', 'T1'].forEach(endereco => {
       const celula = aba.getCell(endereco);
       celula.fill = {
         type: 'pattern',
@@ -1433,32 +1429,33 @@ app.get('/exportar-excel-importado', async (req, res) => {
       11: 177  // Dezembro
     };
 
-    // Mapeamento de turnos para linhas de horário (ajustado para os valores da tabela)
+    // Mapeamento de turnos para linhas de horário (atualizado)
     const turnoHorarios = {
       "MANHÃ": {
         linhas: [0, 1, 2, 3], // 07:30-08:30, 08:30-09:30, 09:30-10:30, 10:30-11:30
         horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30"]
       },
       "TARDE": {
-        linhas: [5, 6, 7, 8], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00
-        horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"]
+        linhas: [5, 6, 7, 8, 9], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00, 16:20-18:20
+        horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "16:20 - 18:20"]
       },
       "NOITE": {
-        linhas: [10], // 18:40-21:40
+        linhas: [11], // 18:40-21:40 (índice ajustado para 11 devido ao novo horário)
         horarios: ["18:40 - 21:40"]
       }
-    };
+    };    
    
     function formatarDuracao(horaInicio, horaFim) {
       return `${horaInicio.substring(0, 5)} - ${horaFim.substring(0, 5)}`;
     }
+
     // Processar cada aula importada (ajustado para os dados da tabela)
-    aulasImportadas.forEach(aula => {
+    // Processar cada aula importada (versão corrigida)
+      aulasImportadas.forEach(aula => {
       try {
-        // Padroniza os nomes dos campos usando os dados diretamente do banco
         const aulaPadronizada = {
           id: aula.id,
-          materia: aula.nome,  // Usando o campo 'nome' da tabela
+          materia: aula.nome,
           professor: aula.docente,
           descricao: aula.descricao,
           diasSemana: aula.dias_semana,
@@ -1470,21 +1467,21 @@ app.get('/exportar-excel-importado', async (req, res) => {
           curso: aula.curso,
           turma: aula.turma
         };
-   
+
         // Validação dos dados obrigatórios
         if (!aulaPadronizada.diasSemana || !aulaPadronizada.data_atividade ||
             !aulaPadronizada.turno || !aulaPadronizada.hora_inicio || !aulaPadronizada.hora_fim) {
-          console.error('Aula importada com dados incompletos:', aulaPadronizada);
+          console.error('Aula com dados incompletos:', aulaPadronizada);
           return;
         }
-   
+
         const dataAula = new Date(aulaPadronizada.data_atividade);
         if (isNaN(dataAula.getTime())) {
           console.error(`Data inválida: ${aulaPadronizada.data_atividade}`);
           return;
         }
-   
-        // Converter dias da semana para abreviações padrão
+
+        // Converter dias da semana
         const diasAula = aulaPadronizada.diasSemana.split(',')
           .map(dia => {
             const diaLimpo = dia.trim().toLowerCase();
@@ -1500,28 +1497,26 @@ app.get('/exportar-excel-importado', async (req, res) => {
             }
           })
           .filter(dia => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].includes(dia));
-   
+
         if (diasAula.length === 0) {
           console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
           return;
         }
-   
-        const materiaColor = getColorForMateria(aulaPadronizada.descricao );
+
         const mes = dataAula.getMonth();
         const diaMes = dataAula.getDate();
         const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAula.getDay()];
-   
-        // Verificar se o dia da semana está nos dias da aula
+
         if (!diasAula.includes(diaSemana)) {
           return;
         }
-   
+
         const linhaMes = mesesLinhas[mes];
         if (!linhaMes) {
           return;
         }
-   
-        // Encontrar coluna do dia no Excel
+
+        // Encontrar coluna do dia
         let colunaDia = 0;
         for (let col = 2; col <= 32; col++) {
           const celulaDia = aba.getCell(linhaMes - 1, col);
@@ -1530,75 +1525,69 @@ app.get('/exportar-excel-importado', async (req, res) => {
             break;
           }
         }
-   
+
         if (!colunaDia) {
           return;
         }
-   
-        // Determinar linha do horário baseado no turno e hora
+
         const turnoInfo = turnoHorarios[aulaPadronizada.turno];
         if (!turnoInfo) {
           console.error(`Turno inválido: ${aulaPadronizada.turno}`);
           return;
         }
-   
-        // Processar horário de início e fim
-        const horaInicio = aulaPadronizada.hora_inicio.substring(0, 5); // Formato HH:MM
+
+        const horaInicio = aulaPadronizada.hora_inicio.substring(0, 5);
         const horaFim = aulaPadronizada.hora_fim.substring(0, 5);
-       
-        // Calcular duração em horas
+        
         const inicio = parseInt(horaInicio.split(':')[0]) + parseInt(horaInicio.split(':')[1])/60;
         const fim = parseInt(horaFim.split(':')[0]) + parseInt(horaFim.split(':')[1])/60;
         const duracaoHoras = fim - inicio;
-   
-        // Encontrar o slot de horário mais adequado
+
         let melhorSlot = 0;
         let menorDiferenca = Infinity;
-       
+        
         for (let i = 0; i < turnoInfo.horarios.length; i++) {
           const horaSlot = turnoInfo.horarios[i];
           const horaSlotNum = parseInt(horaSlot.split(':')[0]) + parseInt(horaSlot.split(':')[1])/60;
           const diferenca = Math.abs(horaSlotNum - inicio);
-         
+          
           if (diferenca < menorDiferenca) {
             menorDiferenca = diferenca;
             melhorSlot = i;
           }
         }
-   
-        // Calcular quantos slots serão necessários
-        const slotsNecessarios = Math.ceil(duracaoHoras); // Arredonda para cima
-       
-        // Preencher os slots necessários
+
+        const slotsNecessarios = Math.ceil(duracaoHoras);
+        const materiaColor = getColorForMateria(aulaPadronizada.descricao);
+        
         for (let i = 0; i < slotsNecessarios && (melhorSlot + i) < turnoInfo.linhas.length; i++) {
           const linha = linhaMes + turnoInfo.linhas[melhorSlot + i];
           const celula = aba.getCell(linha, colunaDia);
-   
+
           if (celula.value) {
             console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
             continue;
           }
-   
-          // Preencher célula com informações da aula
+
           celula.value = {
             richText: [
               { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
-              { text: `${aulaPadronizada.laboratorio}`  }
+              { text: `${aulaPadronizada.laboratorio}` }
             ]
           };
-   
+
           celula.alignment = {
             wrapText: true,
             vertical: 'middle',
             horizontal: 'center'
           };
-   
+
           celula.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: materiaColor }
           };
-   
+
           celula.border = {
             top: { style: 'thin', color: { argb: 'FF000000' } },
             left: { style: 'thin', color: { argb: 'FF000000' } },
@@ -1609,13 +1598,109 @@ app.get('/exportar-excel-importado', async (req, res) => {
           celula.font = {
             size: 13,
             bold: true
-          }
+          };
         }
-   
+
       } catch (error) {
-        console.error(`Erro ao processar aula importada ${aula?.id}:`, error);
+        console.error(`Erro ao processar aula ${aula?.id}:`, error);
       }
     });
+
+    try {
+      // Agrupar aulas por matéria e calcular carga horária total
+      const materiasComCargaHoraria = aulasImportadas.reduce((acc, aula) => {
+          const key = aula.descricao;
+          if (!acc[key]) {
+              acc[key] = {
+                  descricao: aula.descricao,
+                  cargaHoraria: 0
+              };
+          }
+          
+          // Calcular duração em horas
+          const horaInicio = aula.hora_inicio.substring(0, 5);
+          const horaFim = aula.hora_fim.substring(0, 5);
+          const inicio = parseInt(horaInicio.split(':')[0]) + parseInt(horaInicio.split(':')[1])/60;
+          const fim = parseInt(horaFim.split(':')[0]) + parseInt(horaFim.split(':')[1])/60;
+          const duracaoHoras = fim - inicio;
+          
+          acc[key].cargaHoraria += duracaoHoras;
+          
+          return acc;
+      }, {});
+      
+      // Converter para array e ordenar por descrição
+      const materiasArray = Object.values(materiasComCargaHoraria)
+          .sort((a, b) => a.descricao.localeCompare(b.descricao));
+      
+      let linhaAtual = 2;
+      let colunaAtual = 20; // Começa na coluna T (20)
+      
+      for (const materia of materiasArray) {
+          if (linhaAtual > 5) break; // Limitar até a linha 5
+          
+          // Obter a cor da matéria (a mesma usada na legenda)
+          const corMateria = getColorForMateria(materia.descricao);
+          
+          // Matéria
+          const cellMateria = aba.getCell(linhaAtual, colunaAtual);
+          cellMateria.value = materia.descricao;
+          cellMateria.font = { 
+              size: 16,
+              bold: true
+          };
+          cellMateria.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: corMateria }
+          };
+          cellMateria.alignment = { 
+              horizontal: 'center', 
+              vertical: 'middle',
+              wrapText: true
+          };
+          cellMateria.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
+          };
+          
+          // Carga Horária 
+          const cellCarga = aba.getCell(linhaAtual, colunaAtual + 1);
+          cellCarga.value = Math.round(materia.cargaHoraria * 10) / 10; 
+          cellCarga.font = { 
+              size: 16,
+              bold: true
+          };
+          cellCarga.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: corMateria }
+          };
+          cellCarga.alignment = { 
+              horizontal: 'center', 
+              vertical: 'middle' 
+          };
+          cellCarga.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
+          };
+      
+          if (linhaAtual < 5) {
+              linhaAtual++;
+          } else {
+              linhaAtual = 2;
+              colunaAtual += 2; 
+              
+              if (colunaAtual > 30) break; 
+          }
+      }
+  } catch (error) {
+      console.error('Erro ao preencher carga horária:', error);
+  }
 
     aba.views = [
       {
@@ -1658,49 +1743,98 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
   }
 });
-// Rota para a API de notificações (JSON)
+
+
+// Rota administrativa para verificar e limpar duplicatas
+app.get('/api/verificar-duplicatas', verificarAutenticacao, async (req, res) => {
+  if (req.session.user.tipo !== 'Administrador') {
+    return res.status(403).json({ success: false, message: 'Acesso negado' });
+  }
+
+  try {
+    // Identificar duplicatas
+    const duplicatasQuery = `
+      SELECT descricao, data_atividade, hora_inicio, hora_fim, localizacao, docente, COUNT(*) as total
+      FROM importado
+      GROUP BY descricao, data_atividade, hora_inicio, hora_fim, localizacao, docente
+      HAVING COUNT(*) > 1
+      ORDER BY total DESC`;
+    
+    const { rows: duplicatas } = await pool.query(duplicatasQuery);
+    
+    // Limpar duplicatas (manter apenas o registro mais recente)
+    if (duplicatas.length > 0) {
+      const limparQuery = `
+        DELETE FROM importado
+        WHERE id NOT IN (
+          SELECT MIN(id)
+          FROM importado
+          GROUP BY descricao, data_atividade, hora_inicio, hora_fim, localizacao, docente
+        )`;
+      
+      await pool.query(limparQuery);
+    }
+    
+    res.json({
+      success: true,
+      duplicatasEncontradas: duplicatas.length,
+      mensagem: duplicatas.length > 0 
+        ? `${duplicatas.length} duplicatas foram removidas` 
+        : 'Nenhuma duplicata encontrada'
+    });
+  } catch (error) {
+    console.error('Erro ao verificar duplicatas:', error);
+    res.status(500).json({
+      error: 'Erro ao verificar duplicatas',
+      details: error.message
+    });
+  }
+});
+
 app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
   if (!req.session.user) {
     return res.status(403).json({ success: false, message: 'Acesso negado' });
   }
 
-
   try {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const hojeFormatado = hoje.toISOString().split('T')[0];
-   
-    // Consulta base
+    
+    // Consulta otimizada com GROUP BY para evitar duplicatas no banco
     let query = `
-      SELECT
-        id,
-        nome AS materia,
+      SELECT 
+        MIN(id) as id,
+        descricao AS materia,
         turno,
         data_atividade AS data,
-        hora_inicio,
-        hora_fim,
-        localizacao,
+        MIN(hora_inicio) as hora_inicio,
+        MIN(hora_fim) as hora_fim,
+        MIN(localizacao) as localizacao,
         docente AS professor,
-        dias_semana
+        STRING_AGG(DISTINCT dias_semana, ', ') as dias_semana
       FROM importado
       WHERE data_atividade >= $1`;
-   
+    
     // Parâmetros da query
     let params = [hojeFormatado];
-   
-    // Se for docente, adiciona filtro por nome
+    
+    // Filtro para docente
     if (req.session.user.tipo === 'Docente') {
       query += ' AND docente = $2';
       params.push(req.session.user.nome);
     }
-   
-    // Ordenação e limite
-    query += ' ORDER BY data_atividade ASC, hora_inicio ASC LIMIT 20';
-   
+    
+    // Agrupamento para evitar duplicatas
+    query += `
+      GROUP BY descricao, data_atividade, docente, turno
+      ORDER BY data_atividade ASC, MIN(hora_inicio) ASC
+      LIMIT 20`;
+    
     const { rows } = await pool.query(query, params);
 
-
-    const notificacoes = rows.map(aula => ({
+    // Processamento adicional para garantir formato consistente
+    const aulasProcessadas = rows.map(aula => ({
       ...aula,
       hora_inicio: aula.hora_inicio?.substring(0, 5) || '--:--',
       hora_fim: aula.hora_fim?.substring(0, 5) || '--:--',
@@ -1708,7 +1842,7 @@ app.get('/api/notificacoes', verificarAutenticacao, async (req, res) => {
       dias_semana: aula.dias_semana || ''
     }));
 
-    res.json(notificacoes);
+    res.json(aulasProcessadas);
   } catch (error) {
     console.error('Erro na API de notificações:', error);
     res.status(500).json({

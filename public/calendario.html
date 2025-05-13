@@ -193,75 +193,125 @@
 
 
 
-            // Função para verificar e exibir aulas do dia
-           async function verificarAulasHoje() {
-                console.log('Iniciando verificação de aulas...');
-                
-                try {
-                    // 1. Buscar dados do usuário
-                    const userResponse = await fetch('/getUserData', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    
-                    if (!userResponse.ok) {
-                        console.log("Usuário não autenticado");
-                        return;
-                    }
+            // Função para verificar e exibir aulas do dia com prevenção de duplicatas
+async function verificarAulasHoje() {
+    console.log('Iniciando verificação de aulas...');
+    
+    try {
+        // 1. Buscar dados do usuário
+        const userResponse = await fetch('/getUserData', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!userResponse.ok) {
+            console.log("Usuário não autenticado");
+            return;
+        }
 
-                    const userData = await userResponse.json();
-                    console.log("Dados do usuário recebidos:", userData);
+        const userData = await userResponse.json();
+        console.log("Dados do usuário recebidos:", userData);
 
-                    // 2. Buscar aulas (o backend já filtra conforme o tipo de usuário)
-                    const aulasResponse = await fetch('/aulasHoje', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    
-                    if (!aulasResponse.ok) {
-                        console.error("Erro ao buscar aulas:", aulasResponse.statusText);
-                        return;
-                    }
+        // 2. Buscar aulas (o backend já filtra conforme o tipo de usuário)
+        const aulasResponse = await fetch('/aulasHoje', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!aulasResponse.ok) {
+            console.error("Erro ao buscar aulas:", aulasResponse.statusText);
+            return;
+        }
 
-                    const aulas = await aulasResponse.json();
-                    console.log("Aulas recebidas:", aulas);
-                    
-                    exibirPopupAula(aulas);
-                } catch (error) {
-                    console.error("Erro ao verificar aulas:", error);
-                }
-            }
+        const aulas = await aulasResponse.json();
+        console.log("Aulas recebidas:", aulas);
+        
+        // Remover duplicatas antes de exibir
+        const aulasUnicas = removerDuplicatasAulas(aulas);
+        console.log("Aulas após remoção de duplicatas:", aulasUnicas);
+        
+        exibirPopupAula(aulasUnicas);
+    } catch (error) {
+        console.error("Erro ao verificar aulas:", error);
+    }
+}
 
-            function formatarHora(hora) {
-                if (!hora) return '';
-                return hora.substring(0, 5);
-            }
+// Função para remover duplicatas das aulas
+function removerDuplicatasAulas(aulas) {
+    const aulasVistas = new Set();
+    return aulas.filter(aula => {
+        // Criar uma chave única para cada aula
+        const chaveUnica = `${aula.descricao}-${aula.docente}-${aula.hora_inicio}-${aula.hora_fim}-${aula.localizacao}`;
+        
+        if (aulasVistas.has(chaveUnica)) {
+            return false; // Duplicata - descartar
+        }
+        
+        aulasVistas.add(chaveUnica);
+        return true;
+    });
+}
 
-            function exibirPopupAula(aulas) {
-                const popup = document.getElementById('popupAula');
-                const aulaInfo = document.getElementById('aula-info');
+function formatarHora(hora) {
+    if (!hora) return '--:--';
+    return hora.substring(0, 5);
+}
 
-                if (!popup || !aulaInfo) {
-                    console.error("Elementos do popup não encontrados no DOM");
-                    return;
-                }
+function exibirPopupAula(aulas) {
+    const popup = document.getElementById('popupAula');
+    const aulaInfo = document.getElementById('aula-info');
 
-                if (aulas && aulas.length > 0) {
-                    aulaInfo.innerHTML = aulas.map(aula => `
-                        <div class="aula-notificacao">
-                            <h3>${aula.nome}</h3>
-                            <p>Docente: ${aula.docente || 'Não especificado'}</p>
-                            <p>Turno: ${aula.turno || 'Não especificado'}</p>
-                            <p>Horário: ${formatarHora(aula.hora_inicio)} - ${formatarHora(aula.hora_fim)}</p>
-                            <p>Local: ${aula.localizacao || 'Não informado'}</p>
-                        </div>
-                    `).join('');
-                } else {
-                    aulaInfo.innerHTML = '<p>Nenhuma aula agendada para hoje</p>';
-                }
-                
-                popup.style.display = 'flex';
-            }
+    if (!popup || !aulaInfo) {
+        console.error("Elementos do popup não encontrados no DOM");
+        return;
+    }
+
+    if (aulas && aulas.length > 0) {
+        aulaInfo.innerHTML = aulas.map(aula => `
+            <div class="aula-notificacao">
+                <h3>${escapeHtml(aula.descricao)}</h3>
+                <p><i class="fas fa-chalkboard-teacher"></i> Docente: ${escapeHtml(aula.docente || 'Não especificado')}</p>
+                <p><i class="fas fa-clock"></i> Horário: ${formatarHora(aula.hora_inicio)} - ${formatarHora(aula.hora_fim)}</p>
+                <p><i class="fas fa-map-marker-alt"></i> Local: ${escapeHtml(aula.localizacao || 'Não informado')}</p>
+                <p><i class="fas fa-sun"></i> Turno: ${escapeHtml(aula.turno || 'Não especificado')}</p>
+            </div>
+        `).join('');
+    } else {
+        aulaInfo.innerHTML = '<div class="sem-aulas"><i class="far fa-calendar-times"></i><p>Nenhuma aula agendada para hoje</p></div>';
+    }
+    
+    // Mostrar o popup com animação
+    popup.style.display = 'flex';
+    setTimeout(() => popup.style.opacity = '1', 10);
+}
+
+// Função para fechar o popup
+function fecharPopup() {
+    const popup = document.getElementById('popupAula');
+    if (popup) {
+        popup.style.opacity = '0';
+        setTimeout(() => popup.style.display = 'none', 300);
+    }
+}
+
+// Função para escapar HTML (prevenção XSS)
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Adicionar evento de clique no botão de fechar
+document.addEventListener('DOMContentLoaded', () => {
+    const btnFechar = document.getElementById('fechar-popup');
+    if (btnFechar) {
+        btnFechar.addEventListener('click', fecharPopup);
+    }
+});
 
             // Chamada automática quando a página carrega
             document.addEventListener('DOMContentLoaded', verificarAulasHoje);
