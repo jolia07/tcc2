@@ -1001,24 +1001,31 @@ function exibirNotificacoes(aulas) {
         document.addEventListener('DOMContentLoaded', carregarDadosUsuario);
 
         function sair(event) {
-            if (event) {
+                // Previne o comportamento padrão do link
                 event.preventDefault();
-            }
-            
-            if (confirm("Você tem certeza que deseja sair?")) {
-                fetch('https://sepa-api.onrender.com/', { method: 'POST' })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Erro ao fazer logout');
+               
+                if (confirm("Você tem certeza que deseja sair?")) {
+                    fetch('/logout', {
+                        method: 'POST',
+                        credentials: 'include', // Importante para enviar os cookies
+                        headers: {
+                            'Content-Type': 'application/json'
                         }
-                        window.location.href = 'home.html';
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Redireciona apenas se o logout foi bem-sucedido
+                            window.location.href = 'home.html';
+                        } else {
+                            throw new Error('Falha no logout');
+                        }
                     })
                     .catch(error => {
-                        console.error('Erro ao sair:', error);
-                        alert('Erro ao fazer logout: ' + error.message);
+                        console.error('Erro detalhado:', error);
+                        alert('Não foi possível conectar ao servidor. Tente novamente.');
                     });
+                }
             }
-        }
     </script>
 </body>
 </html>

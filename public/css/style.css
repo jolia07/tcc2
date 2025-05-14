@@ -210,3 +210,119 @@ header nav ul li{
     background: #f8d7da;
     color: #721c24;
 }
+
+/* Estilo do popup de instruções */
+    .instructions-popup {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .instructions-content {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        position: relative;
+    }
+    
+    .instructions-close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 28px;
+        cursor: pointer;
+        color: #777;
+    }
+    
+    .instructions-close:hover {
+        color: #333;
+    }
+    
+    .instructions-title {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 24px;
+    }
+    
+    .instructions-section {
+        margin-bottom: 20px;
+    }
+    
+    .instructions-section h3 {
+        color: #3498db;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+    
+    .instructions-list {
+        padding-left: 20px;
+    }
+    
+    .instructions-list li {
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+    
+    .instructions-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .instructions-btn:hover {
+        background-color: #2980b9;
+        transform: scale(1.05);
+    }
+    
+    .dont-show-again {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dont-show-again input {
+        margin-right: 10px;
+    }
+    
+    .instructions-confirm-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    
+    .instructions-confirm-btn:hover {
+        background-color: #219653;
+    }
