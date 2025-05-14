@@ -1056,10 +1056,11 @@ app.get('/exportar-excel-importado', async (req, res) => {
       "",                
       
       // Noite
+      "18:40 - 20:40",
       "18:40 - 21:40"    
     ];
    
-    const linhaHorario = [12, 28, 44, 60, 76, 92, 108, 124, 140, 156, 172, 188];
+    const linhaHorario = [12, 29, 46, 63, 80, 97, 114, 131, 148, 165, 182, 199];
 
     // Preencher horários na coluna A
     linhaHorario.forEach((linhaBase) => {
@@ -1100,18 +1101,17 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.mergeCells('A8:AF8');
     aba.mergeCells('A9:AF9');
 
-    aba.mergeCells('A25:AD25');
-    aba.mergeCells('A41:AF41');
-    aba.mergeCells('A57:AE57');
-    aba.mergeCells('A73:AF73');
-
-    aba.mergeCells('A89:AE89');
-    aba.mergeCells('A105:AF105');
-    aba.mergeCells('A121:AF121');
-    aba.mergeCells('A137:AE137');
-    aba.mergeCells('A153:AF153');
-    aba.mergeCells('A169:AE169');
-    aba.mergeCells('A185:AF185');
+    aba.mergeCells('A26:AD26');
+    aba.mergeCells('A43:AF43');
+    aba.mergeCells('A60:AE60');
+    aba.mergeCells('A77:AF77');
+    aba.mergeCells('A94:AE94');
+    aba.mergeCells('A111:AF111');
+    aba.mergeCells('A128:AF128');
+    aba.mergeCells('A145:AE145');
+    aba.mergeCells('A162:AF162');
+    aba.mergeCells('A179:AE179');
+    aba.mergeCells('A196:AF196');
 
     // Cabeçalhos e títulos (igual ao original)
     aba.getCell('B1').value = "Dados do Docente";
@@ -1124,17 +1124,17 @@ app.get('/exportar-excel-importado', async (req, res) => {
     // Nomes dos meses (igual ao original)
     const meses = [
       {nome: "Janeiro", linha: 9},
-      {nome: "Fevereiro", linha: 25},
-      {nome: "Março", linha: 41},
-      {nome: "Abril", linha: 57},
-      {nome: "Maio", linha: 73},
-      {nome: "Junho", linha: 89},
-      {nome: "Julho", linha: 105},
-      {nome: "Agosto", linha: 121},
-      {nome: "Setembro", linha: 137},
-      {nome: "Outubro", linha: 153},
-      {nome: "Novembro", linha: 169},
-      {nome: "Dezembro", linha: 185}
+      {nome: "Fevereiro", linha: 26},
+      {nome: "Março", linha: 43},
+      {nome: "Abril", linha: 60},
+      {nome: "Maio", linha: 77},
+      {nome: "Junho", linha: 94},
+      {nome: "Julho", linha: 111},
+      {nome: "Agosto", linha: 128},
+      {nome: "Setembro", linha: 145},
+      {nome: "Outubro", linha: 162},
+      {nome: "Novembro", linha: 179},
+      {nome: "Dezembro", linha: 196}
     ];
 
     meses.forEach(mes => {
@@ -1315,19 +1315,19 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
     // Configuração dos dias da semana e dias do mês (igual ao original)
     const semanaPorMes = {
-      "Dom": [90],
-      "Seg": [138, 186],
-      "Ter": [58, 106],
-      "Qua": [10, 154],
-      "Qui": [74],
-      "Sex": [122],
-      "Sáb": [26, 42, 170]
+      "Dom": [95],
+      "Seg": [146, 197],
+      "Ter": [61, 112],
+      "Qua": [10, 163],
+      "Qui": [78],
+      "Sex": [129],
+      "Sáb": [27, 44, 180]
     };
    
     const diasPorMes = {
-      31: [11, 43, 75, 107, 123, 155, 187],
-      30: [59, 91, 139, 171],
-      29: [27]
+      31: ["11", 45, 79, 113, 130, 164, 198],
+      30: [62, 96, 147, 181],
+      29: ["28"]
     };
    
     const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -1371,7 +1371,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });  
    
     // Estilo dos dias do mês (igual ao original)
-    [11, 27, 43, 59, 75, 91, 107, 123, 139, 155, 171, 187].forEach((linhaDia) => {
+    [11, 28, 45, 62, 79, 96, 113, 130, 147, 164, 181, 198].forEach((linhaDia) => {
       aba.getRow(linhaDia).eachCell({ includeEmpty: true }, (celula) => {
         celula.fill = {
           type: 'pattern',
@@ -1391,7 +1391,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
    
     // Estilo dos dias da semana (igual ao original)
-    [10, 26, 42, 58, 74, 90, 106, 122, 138, 154, 170, 186].forEach((linha) => {
+    [10, 27, 44, 61, 78, 95, 112, 129, 146, 163, 180, 197].forEach((linha) => {
       aba.getRow(linha).eachCell({ includeEmpty: true }, (celula) => {
         celula.fill = {
           type: 'pattern',
@@ -1433,17 +1433,17 @@ app.get('/exportar-excel-importado', async (req, res) => {
     // Mapeamento de meses para linhas na planilha (igual ao original)
     const mesesLinhas = {
       0: 12,   
-      1: 28,  
-      2: 44,  
-      3: 60,  
-      4: 76,  
-      5: 92,   
-      6: 108,  
-      7: 124,  
-      8: 140,  
-      9: 156,  
-      10: 172, 
-      11: 188  
+      1: 29,  
+      2: 46,  
+      3: 63,  
+      4: 80,  
+      5: 97,   
+      6: 114,  
+      7: 131,  
+      8: 148,  
+      9: 165,  
+      10: 182, 
+      11: 199  
     };
 
     // Mapeamento de turnos para linhas de horário (atualizado)
@@ -1457,8 +1457,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
         horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "16:20 - 18:20"]
       },
       "NOITE": {
-        linhas: [12], // Ajustado para o novo índice
-        horarios: ["18:40 - 21:40"]
+        linhas: [12, 13], // Ajustado para o novo índice
+        horarios: ["18:40 - 20:40", "18:40 - 21:40"]
       }
     };
 
