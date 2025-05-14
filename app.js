@@ -1037,14 +1037,29 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.getCell('B5').value = docentePerfil.length > 0 ? docentePerfil[0].telefone2 : ""; // Telefone 2 
 
 
-    // Configuração dos horários (atualizada)
-      const horariosDia = [
-        "07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "",
-        "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "16:20 - 18:20", "",
-        "18:40 - 21:40", ""
-      ];
+    // Configuração dos horários 
+    const horariosDia = [
+      // Manhã
+      "07:30 - 08:30", 
+      "08:30 - 09:30", 
+      "09:30 - 10:30", 
+      "10:30 - 11:30",
+      "11:20 - 13:20",  
+      "",                
+      
+      // Tarde
+      "13:00 - 14:00", 
+      "14:00 - 15:00", 
+      "15:00 - 16:00", 
+      "16:00 - 17:00",
+      "16:20 - 18:20",   
+      "",                
+      
+      // Noite
+      "18:40 - 21:40"    
+    ];
    
-    const linhaHorario = [12, 27, 42, 57, 72, 87, 102, 117, 132, 147, 162, 177];
+    const linhaHorario = [12, 28, 44, 60, 76, 92, 108, 124, 140, 156, 172, 188];
 
     // Preencher horários na coluna A
     linhaHorario.forEach((linhaBase) => {
@@ -1082,19 +1097,21 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.mergeCells('T1:AE1');
 
     // Mesclagem de células dos meses (igual ao original)
-    aba.mergeCells('A9:AF9');
     aba.mergeCells('A8:AF8');
-    aba.mergeCells('A24:AD24');
-    aba.mergeCells('A39:AF39');
-    aba.mergeCells('A54:AE54');
-    aba.mergeCells('A69:AF69');
-    aba.mergeCells('A84:AE84');
-    aba.mergeCells('A99:AF99');
-    aba.mergeCells('A114:AF114');
-    aba.mergeCells('A129:AE129');
-    aba.mergeCells('A144:AF144');
-    aba.mergeCells('A159:AE159');
-    aba.mergeCells('A174:AF174');
+    aba.mergeCells('A9:AF9');
+
+    aba.mergeCells('A25:AD25');
+    aba.mergeCells('A41:AF41');
+    aba.mergeCells('A57:AE57');
+    aba.mergeCells('A73:AF73');
+
+    aba.mergeCells('A89:AE89');
+    aba.mergeCells('A105:AF105');
+    aba.mergeCells('A121:AF121');
+    aba.mergeCells('A137:AE137');
+    aba.mergeCells('A153:AF153');
+    aba.mergeCells('A169:AE169');
+    aba.mergeCells('A185:AF185');
 
     // Cabeçalhos e títulos (igual ao original)
     aba.getCell('B1').value = "Dados do Docente";
@@ -1107,17 +1124,17 @@ app.get('/exportar-excel-importado', async (req, res) => {
     // Nomes dos meses (igual ao original)
     const meses = [
       {nome: "Janeiro", linha: 9},
-      {nome: "Fevereiro", linha: 24},
-      {nome: "Março", linha: 39},
-      {nome: "Abril", linha: 54},
-      {nome: "Maio", linha: 69},
-      {nome: "Junho", linha: 84},
-      {nome: "Julho", linha: 99},
-      {nome: "Agosto", linha: 114},
-      {nome: "Setembro", linha: 129},
-      {nome: "Outubro", linha: 144},
-      {nome: "Novembro", linha: 159},
-      {nome: "Dezembro", linha: 174}
+      {nome: "Fevereiro", linha: 25},
+      {nome: "Março", linha: 41},
+      {nome: "Abril", linha: 57},
+      {nome: "Maio", linha: 73},
+      {nome: "Junho", linha: 89},
+      {nome: "Julho", linha: 105},
+      {nome: "Agosto", linha: 121},
+      {nome: "Setembro", linha: 137},
+      {nome: "Outubro", linha: 153},
+      {nome: "Novembro", linha: 169},
+      {nome: "Dezembro", linha: 185}
     ];
 
     meses.forEach(mes => {
@@ -1298,19 +1315,19 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
     // Configuração dos dias da semana e dias do mês (igual ao original)
     const semanaPorMes = {
-      "Dom": [85],
-      "Seg": [130, 175],
-      "Ter": [55, 100],
-      "Qua": [10, 145],
-      "Qui": [70],
-      "Sex": [115],
-      "Sáb": [25, 40, 160],
+      "Dom": [90],
+      "Seg": [138, 186],
+      "Ter": [58, 106],
+      "Qua": [10, 154],
+      "Qui": [74],
+      "Sex": [122],
+      "Sáb": [26, 42, 170]
     };
    
     const diasPorMes = {
-      31: [11, 41, 71, 101, 116, 146, 176],
-      30: [56, 86, 131, 161],
-      29: [26]
+      31: [11, 43, 75, 107, 123, 155, 187],
+      30: [59, 91, 139, 171],
+      29: [27]
     };
    
     const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -1354,7 +1371,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });  
    
     // Estilo dos dias do mês (igual ao original)
-    [11, 26, 41, 56, 71, 86, 101, 116, 131, 146, 161, 176].forEach((linhaDia) => {
+    [11, 27, 43, 59, 75, 91, 107, 123, 139, 155, 171, 187].forEach((linhaDia) => {
       aba.getRow(linhaDia).eachCell({ includeEmpty: true }, (celula) => {
         celula.fill = {
           type: 'pattern',
@@ -1374,7 +1391,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     });
    
     // Estilo dos dias da semana (igual ao original)
-    [10, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175].forEach((linha) => {
+    [10, 26, 42, 58, 74, 90, 106, 122, 138, 154, 170, 186].forEach((linha) => {
       aba.getRow(linha).eachCell({ includeEmpty: true }, (celula) => {
         celula.fill = {
           type: 'pattern',
@@ -1415,43 +1432,38 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
     // Mapeamento de meses para linhas na planilha (igual ao original)
     const mesesLinhas = {
-      0: 12,   // Janeiro
-      1: 27,   // Fevereiro
-      2: 42,   // Março
-      3: 57,   // Abril
-      4: 72,   // Maio
-      5: 87,   // Junho
-      6: 102,  // Julho
-      7: 117,  // Agosto
-      8: 132,  // Setembro
-      9: 147,  // Outubro
-      10: 162, // Novembro
-      11: 177  // Dezembro
+      0: 12,   
+      1: 28,  
+      2: 44,  
+      3: 60,  
+      4: 76,  
+      5: 92,   
+      6: 108,  
+      7: 124,  
+      8: 140,  
+      9: 156,  
+      10: 172, 
+      11: 188  
     };
 
     // Mapeamento de turnos para linhas de horário (atualizado)
     const turnoHorarios = {
       "MANHÃ": {
-        linhas: [0, 1, 2, 3], // 07:30-08:30, 08:30-09:30, 09:30-10:30, 10:30-11:30
-        horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30"]
+        linhas: [0, 1, 2, 3, 4], // Inclui todos os horários da manhã
+        horarios: ["07:30 - 08:30", "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:20 - 13:20"]
       },
       "TARDE": {
-        linhas: [5, 6, 7, 8, 9], // 13:00-14:00, 14:00-15:00, 15:00-16:00, 16:00-17:00, 16:20-18:20
+        linhas: [6, 7, 8, 9, 10], // Ajustado para incluir todos os horários da tarde
         horarios: ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "16:20 - 18:20"]
       },
       "NOITE": {
-        linhas: [11], // 18:40-21:40 (índice ajustado para 11 devido ao novo horário)
+        linhas: [12], // Ajustado para o novo índice
         horarios: ["18:40 - 21:40"]
       }
-    };    
-   
-    function formatarDuracao(horaInicio, horaFim) {
-      return `${horaInicio.substring(0, 5)} - ${horaFim.substring(0, 5)}`;
-    }
+    };
 
-    // Processar cada aula importada (ajustado para os dados da tabela)
     // Processar cada aula importada (versão corrigida)
-      aulasImportadas.forEach(aula => {
+    aulasImportadas.forEach(aula => {
       try {
         const aulaPadronizada = {
           id: aula.id,
@@ -1539,6 +1551,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         const horaInicio = aulaPadronizada.hora_inicio.substring(0, 5);
         const horaFim = aulaPadronizada.hora_fim.substring(0, 5);
         
+        // Processamento para todos os horários (incluindo 11:20-13:20)
         const inicio = parseInt(horaInicio.split(':')[0]) + parseInt(horaInicio.split(':')[1])/60;
         const fim = parseInt(horaFim.split(':')[0]) + parseInt(horaFim.split(':')[1])/60;
         const duracaoHoras = fim - inicio;
@@ -1600,107 +1613,173 @@ app.get('/exportar-excel-importado', async (req, res) => {
             bold: true
           };
         }
-
       } catch (error) {
         console.error(`Erro ao processar aula ${aula?.id}:`, error);
       }
     });
 
-    try {
-      // Agrupar aulas por matéria e calcular carga horária total
-      const materiasComCargaHoraria = aulasImportadas.reduce((acc, aula) => {
-          const key = aula.descricao;
-          if (!acc[key]) {
-              acc[key] = {
-                  descricao: aula.descricao,
-                  cargaHoraria: 0
-              };
-          }
-          
-          // Calcular duração em horas
-          const horaInicio = aula.hora_inicio.substring(0, 5);
-          const horaFim = aula.hora_fim.substring(0, 5);
-          const inicio = parseInt(horaInicio.split(':')[0]) + parseInt(horaInicio.split(':')[1])/60;
-          const fim = parseInt(horaFim.split(':')[0]) + parseInt(horaFim.split(':')[1])/60;
-          const duracaoHoras = fim - inicio;
-          
-          acc[key].cargaHoraria += duracaoHoras;
-          
-          return acc;
-      }, {});
-      
-      // Converter para array e ordenar por descrição
-      const materiasArray = Object.values(materiasComCargaHoraria)
-          .sort((a, b) => a.descricao.localeCompare(b.descricao));
-      
-      let linhaAtual = 2;
-      let colunaAtual = 20; // Começa na coluna T (20)
-      
-      for (const materia of materiasArray) {
-          if (linhaAtual > 5) break; // Limitar até a linha 5
-          
-          // Obter a cor da matéria (a mesma usada na legenda)
-          const corMateria = getColorForMateria(materia.descricao);
-          
-          // Matéria
-          const cellMateria = aba.getCell(linhaAtual, colunaAtual);
-          cellMateria.value = materia.descricao;
-          cellMateria.font = { 
-              size: 16,
-              bold: true
-          };
-          cellMateria.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: corMateria }
-          };
-          cellMateria.alignment = { 
-              horizontal: 'center', 
-              vertical: 'middle',
-              wrapText: true
-          };
-          cellMateria.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              left: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: { style: 'thin', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-          
-          // Carga Horária 
-          const cellCarga = aba.getCell(linhaAtual, colunaAtual + 1);
-          cellCarga.value = Math.round(materia.cargaHoraria * 10) / 10; 
-          cellCarga.font = { 
-              size: 16,
-              bold: true
-          };
-          cellCarga.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: corMateria }
-          };
-          cellCarga.alignment = { 
-              horizontal: 'center', 
-              vertical: 'middle' 
-          };
-          cellCarga.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              left: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: { style: 'thin', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-      
-          if (linhaAtual < 5) {
-              linhaAtual++;
-          } else {
-              linhaAtual = 2;
-              colunaAtual += 2; 
-              
-              if (colunaAtual > 30) break; 
-          }
+    const materiasComCargaHoraria = aulasImportadas.reduce((acc, aula) => {
+      const key = aula.descricao;
+      if (!acc[key]) {
+        acc[key] = {
+          descricao: aula.descricao,
+          totalMinutos: 0
+        };
       }
-  } catch (error) {
-      console.error('Erro ao preencher carga horária:', error);
-  }
+      
+      try {
+        // Garantir que hora_inicio e hora_fim são strings válidas
+        const horaInicio = (aula.hora_inicio || '00:00').toString().substring(0, 5);
+        const horaFim = (aula.hora_fim || '00:00').toString().substring(0, 5);
+        
+        const [hIni, mIni] = horaInicio.split(':').map(Number);
+        const [hFim, mFim] = horaFim.split(':').map(Number);
+        
+        if (isNaN(hIni) || isNaN(mIni) || isNaN(hFim) || isNaN(mFim) ||
+            mIni < 0 || mIni >= 60 || mFim < 0 || mFim >= 60) {
+          console.error(`Formato de hora inválido: ${horaInicio}, ${horaFim}`);
+          return acc;
+        }
+        
+        const inicioMinutos = hIni * 60 + mIni;
+        const fimMinutos = hFim * 60 + mFim;
+        
+        if (fimMinutos <= inicioMinutos) {
+          console.error(`Hora fim <= início: ${horaInicio} - ${horaFim}`);
+          return acc;
+        }
+
+        // Calcula a duração desta aula específica
+        const duracaoMinutos = fimMinutos - inicioMinutos;
+        
+        // Tratamento robusto para data_atividade
+        let quantidadeAulas = 1;
+        if (aula.data_atividade) {
+          // Verifica se é um array ou string com múltiplas datas
+          if (Array.isArray(aula.data_atividade)) {
+            quantidadeAulas = aula.data_atividade.length;
+          } else {
+            // Converte para string caso não seja
+            const datasStr = aula.data_atividade.toString();
+            // Divide e filtra datas válidas
+            const datas = datasStr.split(';').filter(d => d.trim() !== '');
+            quantidadeAulas = datas.length || 1;
+          }
+        }
+        
+        // Acumula a duração multiplicada pelo número de aulas
+        acc[key].totalMinutos += duracaoMinutos * quantidadeAulas;
+        
+      } catch (error) {
+        console.error(`Erro ao processar aula ${aula?.id}:`, error);
+        console.error('Dados da aula problemática:', {
+          id: aula?.id,
+          hora_inicio: aula?.hora_inicio,
+          hora_fim: aula?.hora_fim,
+          data_atividade: aula?.data_atividade,
+          tipo_data: typeof aula?.data_atividade
+        });
+      }
+      
+      return acc;
+    }, {});
+
+    // Converter minutos para horas com arredondamento preciso
+    Object.keys(materiasComCargaHoraria).forEach(key => {
+      const totalMinutos = materiasComCargaHoraria[key].totalMinutos;
+      const horas = Math.floor(totalMinutos / 60);
+      const minutos = totalMinutos % 60;
+      
+      // Arredondamento mais preciso para o quarto de hora mais próximo
+      let fracaoHora;
+      if (minutos < 8) fracaoHora = 0;
+      else if (minutos < 23) fracaoHora = 0.25;
+      else if (minutos < 38) fracaoHora = 0.5;
+      else if (minutos < 53) fracaoHora = 0.75;
+      else fracaoHora = 1;
+      
+      materiasComCargaHoraria[key].cargaHoraria = horas + fracaoHora;
+    });
+
+    const materiasArray = Object.values(materiasComCargaHoraria)
+      .sort((a, b) => a.descricao.localeCompare(b.descricao));
+
+    // Configuração da exibição - limitando estritamente a T2:AE5
+    const COLUNA_INICIAL = 20; // T = coluna 20
+    const COLUNA_FINAL = 31;   // AE = coluna 31
+    const LINHA_INICIAL = 2;
+    const LINHA_FINAL = 5;      // Até linha 5
+
+    let linhaAtual = LINHA_INICIAL;
+    let colunaAtual = COLUNA_INICIAL;
+
+    for (const materia of materiasArray) {
+        // Verificar se ainda estamos dentro da área permitida
+        if (linhaAtual > LINHA_FINAL) {
+            linhaAtual = LINHA_INICIAL;
+            colunaAtual += 2; // Avança duas colunas (matéria + carga horária)
+            
+            // Se ultrapassar a coluna final, interrompe
+            if (colunaAtual >= COLUNA_FINAL) {
+                console.warn('Limite de colunas excedido (T2:AE5). Não todas as matérias serão exibidas.');
+                break;
+            }
+        }
+
+        // Obter a cor da matéria
+        const corMateria = getColorForMateria(materia.descricao);
+        
+        // Formatar carga horária
+        const horasInt = Math.floor(materia.cargaHoraria);
+        const minutos = Math.round((materia.cargaHoraria - horasInt) * 60);
+        const cargaFormatada = minutos > 0 
+            ? `${horasInt}h${minutos.toString().padStart(2, '0')}` 
+            : `${horasInt}h`;
+
+        // Matéria (coluna atual)
+        const cellMateria = aba.getCell(linhaAtual, colunaAtual);
+        cellMateria.value = materia.descricao;
+        cellMateria.font = { 
+            size: 16,
+            bold: true
+        };
+        cellMateria.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: corMateria }
+        };
+        cellMateria.alignment = { 
+            horizontal: 'center', 
+            vertical: 'middle',
+            wrapText: true
+        };
+        cellMateria.border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+        
+        // Carga Horária (coluna atual + 1)
+        const cellCarga = aba.getCell(linhaAtual, colunaAtual + 1);
+        cellCarga.value = cargaFormatada;
+        cellCarga.font = { 
+            size: 16,
+            bold: true
+        };
+        cellCarga.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: corMateria }
+        };
+        cellCarga.alignment = { 
+            horizontal: 'center', 
+            vertical: 'middle' 
+        };
+        cellCarga.border = cellMateria.border;
+
+        linhaAtual++;
+    }
 
     aba.views = [
       {
@@ -1723,12 +1802,10 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return cm * 28.3465; 
     }
   
-    const altura = cmParaAlturaExcel(3);
+    const altura = cmParaAlturaExcel(3.5);
     aba.eachRow(row => {
       row.height = altura;
     });
-
-
    
     // Enviar a planilha
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
