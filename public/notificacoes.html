@@ -88,7 +88,103 @@
           
     <div id="listaNotificacoes"></div>
 
+    <button class="btn-show-instructions" onclick="openInstructionsPopup()" title="Mostrar Instruções">
+    <i class="fas fa-question"></i>
+</button>
+<!-- Popup de Instruções -->
+<div id="instructionsPopup" class="instructions-popup-overlay">
+    <div class="instructions-popup-content">
+        <span class="instructions-popup-close" onclick="closeInstructionsPopup()">&times;</span>
+        <h2 class="instructions-title">Instruções do Sistema</h2>
+        
+        <div class="instructions-section">
+            <h3>Upload de Planilha</h3>
+            <ol class="instructions-list">
+                <li>Clique em "Escolher arquivo" para escolher o arquivo Excel com os dados das aulas</li>
+                <li>O sistema aceita arquivos nos formatos .xls, .xlsx ou .csv</li>
+                <li>Certifique que a planila importada otém apenas estes campos:</li>
+                    <ul>
+                        <li>Nome, Descrição, Nome do pessoal atribuído, Dias agendados, Hora de início agendada, 
+                            Fim Agendado, Nome da localização atribuída, Descrição da localização atribuída, 
+                            Datas da atividade (Individual), Agendado</li>
+                    </ul>
+                <li>Após selecionar, clique em "Enviar" para processar os dados</li>
+                <li>O sistema mostrará os resultados do processamento, incluindo quantos registros foram inseridos</li>
+            </ol>
+        </div>
+        
+        <div class="instructions-section">
+            <h3>Visualização de Dados</h3>
+            <ol class="instructions-list">
+                <li>Os dados importados aparecerão na tabela abaixo</li>
+                <li>Somente Administradores podem usar os filtros para encontrar informações específicas:
+                    <ul>
+                        <li>Filtre por docente para ver apenas as aulas de um professor</li>
+                        <li>Filtre por turno (Manhã, Tarde, Noite) para ver aulas em períodos específicos</li>
+                    </ul>
+                </li>
+                <li>Clique em "Limpar Filtros" para voltar a ver todos os dados</li>
+            </ol>
+        </div>
+        
+        <div class="instructions-section">
+            <h3>Exportação de Dados</h3>
+            <ol class="instructions-list">
+                <li>Docentes podem exportar apenas seus próprios horários</li>
+                <li>Administradores podem exportar os horários de qualquer docente</li>
+                <li>Os dados são exportados em formato Excel para fácil compartilhamento</li>
+            </ol>
+        </div>
+        
+        <div class="instructions-section">
+            <h3>Gerenciamento de Dados</h3>
+            <ol class="instructions-list">
+                <li>É possível limpar dados específicos ao selecionar uma planilha </li>
+                <li>Esta ação é irreversível - tenha certeza antes de apagar dados</li>
+            </ol>
+        </div>
+        
+        <p><input type="checkbox" id="dontShowInstructionsAgain"> Não mostrar estas instruções novamente</p>
+        <button onclick="closeInstructionsPopup()" style="padding: 8px 16px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Entendi</button>
+    </div>
+</div>
+
     <script>
+        // Funções para controlar o popup de instruções
+            function openInstructionsPopup() {
+                document.getElementById('instructionsPopup').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('instructionsPopup').style.opacity = '1';
+                }, 10);
+            }
+
+            function closeInstructionsPopup() {
+                const dontShowAgain = document.getElementById('dontShowInstructionsAgain').checked;
+                if (dontShowAgain) {
+                    localStorage.setItem('dontShowInstructions', 'true');
+                }
+                document.getElementById('instructionsPopup').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('instructionsPopup').style.display = 'none';
+                }, 300);
+            }
+
+            // Verificar se deve mostrar a popup automaticamente ao carregar a página
+            window.onload = function() {
+                const dontShow = localStorage.getItem('dontShowInstructions');
+                if (!dontShow) {
+                    setTimeout(openInstructionsPopup, 2000); // Mostrar após 2 segundos
+                }
+            };
+
+            // Fechar a popup ao clicar fora do conteúdo
+            window.onclick = function(event) {
+                const popup = document.getElementById('instructionsPopup');
+                if (event.target === popup) {
+                    closeInstructionsPopup();
+                }
+            };
+            
         // Mapear abreviações de dias da semana
         const mapaDias = {
             'Segunda': 'S',

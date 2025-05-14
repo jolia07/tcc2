@@ -558,6 +558,90 @@ td {
     color: var(--primary-dark);
 }
 
+ /* Estilo da popup de instruções */
+    .instructions-popup-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .instructions-popup-content {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
+    
+    .instructions-popup-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #777;
+    }
+    
+    .instructions-popup-close:hover {
+        color: #333;
+    }
+    
+    .instructions-title {
+        margin-top: 0;
+        color: #2c3e50;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    
+    .instructions-section {
+        margin-bottom: 20px;
+    }
+    
+    .instructions-section h3 {
+        color: #3498db;
+        margin-bottom: 10px;
+    }
+    
+    .instructions-list {
+        padding-left: 20px;
+    }
+    
+    .instructions-list li {
+        margin-bottom: 8px;
+    }
+    
+    .btn-show-instructions {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 999;
+    }
+    
+    .btn-show-instructions:hover {
+        background-color: #2980b9;
+    }
+
+    
 /* Main layout */
 .main-layout {
     display: flex;
