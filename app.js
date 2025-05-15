@@ -13,9 +13,6 @@ const cors = require('cors');
 const xlsx = require('xlsx');
 const fileUpload = require('express-fileupload');
 const app = express();
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
 require("dotenv").config();
 
 
@@ -63,9 +60,6 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false // Adicione esta linha para ambiente local
   }
 });
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 
 app.get('/calendario2', verificarAutenticacao, (req, res) => {
@@ -536,7 +530,7 @@ app.get('/eventos', async (req, res) => {
       FROM importado
     `;
 
-    const params = [];
+    let params = [];
     if (userType === 'Docente') {
       query += " WHERE docente = $1";
       params.push(userName);
@@ -550,6 +544,7 @@ app.get('/eventos', async (req, res) => {
 
     for (const aula of rows) {
       const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim());
+      const inicioBase = new Date(aula.dataInicio);
 
       const diaParaNumero = {
         'Domingo': 0, 'Segunda': 1, 'Terça': 2,
@@ -561,13 +556,12 @@ app.get('/eventos', async (req, res) => {
         return diaParaNumero[diaNormalizado];
       });
 
-      const inicioBase = dayjs.tz(aula.dataInicio, 'America/Sao_Paulo');
-
       // Gera eventos para 12 semanas
       for (let semana = 0; semana < 12; semana++) {
         diasNumeros.forEach(diaNumero => {
-          // Baseia-se na primeira semana para somar os dias corretos
-          let dataEvento = inicioBase.startOf('week').add(diaNumero, 'day').add(semana, 'week');
+          const dataEvento = new Date(inicioBase);
+          let diasAdicionais = (semana === 0) ? 0 : (diaNumero - dataEvento.getDay() + 7) % 7 + (semana * 7);
+          dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
 
           let horaInicio = 8, horaFim = 12;
           if (aula.turno === 'TARDE') {
@@ -576,18 +570,20 @@ app.get('/eventos', async (req, res) => {
             horaInicio = 19; horaFim = 22;
           }
 
-          const inicio = dataEvento.hour(horaInicio).minute(0).second(0);
-          const fim = dataEvento.hour(horaFim).minute(0).second(0);
+          const inicio = new Date(dataEvento);
+          inicio.setHours(horaInicio, 0, 0, 0);
+          const fim = new Date(dataEvento);
+          fim.setHours(horaFim, 0, 0, 0);
 
           eventos.push({
             id: `${aula.id}-${semana}-${diaNumero}`,
             text: `${aula.materia}\nTurma: ${aula.turma}\nLab: ${aula.laboratorio}`,
-            start_date: inicio.toDate(),
-            end_date: fim.toDate(),
+            start_date: inicio,
+            end_date: fim,
             tipo: "AULA",
             color: "#37516d",
             textColor: "#fff",
-            docente: aula.docente
+            docente: aula.docente // Adicionamos a propriedade docente
           });
         });
       }
@@ -599,7 +595,6 @@ app.get('/eventos', async (req, res) => {
     res.status(500).json({ error: "Erro ao carregar eventos" });
   }
 });
-
 
 // Rota para pegar todas as aulas 
 app.get('/todasAulas', async (req, res) => {
@@ -979,10 +974,7 @@ app.get('/importado', async (req, res) => {
       query += ' ORDER BY data_atividade, hora_inicio';
      
       const { rows } = await pool.query(query, params);
-      res.json(rows.map(item => ({
-        ...item,
-        data_atividade: dayjs.tz(item.data_atividade, 'America/Sao_Paulo').format('YYYY-MM-DD')
-      })));
+      res.json(rows);
   } catch (error) {
       console.error('Erro ao buscar dados importados:', error);
       res.status(500).json({ error: 'Erro ao buscar dados importados' });
