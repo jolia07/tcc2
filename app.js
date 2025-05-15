@@ -542,25 +542,30 @@ app.get('/eventos', async (req, res) => {
 
     const eventos = [];
 
-    // Função para ajustar o fuso horário para Brasília (UTC-3)
-    const ajustarParaBrasilia = (date) => {
+    // Função para converter para o fuso horário de Brasília (UTC-3)
+    const converterParaBrasilia = (date) => {
       if (!date) return null;
-      return new Date(date.toLocaleString('en-US', {
-        timeZone: 'America/Sao_Paulo'
-      }));
+      
+      // Cria uma nova data com o mesmo valor de tempo absoluto
+      const d = new Date(date);
+      
+      // Ajusta para UTC-3 (Brasília)
+      // O servidor está em UTC-5 (US East), então precisamos adicionar 2 horas
+      // para converter de US East para Brasília (UTC-3)
+      d.setHours(d.getHours() + 2);
+      
+      return d;
     };
 
     for (const aula of rows) {
-      // Trata caso diasSemana seja null ou undefined
       const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim()).filter(dia => dia);
       
-      // Se não houver dias da semana válidos, pula para o próximo registro
       if (diasSemana.length === 0) continue;
 
       const inicioBase = new Date(aula.dataInicio);
-      const inicioBaseBrasilia = ajustarParaBrasilia(inicioBase);
+      const inicioBaseBrasilia = converterParaBrasilia(inicioBase);
       
-      if (!inicioBaseBrasilia) continue; // Se a data for inválida, pula
+      if (!inicioBaseBrasilia) continue;
 
       const diaParaNumero = {
         'Domingo': 0, 'Segunda': 1, 'Terça': 2,
@@ -570,9 +575,8 @@ app.get('/eventos', async (req, res) => {
       const diasNumeros = diasSemana.map(d => {
         const diaNormalizado = d === 'Sabado' ? 'Sábado' : d;
         return diaParaNumero[diaNormalizado];
-      }).filter(num => num !== undefined); // Filtra dias inválidos
+      }).filter(num => num !== undefined);
 
-      // Gera eventos para 12 semanas
       for (let semana = 0; semana < 12; semana++) {
         for (const diaNumero of diasNumeros) {
           const dataEvento = new Date(inicioBaseBrasilia);
@@ -591,8 +595,8 @@ app.get('/eventos', async (req, res) => {
           const fim = new Date(dataEvento);
           fim.setHours(horaFim, 0, 0, 0);
 
-          const inicioBrasilia = ajustarParaBrasilia(inicio);
-          const fimBrasilia = ajustarParaBrasilia(fim);
+          const inicioBrasilia = converterParaBrasilia(inicio);
+          const fimBrasilia = converterParaBrasilia(fim);
 
           if (!inicioBrasilia || !fimBrasilia) continue;
 
