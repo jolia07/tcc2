@@ -530,7 +530,7 @@ app.get('/eventos', async (req, res) => {
       FROM importado
     `;
 
-    let params = [];
+    const params = [];
     if (userType === 'Docente') {
       query += " WHERE docente = $1";
       params.push(userName);
@@ -544,24 +544,22 @@ app.get('/eventos', async (req, res) => {
 
     for (const aula of rows) {
       const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim());
-      const inicioBase = new Date(aula.dataInicio);
 
       const diaParaNumero = {
         'Domingo': 0, 'Segunda': 1, 'Terça': 2,
-        'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6, 'Sabado': 6
+        'Quarta': 3, 'Quinta': 4, 'Sexta': 5,
+        'Sábado': 6, 'Sabado': 6
       };
 
-      const diasNumeros = diasSemana.map(d => {
-        const diaNormalizado = d === 'Sabado' ? 'Sábado' : d;
-        return diaParaNumero[diaNormalizado];
-      });
+      const diasNumeros = diasSemana.map(d => diaParaNumero[d === 'Sabado' ? 'Sábado' : d]);
 
-      // Gera eventos para 12 semanas
+      const inicioBase = new Date(aula.dataInicio);
+
       for (let semana = 0; semana < 12; semana++) {
         diasNumeros.forEach(diaNumero => {
           const dataEvento = new Date(inicioBase);
-          let diasAdicionais = (semana === 0) ? 0 : (diaNumero - dataEvento.getDay() + 7) % 7 + (semana * 7);
-          dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
+          const offset = (semana === 0) ? (diaNumero - dataEvento.getDay()) : (diaNumero - dataEvento.getDay() + 7 * semana);
+          dataEvento.setDate(dataEvento.getDate() + offset);
 
           let horaInicio = 8, horaFim = 12;
           if (aula.turno === 'TARDE') {
@@ -572,6 +570,7 @@ app.get('/eventos', async (req, res) => {
 
           const inicio = new Date(dataEvento);
           inicio.setHours(horaInicio, 0, 0, 0);
+
           const fim = new Date(dataEvento);
           fim.setHours(horaFim, 0, 0, 0);
 
@@ -583,7 +582,7 @@ app.get('/eventos', async (req, res) => {
             tipo: "AULA",
             color: "#37516d",
             textColor: "#fff",
-            docente: aula.docente // Adicionamos a propriedade docente
+            docente: aula.docente
           });
         });
       }

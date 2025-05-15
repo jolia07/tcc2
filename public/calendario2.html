@@ -385,9 +385,9 @@
             const dateStr = item.data_atividade;
             const [hIni, mIni] = item.hora_inicio.split(':');
             const [hFim, mFim] = item.hora_fim.split(':');
-            const start = new Date(dateStr);
+            const start = new Date(item.data_atividade);
             start.setHours(+hIni, +mIni, 0, 0);
-            const end = new Date(dateStr);
+            const end = new Date(item.data_atividade);
             end.setHours(+hFim, +mFim, 0, 0);
             return {
                 id: `imp-${item.id}`,
