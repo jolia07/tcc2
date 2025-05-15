@@ -542,9 +542,25 @@ app.get('/eventos', async (req, res) => {
 
     const eventos = [];
 
+    // Função para ajustar o fuso horário para Brasília (UTC-3)
+    const ajustarParaBrasilia = (date) => {
+      if (!date) return null;
+      return new Date(date.toLocaleString('en-US', {
+        timeZone: 'America/Sao_Paulo'
+      }));
+    };
+
     for (const aula of rows) {
-      const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim());
+      // Trata caso diasSemana seja null ou undefined
+      const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim()).filter(dia => dia);
+      
+      // Se não houver dias da semana válidos, pula para o próximo registro
+      if (diasSemana.length === 0) continue;
+
       const inicioBase = new Date(aula.dataInicio);
+      const inicioBaseBrasilia = ajustarParaBrasilia(inicioBase);
+      
+      if (!inicioBaseBrasilia) continue; // Se a data for inválida, pula
 
       const diaParaNumero = {
         'Domingo': 0, 'Segunda': 1, 'Terça': 2,
@@ -554,12 +570,12 @@ app.get('/eventos', async (req, res) => {
       const diasNumeros = diasSemana.map(d => {
         const diaNormalizado = d === 'Sabado' ? 'Sábado' : d;
         return diaParaNumero[diaNormalizado];
-      });
+      }).filter(num => num !== undefined); // Filtra dias inválidos
 
       // Gera eventos para 12 semanas
       for (let semana = 0; semana < 12; semana++) {
-        diasNumeros.forEach(diaNumero => {
-          const dataEvento = new Date(inicioBase);
+        for (const diaNumero of diasNumeros) {
+          const dataEvento = new Date(inicioBaseBrasilia);
           let diasAdicionais = (semana === 0) ? 0 : (diaNumero - dataEvento.getDay() + 7) % 7 + (semana * 7);
           dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
 
@@ -575,17 +591,22 @@ app.get('/eventos', async (req, res) => {
           const fim = new Date(dataEvento);
           fim.setHours(horaFim, 0, 0, 0);
 
+          const inicioBrasilia = ajustarParaBrasilia(inicio);
+          const fimBrasilia = ajustarParaBrasilia(fim);
+
+          if (!inicioBrasilia || !fimBrasilia) continue;
+
           eventos.push({
             id: `${aula.id}-${semana}-${diaNumero}`,
             text: `${aula.materia}\nTurma: ${aula.turma}\nLab: ${aula.laboratorio}`,
-            start_date: inicio,
-            end_date: fim,
+            start_date: inicioBrasilia.toISOString(),
+            end_date: fimBrasilia.toISOString(),
             tipo: "AULA",
             color: "#37516d",
             textColor: "#fff",
-            docente: aula.docente // Adicionamos a propriedade docente
+            docente: aula.docente
           });
-        });
+        }
       }
     }
 

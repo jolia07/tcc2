@@ -39,6 +39,25 @@
         .btn-filtro.ativo:hover {
             background-color: #3a79cc;
         }
+        
+        /* Estilos para o filtro de professor */
+        .filtro-professor {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        
+        .filtro-professor select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 200px;
+        }
+        
+        .filtro-professor label {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -70,10 +89,13 @@
 
         <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
             <div class="controles-calendario">
-                <!-- Botões de filtro para aulas e dados importados -->
-                <div class="filtro-botoes">
-                    <button id="btn-todos" class="btn-filtro ativo" data-filtro="TODOS">Registros Importados</button>
-                   
+                <!-- Substituindo o botão por um filtro de professor -->
+                <div class="filtro-professor">
+                    <label for="select-professor">Filtrar por Professor:</label>
+                    <select id="select-professor">
+                        <option value="TODOS">Todos os Professores</option>
+                        <!-- As opções serão preenchidas dinamicamente via JavaScript -->
+                    </select>
                 </div>
             </div>
 
@@ -91,108 +113,11 @@
             </div>
     </div>
 
-    <button class="btn-show-instructions" onclick="openInstructionsPopup()" title="Mostrar Instruções">
-    <i class="fas fa-question"></i>
-</button>
-<!-- Popup de Instruções -->
-<div id="instructionsPopup" class="instructions-popup-overlay">
-    <div class="instructions-popup-content">
-        <span class="instructions-popup-close" onclick="closeInstructionsPopup()">&times;</span>
-        <h2 class="instructions-title">Instruções do Sistema</h2>
-        
-        <div class="instructions-section">
-            <h3>Upload de Planilha</h3>
-            <ol class="instructions-list">
-                <li>Clique em "Escolher arquivo" para escolher o arquivo Excel com os dados das aulas</li>
-                <li>O sistema aceita arquivos nos formatos .xls, .xlsx ou .csv</li>
-                <li>Certifique-se de que a planila importada otém apenas estes campos:</li>
-                    <ul>
-                        <li>Nome, Descrição, Nome do pessoal atribuído, Dias agendados, Hora de início agendada, 
-                            Fim Agendado, Nome da localização atribuída, Descrição da localização atribuída, 
-                            Datas da atividade (Individual), Agendado</li>
-                    </ul>
-                <li>Após selecionar, clique em "Enviar" para processar os dados</li>
-                <li>O sistema mostrará os resultados do processamento, incluindo quantos registros foram inseridos</li>
-            </ol>
-        </div>
-        
-        <div class="instructions-section">
-            <h3>Visualização de Dados</h3>
-            <ol class="instructions-list">
-                <li>Os dados importados aparecerão na tabela abaixo</li>
-                <li>Somente Administradores podem usar os filtros para encontrar informações específicas:
-                    <ul>
-                        <li>Filtre por docente para ver apenas as aulas de um professor</li>
-                        <li>Filtre por turno (Manhã, Tarde, Noite) para ver aulas em períodos específicos</li>
-                    </ul>
-                </li>
-                <li>Clique em "Limpar Filtros" para voltar a ver todos os dados</li>
-            </ol>
-        </div>
-        
-        <div class="instructions-section">
-            <h3>Exportação de Dados</h3>
-            <ol class="instructions-list">
-                <li>Docentes podem exportar apenas seus próprios horários</li>
-                <li>Administradores podem exportar os horários de qualquer docente</li>
-                <li>Os dados são exportados em formato Excel para fácil compartilhamento</li>
-            </ol>
-        </div>
-        
-        <div class="instructions-section">
-            <h3>Gerenciamento de Dados</h3>
-            <ol class="instructions-list">
-                <li>É possível limpar dados específicos ao selecionar uma planilha </li>
-                <li>Esta ação é irreversível - tenha certeza antes de apagar dados</li>
-            </ol>
-        </div>
-        
-        <p><input type="checkbox" id="dontShowInstructionsAgain"> Não mostrar estas instruções novamente</p>
-        <button onclick="closeInstructionsPopup()" style="padding: 8px 16px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Entendi</button>
-    </div>
-</div>
-
     <script>
-        // Funções para controlar o popup de instruções
-            function openInstructionsPopup() {
-                document.getElementById('instructionsPopup').style.display = 'flex';
-                setTimeout(() => {
-                    document.getElementById('instructionsPopup').style.opacity = '1';
-                }, 10);
-            }
-
-            function closeInstructionsPopup() {
-                const dontShowAgain = document.getElementById('dontShowInstructionsAgain').checked;
-                if (dontShowAgain) {
-                    localStorage.setItem('dontShowInstructions', 'true');
-                }
-                document.getElementById('instructionsPopup').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('instructionsPopup').style.display = 'none';
-                }, 300);
-            }
-
-            // Verificar se deve mostrar a popup automaticamente ao carregar a página
-            window.onload = function() {
-                const dontShow = localStorage.getItem('dontShowInstructions');
-                if (!dontShow) {
-                    setTimeout(openInstructionsPopup, 2000); // Mostrar após 2 segundos
-                }
-            };
-
-            // Fechar a popup ao clicar fora do conteúdo
-            window.onclick = function(event) {
-                const popup = document.getElementById('instructionsPopup');
-                if (event.target === popup) {
-                    closeInstructionsPopup();
-                }
-            };
-            
         // Variáveis globais para armazenar dados e filtros
         let todosEventos = [];
-        let filtroOrigem = "TODOS";
-        let filtroTipo = "TODOS";
-        let termoPesquisa = "";
+        let filtroProfessor = "TODOS";
+        let todosDocentes = new Set();
         
         // Inicialização do scheduler
         document.addEventListener("DOMContentLoaded", function() {
@@ -275,21 +200,10 @@
                 return true;
             });
             
-            // Configuração dos event listeners para filtros
-            document.querySelectorAll('.btn-filtro').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    // Remove classe ativo de todos os botões
-                    document.querySelectorAll('.btn-filtro').forEach(b => {
-                        b.classList.remove('ativo');
-                    });
-                    
-                    // Adiciona classe ativo ao botão clicado
-                    this.classList.add('ativo');
-                    
-                    // Aplica o filtro
-                    filtroOrigem = this.getAttribute('data-filtro');
-                    aplicarFiltros();
-                });
+            // Configuração do event listener para o filtro de professor
+            document.getElementById('select-professor').addEventListener('change', function() {
+                filtroProfessor = this.value;
+                aplicarFiltros();
             });
             
             // Carrega os dados iniciais
@@ -301,23 +215,10 @@
             scheduler.clearAll();
             
             const eventosFiltrados = todosEventos.filter(evento => {
-                // Verifica o filtro de origem
-                if (filtroOrigem !== "TODOS") {
-                    const isImportado = evento.id.toString().startsWith('imp-');
-                    if (filtroOrigem === "AULAS" && isImportado) return false;
-                    if (filtroOrigem === "IMPORTADOS" && !isImportado) return false;
-                }
-                
-                // Verifica o filtro de tipo
-                if (filtroTipo !== "TODOS") {
-                    const tipoEvento = evento.tipo ? evento.tipo.toUpperCase() : "";
-                    if (tipoEvento !== filtroTipo) return false;
-                }
-                
-                // Verifica o termo de pesquisa
-                if (termoPesquisa) {
-                    const textoEvento = evento.text.toLowerCase();
-                    if (!textoEvento.includes(termoPesquisa)) return false;
+                // Verifica o filtro de professor
+                if (filtroProfessor !== "TODOS") {
+                    const docenteEvento = evento.docente || "";
+                    if (docenteEvento.trim() !== filtroProfessor.trim()) return false;
                 }
                 
                 return true;
@@ -358,75 +259,96 @@
         
         // Função para carregar eventos
         async function carregarEventos() {
-    try {
-        // 1) Busca eventos "normais"
-        const respEv = await fetch('/eventos', { credentials: 'include' });
-        if (!respEv.ok) throw new Error('Erro ao buscar eventos');
-        const eventos = await respEv.json();
+            try {
+                // 1) Busca eventos "normais"
+                const respEv = await fetch('/eventos', { credentials: 'include' });
+                if (!respEv.ok) throw new Error('Erro ao buscar eventos');
+                const eventos = await respEv.json();
 
-        // 2) Busca registros importados
-        const respImp = await fetch('/importado', { credentials: 'include' });
-        if (!respImp.ok) throw new Error('Erro ao buscar dados importados');
-        const importados = await respImp.json();
+                // 2) Busca registros importados
+                const respImp = await fetch('/importado', { credentials: 'include' });
+                if (!respImp.ok) throw new Error('Erro ao buscar dados importados');
+                const importados = await respImp.json();
 
-        // 3) Formata eventos "normais"
-        const evFormatados = eventos.map(ev => ({
-            id: ev.id,
-            text: ev.text,
-            start_date: new Date(ev.start_date),
-            end_date: new Date(ev.end_date),
-            color: ev.color || "#3174ad",
-            textColor: ev.textColor || "#FFFFFF",
-            tipo: ev.tipo || "AULA"
-        }));
+                // 3) Formata eventos "normais"
+                const evFormatados = eventos.map(ev => ({
+                    id: ev.id,
+                    text: ev.text,
+                    start_date: new Date(ev.start_date),
+                    end_date: new Date(ev.end_date),
+                    color: ev.color || "#3174ad",
+                    textColor: ev.textColor || "#FFFFFF",
+                    tipo: ev.tipo || "AULA",
+                    docente: ev.docente || "" // Adicionamos a propriedade docente para facilitar o filtro
+                }));
 
-        // 4) Formata registros importados
-        let impFormatados = importados.map(item => {
-            const dateStr = item.data_atividade;
-            const [hIni, mIni] = item.hora_inicio.split(':');
-            const [hFim, mFim] = item.hora_fim.split(':');
-            const start = new Date(dateStr);
-            start.setHours(+hIni, +mIni, 0, 0);
-            const end = new Date(dateStr);
-            end.setHours(+hFim, +mFim, 0, 0);
-            return {
-                id: `imp-${item.id}`,
-                text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
-                start_date: start,
-                end_date: end,
-                tipo: item.turno || "IMPORTADO",
-                color: "#228B22",
-                textColor: "#FFFFFF",
-                docente: item.docente // Adicionamos a propriedade docente para facilitar o filtro
-            };
-        });
+                // 4) Formata registros importados
+                const impFormatados = importados.map(item => {
+                    const dateStr = item.data_atividade;
+                    const [hIni, mIni] = item.hora_inicio.split(':');
+                    const [hFim, mFim] = item.hora_fim.split(':');
+                    const start = new Date(dateStr);
+                    start.setHours(+hIni, +mIni, 0, 0);
+                    const end = new Date(dateStr);
+                    end.setHours(+hFim, +mFim, 0, 0);
+                    
+                    // Extrair o nome do docente e adicioná-lo à lista de todos os docentes
+                    const docente = item.docente || "";
+                    if (docente.trim()) {
+                        todosDocentes.add(docente.trim());
+                    }
+                    
+                    return {
+                        id: `imp-${item.id}`,
+                        text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
+                        start_date: start,
+                        end_date: end,
+                        tipo: item.turno || "IMPORTADO",
+                        color: "#228B22",
+                        textColor: "#FFFFFF",
+                        docente: docente // Adicionamos a propriedade docente para facilitar o filtro
+                    };
+                });
 
-        // 5) Filtra os eventos importados se o usuário for do tipo 'Docente'
-        const userData = await (await fetch('/getUserData')).json();
-        if (userData.tipo === 'Docente') {
-            impFormatados = impFormatados.filter(evento => 
-                evento.docente && evento.docente.trim() === userData.nome.trim()
-            );
+                // 5) Junta e filtra por ID único
+                const tudo = [...evFormatados, ...impFormatados];
+                const vistos = new Set();
+                todosEventos = tudo.filter(ev => {
+                    if (vistos.has(ev.id)) return false;
+                    vistos.add(ev.id);
+                    return true;
+                });
+
+                // 6) Preenche o select de professores
+                preencherSelectProfessores();
+
+                // 7) Aplica os filtros ativos
+                aplicarFiltros();
+
+            } catch (error) {
+                console.error('Erro ao carregar eventos:', error);
+                alert('Erro ao carregar eventos. Faça login novamente.');
+                window.location.href = '/';
+            }
         }
-
-        // 6) Junta e filtra por ID único
-        const tudo = [...evFormatados, ...impFormatados];
-        const vistos = new Set();
-        todosEventos = tudo.filter(ev => {
-            if (vistos.has(ev.id)) return false;
-            vistos.add(ev.id);
-            return true;
-        });
-
-        // 7) Aplica os filtros ativos
-        aplicarFiltros();
-
-    } catch (error) {
-        console.error('Erro ao carregar eventos:', error);
-        alert('Erro ao carregar eventos. Faça login novamente.');
-        window.location.href = '/';
-    }
-}
+        
+        // Função para preencher o select de professores
+        function preencherSelectProfessores() {
+            const selectProfessor = document.getElementById('select-professor');
+            
+            // Limpa as opções existentes (exceto a primeira)
+            while (selectProfessor.options.length > 1) {
+                selectProfessor.remove(1);
+            }
+            
+            // Adiciona as opções de professores
+            todosDocentes.forEach(docente => {
+                const option = document.createElement('option');
+                option.value = docente;
+                option.textContent = docente;
+                selectProfessor.appendChild(option);
+            });
+        }
         
         // Função de logout
         function sair() {
