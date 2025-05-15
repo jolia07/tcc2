@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
     <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
     <style>
         .filtro-botoes {
             display: flex;
@@ -152,7 +155,14 @@
     </div>
 </div>
 
+<script>
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
+</script>
+
+
     <script>
+
         // Funções para controlar o popup de instruções
             function openInstructionsPopup() {
                 document.getElementById('instructionsPopup').style.display = 'flex';
@@ -383,12 +393,9 @@
         // 4) Formata registros importados
         let impFormatados = importados.map(item => {
             const dateStr = item.data_atividade;
-            const [hIni, mIni] = item.hora_inicio.split(':');
-            const [hFim, mFim] = item.hora_fim.split(':');
-            const start = new Date(dateStr);
-            start.setHours(+hIni, +mIni, 0, 0);
-            const end = new Date(dateStr);
-            end.setHours(+hFim, +mFim, 0, 0);
+            const start = dayjs.tz(`${dateStr} ${item.hora_inicio}`, 'America/Sao_Paulo').toDate();
+            const end = dayjs.tz(`${dateStr} ${item.hora_fim}`, 'America/Sao_Paulo').toDate();
+            
             return {
                 id: `imp-${item.id}`,
                 text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
@@ -397,9 +404,10 @@
                 tipo: item.turno || "IMPORTADO",
                 color: "#228B22",
                 textColor: "#FFFFFF",
-                docente: item.docente // Adicionamos a propriedade docente para facilitar o filtro
+                docente: item.docente
             };
         });
+
 
         // 5) Filtra os eventos importados se o usuário for do tipo 'Docente'
         const userData = await (await fetch('/getUserData')).json();
