@@ -542,29 +542,43 @@ app.get('/eventos', async (req, res) => {
 
     const eventos = [];
 
-    // Função para converter para o fuso horário de Brasília (UTC-3)
-    const converterParaBrasilia = (date) => {
-      if (!date) return null;
+    // Função robusta para converter para horário de Brasília
+    const toBrasiliaTime = (date) => {
+      if (!date || isNaN(new Date(date).getTime())) return null;
       
-      // Cria uma nova data com o mesmo valor de tempo absoluto
       const d = new Date(date);
+      // A diferença fixa é de 2 horas (UTC-5 para UTC-3)
+      // Mas consideramos o horário de verão brasileiro se necessário
+      const offsetBrasilia = d.getTimezoneOffset() / 60; // diferença em horas
+      const isHorarioVerao = false; // Altere para true durante o horário de verão
       
-      // Ajusta para UTC-3 (Brasília)
-      // O servidor está em UTC-5 (US East), então precisamos adicionar 2 horas
-      // para converter de US East para Brasília (UTC-3)
-      d.setHours(d.getHours() + 2);
+      // Ajuste final: US East (UTC-5) para Brasília (UTC-3 ou UTC-2)
+      const ajusteHoras = isHorarioVerao ? 3 : 2;
+      d.setHours(d.getHours() + ajusteHoras);
       
       return d;
     };
 
     for (const aula of rows) {
-      const diasSemana = (aula.diasSemana || '').split(',').map(dia => dia.trim()).filter(dia => dia);
+      // Tratamento seguro para diasSemana
+      const diasSemana = (aula.diasSemana || '')
+        .toString() // Garante que é string
+        .split(',')
+        .map(dia => dia.trim())
+        .filter(dia => dia && typeof dia === 'string');
       
-      if (diasSemana.length === 0) continue;
+      if (!diasSemana.length) continue;
 
-      const inicioBase = new Date(aula.dataInicio);
-      const inicioBaseBrasilia = converterParaBrasilia(inicioBase);
-      
+      // Verificação robusta da data
+      let inicioBase;
+      try {
+        inicioBase = new Date(aula.dataInicio);
+        if (isNaN(inicioBase.getTime())) continue;
+      } catch (e) {
+        continue;
+      }
+
+      const inicioBaseBrasilia = toBrasiliaTime(inicioBase);
       if (!inicioBaseBrasilia) continue;
 
       const diaParaNumero = {
@@ -577,17 +591,24 @@ app.get('/eventos', async (req, res) => {
         return diaParaNumero[diaNormalizado];
       }).filter(num => num !== undefined);
 
+      // Geração de eventos
       for (let semana = 0; semana < 12; semana++) {
         for (const diaNumero of diasNumeros) {
           const dataEvento = new Date(inicioBaseBrasilia);
           let diasAdicionais = (semana === 0) ? 0 : (diaNumero - dataEvento.getDay() + 7) % 7 + (semana * 7);
           dataEvento.setDate(dataEvento.getDate() + diasAdicionais);
 
-          let horaInicio = 8, horaFim = 12;
-          if (aula.turno === 'TARDE') {
-            horaInicio = 13; horaFim = 17;
-          } else if (aula.turno === 'NOITE') {
-            horaInicio = 19; horaFim = 22;
+          // Definindo horários conforme turno
+          let horaInicio, horaFim;
+          switch (aula.turno) {
+            case 'TARDE':
+              horaInicio = 13; horaFim = 17;
+              break;
+            case 'NOITE':
+              horaInicio = 19; horaFim = 22;
+              break;
+            default: // MANHÃ
+              horaInicio = 8; horaFim = 12;
           }
 
           const inicio = new Date(dataEvento);
@@ -595,8 +616,8 @@ app.get('/eventos', async (req, res) => {
           const fim = new Date(dataEvento);
           fim.setHours(horaFim, 0, 0, 0);
 
-          const inicioBrasilia = converterParaBrasilia(inicio);
-          const fimBrasilia = converterParaBrasilia(fim);
+          const inicioBrasilia = toBrasiliaTime(inicio);
+          const fimBrasilia = toBrasiliaTime(fim);
 
           if (!inicioBrasilia || !fimBrasilia) continue;
 
@@ -617,7 +638,10 @@ app.get('/eventos', async (req, res) => {
     res.json(eventos);
   } catch (error) {
     console.error('Erro ao carregar eventos:', error);
-    res.status(500).json({ error: "Erro ao carregar eventos" });
+    res.status(500).json({ 
+      error: "Erro ao carregar eventos",
+      details: error.message 
+    });
   }
 });
 
