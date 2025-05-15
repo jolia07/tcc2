@@ -1325,9 +1325,9 @@ app.get('/exportar-excel-importado', async (req, res) => {
     };
    
     const diasPorMes = {
-      31: ["11", 45, 79, 113, 130, 164, 198],
+      31: [11, 45, 79, 113, 130, 164, 198],
       30: [62, 96, 147, 181],
-      29: ["28"]
+      29: [28]
     };
    
     const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -1479,20 +1479,20 @@ app.get('/exportar-excel-importado', async (req, res) => {
           curso: aula.curso,
           turma: aula.turma
         };
-
+    
         // Validação dos dados obrigatórios
         if (!aulaPadronizada.diasSemana || !aulaPadronizada.data_atividade ||
             !aulaPadronizada.turno || !aulaPadronizada.hora_inicio || !aulaPadronizada.hora_fim) {
           console.error('Aula com dados incompletos:', aulaPadronizada);
           return;
         }
-
+    
         const dataAula = new Date(aulaPadronizada.data_atividade);
         if (isNaN(dataAula.getTime())) {
           console.error(`Data inválida: ${aulaPadronizada.data_atividade}`);
           return;
         }
-
+    
         // Converter dias da semana
         const diasAula = aulaPadronizada.diasSemana.split(',')
           .map(dia => {
@@ -1503,31 +1503,31 @@ app.get('/exportar-excel-importado', async (req, res) => {
               case 'quarta-feira': return 'Qua';
               case 'quinta-feira': return 'Qui';
               case 'sexta-feira': return 'Sex';
-              case 'sábado': case 'sabado': return 'Sáb';
+              case 'sábado': case 'saabado': return 'Sáb';
               case 'domingo': return 'Dom';
               default: return diaLimpo.substring(0, 3);
             }
           })
           .filter(dia => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].includes(dia));
-
+    
         if (diasAula.length === 0) {
           console.error(`Dias da semana inválidos: ${aulaPadronizada.diasSemana}`);
           return;
         }
-
+    
         const mes = dataAula.getMonth();
         const diaMes = dataAula.getDate();
         const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dataAula.getDay()];
-
+    
         if (!diasAula.includes(diaSemana)) {
           return;
         }
-
+    
         const linhaMes = mesesLinhas[mes];
         if (!linhaMes) {
           return;
         }
-
+    
         // Encontrar coluna do dia
         let colunaDia = 0;
         for (let col = 2; col <= 32; col++) {
@@ -1537,25 +1537,121 @@ app.get('/exportar-excel-importado', async (req, res) => {
             break;
           }
         }
-
+    
         if (!colunaDia) {
           return;
         }
-
+    
         const turnoInfo = turnoHorarios[aulaPadronizada.turno];
         if (!turnoInfo) {
           console.error(`Turno inválido: ${aulaPadronizada.turno}`);
           return;
         }
-
+    
         const horaInicio = aulaPadronizada.hora_inicio.substring(0, 5);
         const horaFim = aulaPadronizada.hora_fim.substring(0, 5);
         
-        // Processamento para todos os horários (incluindo 11:20-13:20)
+        // Verificação especial para turno da noite
+        if (aulaPadronizada.turno.toLowerCase() === 'noite') {
+          const horarioCompleto = `${horaInicio}-${horaFim}`;
+          
+          // Verificar se é o horário de 18:40-20:40 ou 18:40-21:40
+          if (horarioCompleto === '18:40-20:40') {
+            // Tratamento específico para aulas de 2 horas
+            const linha = linhaMes + turnoInfo.linhas[0]; // Primeiro horário da noite
+            const celula = aba.getCell(linha, colunaDia);
+            
+            if (celula.value) {
+              console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
+              return;
+            }
+    
+            celula.value = {
+              richText: [
+                { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
+                { text: `${aulaPadronizada.laboratorio}` }
+              ]
+            };
+    
+            celula.alignment = {
+              wrapText: true,
+              vertical: 'middle',
+              horizontal: 'center'
+            };
+    
+            celula.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: getColorForMateria(aulaPadronizada.descricao) }
+            };
+    
+            celula.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+    
+            celula.font = {
+              size: 13,
+              bold: true
+            };
+            
+            return; // Sai após processar esta aula
+          } else if (horarioCompleto === '18:40-21:40') {
+            // Tratamento específico para aulas de 3 horas
+            const linha2 = linhaMes + turnoInfo.linhas[1]; // Segundo horário
+            
+            // Preenche as duas células
+            [linha2].forEach((linha, index) => {
+              const celula = aba.getCell(linha, colunaDia);
+              
+              if (celula.value) {
+                console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
+                return;
+              }
+    
+              celula.value = {
+                richText: [
+                  { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
+                  { text: `${aulaPadronizada.laboratorio}` }
+                ]
+              };
+    
+              celula.alignment = {
+                wrapText: true,
+                vertical: 'middle',
+                horizontal: 'center'
+              };
+    
+              celula.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: getColorForMateria(aulaPadronizada.descricao) }
+              };
+    
+              celula.border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+              };
+    
+              celula.font = {
+                size: 13,
+                bold: true
+              };
+            });
+            
+            return; // Sai após processar esta aula
+          }
+        }
+        
+        // Processamento padrão para outros turnos ou horários não especiais
         const inicio = parseInt(horaInicio.split(':')[0]) + parseInt(horaInicio.split(':')[1])/60;
         const fim = parseInt(horaFim.split(':')[0]) + parseInt(horaFim.split(':')[1])/60;
         const duracaoHoras = fim - inicio;
-
+    
         let melhorSlot = 0;
         let menorDiferenca = Infinity;
         
@@ -1569,45 +1665,45 @@ app.get('/exportar-excel-importado', async (req, res) => {
             melhorSlot = i;
           }
         }
-
+    
         const slotsNecessarios = Math.ceil(duracaoHoras);
         const materiaColor = getColorForMateria(aulaPadronizada.descricao);
         
         for (let i = 0; i < slotsNecessarios && (melhorSlot + i) < turnoInfo.linhas.length; i++) {
           const linha = linhaMes + turnoInfo.linhas[melhorSlot + i];
           const celula = aba.getCell(linha, colunaDia);
-
+    
           if (celula.value) {
             console.log(`Célula ocupada: linha ${linha}, coluna ${colunaDia}`);
             continue;
           }
-
+    
           celula.value = {
             richText: [
               { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
               { text: `${aulaPadronizada.laboratorio}` }
             ]
           };
-
+    
           celula.alignment = {
             wrapText: true,
             vertical: 'middle',
             horizontal: 'center'
           };
-
+    
           celula.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: materiaColor }
           };
-
+    
           celula.border = {
             top: { style: 'thin', color: { argb: 'FF000000' } },
             left: { style: 'thin', color: { argb: 'FF000000' } },
             bottom: { style: 'thin', color: { argb: 'FF000000' } },
             right: { style: 'thin', color: { argb: 'FF000000' } }
           };
-
+    
           celula.font = {
             size: 13,
             bold: true
