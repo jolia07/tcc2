@@ -1075,7 +1075,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           fgColor: { argb: 'FFD9D9D9' }
         };
         cell.font = {  
-          size: 24    
+          size: 40    
         };
         cell.alignment = { 
           horizontal: 'center', 
@@ -1118,7 +1118,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     aba.getCell('A8').value = "Cronograma do período letivo";
     aba.getCell('T1').value = "Matérias e Carga Horária";
 
-    aba.getCell('T1').font = { size: 26, bold: true };
+    aba.getCell('T1').font = { size: 40, bold: true };
     aba.getCell('T1').alignment = { horizontal: 'center', vertical: 'middle' };
 
     // Nomes dos meses (igual ao original)
@@ -1158,7 +1158,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
             vertical: 'middle' 
           };
           cell.font = {
-            size: 26,
+            size: 40,
             bold: true
           }
       }
@@ -1262,7 +1262,8 @@ app.get('/exportar-excel-importado', async (req, res) => {
               right: { style: 'thin', color: { argb: 'FF000000' } }
           };
           cell.font = {
-            size: 16
+            size: 28,
+            bold: true
           }
   
           // Garantir largura da coluna
@@ -1294,7 +1295,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       celula.font = {
         bold: true,
         color: { argb: 'FFFFFFFF' },
-        size: 28
+        size: 40
       };
     });
 
@@ -1309,7 +1310,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       celula.font = {
         bold: true,
         color: { argb: 'FFFFFFFF' },
-        size: 26
+        size: 40
       };
     });
 
@@ -1381,7 +1382,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         celula.font = {
           bold: true,
           color: { argb: 'FFFFFFFF' },
-          size: 26
+          size: 40
         };
         celula.alignment = {
           horizontal: 'center',
@@ -1401,7 +1402,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         celula.font = {
           bold: true,
           color: { argb: 'FFFFFFFF' },
-          size: 26
+          size: 40
         };
         celula.alignment = {
           horizontal: 'center',
@@ -1413,7 +1414,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     const celulasParaFormatar = ['B1', 'H1'];
     celulasParaFormatar.forEach(celula => {
       aba.getCell(celula).font = {
-        size: 26,
+        size: 40,
         bold: true
       };
       aba.getCell(celula).alignment = {
@@ -1425,7 +1426,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     celulaCronograma = ['A8'];
     celulaCronograma.forEach(celula =>{
       aba.getCell(celula).font = {
-        size: 30,
+        size: 40,
         bold: true
       }
     })
@@ -1568,7 +1569,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     
             celula.value = {
               richText: [
-                { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
+                { text: `${aulaPadronizada.descricao}\n`, font: { size: 22, bold: true } },
                 { text: `${aulaPadronizada.laboratorio}` }
               ]
             };
@@ -1593,7 +1594,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
             };
     
             celula.font = {
-              size: 13,
+              size: 22,
               bold: true
             };
             
@@ -1613,7 +1614,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     
               celula.value = {
                 richText: [
-                  { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
+                  { text: `${aulaPadronizada.descricao}\n`, font: { size: 22, bold: true } },
                   { text: `${aulaPadronizada.laboratorio}` }
                 ]
               };
@@ -1638,7 +1639,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
               };
     
               celula.font = {
-                size: 13,
+                size: 22,
                 bold: true
               };
             });
@@ -1680,7 +1681,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
     
           celula.value = {
             richText: [
-              { text: `${aulaPadronizada.descricao}\n`, font: { size: 13, bold: true } },
+              { text: `${aulaPadronizada.descricao}\n`, font: { size: 22, bold: true } },
               { text: `${aulaPadronizada.laboratorio}` }
             ]
           };
@@ -1705,7 +1706,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
           };
     
           celula.font = {
-            size: 13,
+            size: 22,
             bold: true
           };
         }
@@ -1836,7 +1837,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         const cellMateria = aba.getCell(linhaAtual, colunaAtual);
         cellMateria.value = materia.descricao;
         cellMateria.font = { 
-            size: 16,
+            size: 28,
             bold: true
         };
         cellMateria.fill = {
@@ -1860,7 +1861,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
         const cellCarga = aba.getCell(linhaAtual, colunaAtual + 1);
         cellCarga.value = cargaFormatada;
         cellCarga.font = { 
-            size: 16,
+            size: 28,
             bold: true
         };
         cellCarga.fill = {
@@ -1879,7 +1880,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
 
     aba.views = [
       {
-        zoomScale: 28
+        zoomScale: 20
       }
     ];
     
@@ -1889,7 +1890,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return cm / cmPorUnidade;
     }
 
-    const largura = cmParaUnidadeExcel(7);
+    const largura = cmParaUnidadeExcel(12);
     aba.columns.forEach((coluna, index) => {
       coluna.width = largura;
     });
@@ -1898,7 +1899,7 @@ app.get('/exportar-excel-importado', async (req, res) => {
       return cm * 28.3465; 
     }
   
-    const altura = cmParaAlturaExcel(3.5);
+    const altura = cmParaAlturaExcel(5);
     aba.eachRow(row => {
       row.height = altura;
     });
