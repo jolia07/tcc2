@@ -1011,22 +1011,28 @@ function determinarTurno(hora) {
 
 app.get('/importado', async (req, res) => {
   try {
-      let query = 'SELECT * FROM importado';
-      let params = [];
-     
-      // Se foi passado o parâmetro docente, filtra os resultados
-      if (req.query.docente) {
-          query += ' WHERE docente = $1';
-          params = [req.query.docente];
-      }
-     
-      query += ' ORDER BY data_atividade, hora_inicio';
-     
-      const { rows } = await pool.query(query, params);
-      res.json(rows);
+    const userType = req.session.user?.tipo;
+    const userName = req.session.user?.nome;
+
+    let query = 'SELECT * FROM importado';
+    let params = [];
+    
+    // Se foi passado o parâmetro docente OU se o usuário é do tipo Docente
+    if (req.query.docente) {
+      query += ' WHERE docente = $1';
+      params = [req.query.docente];
+    } else if (userType === 'Docente') {
+      query += ' WHERE docente = $1';
+      params = [userName];
+    }
+    
+    query += ' ORDER BY data_atividade, hora_inicio';
+    
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
   } catch (error) {
-      console.error('Erro ao buscar dados importados:', error);
-      res.status(500).json({ error: 'Erro ao buscar dados importados' });
+    console.error('Erro ao buscar dados importados:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados importados' });
   }
 });
 

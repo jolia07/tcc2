@@ -229,6 +229,7 @@
         }
         
         // Função para carregar dados do usuário
+        // Função para carregar dados do usuário
         async function carregarDadosUsuario() {
             try {
                 const response = await fetch('/getUserData');
@@ -246,6 +247,11 @@
                 
                 if (data.foto) {
                     document.getElementById('profilePic').src = data.foto;
+                }
+                
+                // Se o usuário for docente, esconde o filtro de professor
+                if (data.tipo === 'Docente') {
+                    document.querySelector('.filtro-professor').style.display = 'none';
                 }
                 
                 // Carrega eventos após autenticação
