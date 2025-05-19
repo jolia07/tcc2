@@ -306,7 +306,7 @@
                     
                     return {
                         id: `imp-${item.id}`,
-                        text: `${item.docente}\n${item.nome}${item.descricao ? '\n' + item.descricao : ''}`,
+                        text: `${item.docente}\n${item.descricao ? item.descricao + '\n' : ''}${item.localizacao}`,
                         start_date: start,
                         end_date: end,
                         tipo: item.turno || "IMPORTADO",
