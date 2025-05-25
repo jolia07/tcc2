@@ -246,9 +246,10 @@ app.post('/login', async (req, res) => {
 app.post('/cadastro', async (req, res) => {
   const { nome, email, senha, telefone1, tipo } = req.body;
 
-  if (!['Docente', 'Administrador'].includes(tipo)) {
-    return res.status(400).json({ message: "Tipo inválido! Use 'Docente' ou 'Administrador'." });
-  }
+  if (tipo !== 'Docente') {
+  return res.status(400).json({ message: "Tipo inválido! Apenas 'Docente' é permitido." });
+}
+
 
   try {
     const checkUser = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
