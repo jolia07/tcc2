@@ -242,41 +242,52 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
 app.post('/cadastro', async (req, res) => {
-  const { nome, email, senha, telefone1, tipo } = req.body;
-
-  if (tipo !== 'Docente') {
-  return res.status(400).json({ message: "Tipo inválido! Apenas 'Docente' é permitido." });
-}
-
+  const { nome, email, senha, telefone1, tipo = 'Docente' } = req.body;
 
   try {
-    const checkUser = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    if (checkUser.rows.length > 0) { 
-      return res.status(409).send('Usuário já existe');
+    // Se estiver tentando se cadastrar como admin, verifica se o email está na lista permitida
+    if (tipo === 'Administrador') {
+      const isAdminAllowed = await pool.query(
+        'SELECT 1 FROM admin_permitidos WHERE email = $1', 
+        [email]
+      );
+
+      if (isAdminAllowed.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Apenas e-mails pré-autorizados podem se cadastrar como administradores'
+        });
+      }
     }
 
-    const senhaCriptografada = await bcrypt.hash(senha, 10);
+    const senhaHash = await bcrypt.hash(senha, 10);
     const result = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha, telefone1, tipo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [nome, email, senhaCriptografada, telefone1, tipo]
+      `INSERT INTO usuarios (nome, email, senha, telefone1, tipo)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, nome, email, tipo`,
+      [nome, email, senhaHash, telefone1, tipo]
     );
 
-    req.session.user = { 
-      id: result.rows[0].id, 
-      nome, 
-      email, 
-      telefone1, 
-      tipo: tipo
-    };
-
-    console.log('Usuário registrado:', req.session.user);
-    res.redirect('perfil');
+    res.status(201).json({
+      success: true,
+      user: result.rows[0]
+    });
 
   } catch (err) {
-    console.error('Erro ao cadastrar usuário:', err);
-    res.status(500).send('Erro no servidor.');
+    console.error('Erro no cadastro:', err);
+    
+    let message = 'Erro no servidor';
+    if (err.message.includes('Apenas e-mails pré-definidos')) {
+      message = err.message;
+    } else if (err.code === '23505') { // Violação de unique constraint
+      message = 'E-mail já cadastrado';
+    }
+
+    res.status(500).json({
+      success: false,
+      message
+    });
   }
 });
 
@@ -305,8 +316,6 @@ app.post('/upload-profile-image', verificarAutenticacao, upload.single('profileP
 
 
 app.use('/uploads', express.static('uploads'));
-
-
 
 
 // Rota para atualizar senha

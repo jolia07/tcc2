@@ -46,6 +46,7 @@ async function criarTabelas() {
             CREATE TABLE IF NOT EXISTS importado (
               id SERIAL PRIMARY KEY,
               nome VARCHAR(255) NOT NULL,
+              nome_planilha varchar(255),
               descricao TEXT,
               docente VARCHAR(255),
               dias_semana VARCHAR(50) NOT NULL,  
@@ -60,6 +61,46 @@ async function criarTabelas() {
             );
     `);
     console.log("Tabela 'importado' pronta!");
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_permitidos (
+        email VARCHAR(255) PRIMARY KEY,
+        token_ativacao VARCHAR(255),
+        token_expira TIMESTAMP,
+        usuario_id INTEGER REFERENCES usuarios(id),
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ativo BOOLEAN DEFAULT TRUE
+      );
+    `);
+    console.log("Admin pronto");
+
+    await pool.query(`
+      INSERT INTO admin_permitidos (email) VALUES 
+        ('cristovao.assuncao@fieb.org.br'),
+        ('julia.acarvalho@fieb.org.br'),
+        ('sepa.suporte@gmail.com')
+      ON CONFLICT (email) DO NOTHING;
+    `);
+
+    await pool.query(`
+       CREATE OR REPLACE FUNCTION check_admin_email()
+      RETURNS TRIGGER AS $$
+      BEGIN
+          IF NEW.tipo = 'Administrador' AND NOT EXISTS (
+              SELECT 1 FROM admin_permitidos WHERE email = NEW.email
+          ) THEN
+              RAISE EXCEPTION 'Apenas e-mails pré-definidos podem ser administradores';
+          END IF;
+          RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      DROP TRIGGER IF EXISTS enforce_admin_emails ON usuarios;
+      CREATE TRIGGER enforce_admin_emails
+      BEFORE INSERT OR UPDATE ON usuarios
+      FOR EACH ROW EXECUTE FUNCTION check_admin_email();
+    `);
+    console.log("Trigger pronta");
 
   } catch (err) {
       console.error("Erro ao criar tabelas:", err);

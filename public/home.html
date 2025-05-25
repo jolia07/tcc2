@@ -88,8 +88,9 @@
                 <!-- Select para escolher tipo de usuário -->
                 <div class="wrap-input100 validate-input" data-validate="Tipo de conta é obrigatório">
                     <select class="input100" id="tipo" name="tipo" required>
-  <option value="Docente" selected>Docente</option>
-</select>
+                        <option value="Docente">Docente</option>
+                        <option value="Administrador">Administrador</option>
+                    </select>
                     <span class="focus-input100"></span>
                     <span class="symbol-input100">
                         <i class="fa fa-users" aria-hidden="true"></i>
@@ -148,93 +149,94 @@
                     </a>
                 </div>
             </form>
-<!-- Formulário de recuperação de senha  -->
-<form class="login100-form validate-form" id="forgotPasswordForm" style="display: none;">
-    <span class="login100-form-title">Esqueceu sua senha?</span>
-    
-    <div class="wrap-input100 validate-input" data-validate="Email é obrigatório">
-        <input class="input100" type="email" name="email" id="forgot-email" required>
-        <span class="focus-input100"></span>
-        <span class="symbol-input100">
-            <i class="fa fa-envelope" aria-hidden="true"></i>
-        </span>
-    </div>
 
-    <div class="container-login100-form-btn">
-        <button class="login100-form-btn" type="submit">
-            Enviar Link de Recuperação
-        </button>
-    </div>
+            <!-- Formulário de recuperação de senha  -->
+            <form class="login100-form validate-form" id="forgotPasswordForm" style="display: none;">
+                <span class="login100-form-title">Esqueceu sua senha?</span>
+                
+                <div class="wrap-input100 validate-input" data-validate="Email é obrigatório">
+                    <input class="input100" type="email" name="email" id="forgot-email" required>
+                    <span class="focus-input100"></span>
+                    <span class="symbol-input100">
+                        <i class="fa fa-envelope" aria-hidden="true"></i>
+                    </span>
+                </div>
 
-    <div class="text-center p-t-12">
-        <a class="txt2" href="#" onclick="showLogin()" style="font-size: 15px;">
-            Voltar para Login
-        </a>
-    </div>
-</form>
-        </div>
-    </div>
-</div>
+                <div class="container-login100-form-btn">
+                    <button class="login100-form-btn" type="submit">
+                        Enviar Link de Recuperação
+                    </button>
+                </div>
 
-<!-- Popup de Instruções -->
-<div id="instructionsPopup" class="instructions-popup">
-    <div class="instructions-content">
-        <span class="instructions-close" onclick="closeInstructions()">&times;</span>
-        <h2 class="instructions-title">Bem-vindo ao SEPA</h2>
-        
-        <div class="instructions-section">
-            <h3>Como fazer login</h3>
-            <ol class="instructions-list">
-                <li>Informe seu e-mail cadastrado no campo "Email"</li>
-                <li>Digite sua senha no campo "Senha"</li>
-                <li>Marque "Mostrar senha" se quiser visualizar o que está digitando</li>
-                <li>Clique no botão "Entrar" para acessar o sistema</li>
-                <li>Caso tenha esquecido sua senha, clique em "Esqueceu senha?"</li>
-            </ol>
-        </div>
-        
-        <div class="instructions-section">
-            <h3>Como se cadastrar</h3>
-            <ol class="instructions-list">
-                <li>Clique em "Criar sua Conta" abaixo do botão de login</li>
-                <li>Selecione seu tipo de usuário (Docente ou Administrador)</li>
-                <li>Preencha todos os campos obrigatórios:
-                    <ul>
-                        <li>Nome completo</li>
-                        <li>E-mail válido</li>
-                        <li>Telefone para contato</li>
-                        <li>Senha segura</li>
-                    </ul>
-                </li>
-                <li>Marque "Mostrar senha" para verificar se digitou corretamente</li>
-                <li>Clique em "Cadastrar" para finalizar</li>
-            </ol>
-        </div>
-        
-        <div class="instructions-section">
-            <h3>Recuperação de Senha</h3>
-            <ol class="instructions-list">
-                <li>Clique em "Esqueceu senha?" na tela de login</li>
-                <li>Informe o e-mail cadastrado no sistema</li>
-                <li>Clique em "Enviar Link de Recuperação"</li>
-                <li>Verifique sua caixa de entrada (e spam) para encontrar o e-mail com as instruções</li>
-                <li>Siga o link no e-mail para criar uma nova senha</li>
-            </ol>
-        </div>
-        
-        <div class="dont-show-again">
-            <input type="checkbox" id="dontShowAgain">
-            <label for="dontShowAgain">Não mostrar esta mensagem novamente</label>
-        </div>
-        
-        <button class="instructions-confirm-btn" onclick="closeInstructions()">Entendi, obrigado!</button>
-    </div>
-</div>
+                <div class="text-center p-t-12">
+                    <a class="txt2" href="#" onclick="showLogin()" style="font-size: 15px;">
+                        Voltar para Login
+                    </a>
+                </div>
+            </form>
+                    </div>
+                </div>
+            </div>
 
-<!-- Botão flutuante de ajuda -->
-<button class="instructions-btn" onclick="openInstructions()" title="Instruções">
-    <i class="fa fa-question"></i>
-</button>
+            <!-- Popup de Instruções -->
+            <div id="instructionsPopup" class="instructions-popup">
+                <div class="instructions-content">
+                    <span class="instructions-close" onclick="closeInstructions()">&times;</span>
+                    <h2 class="instructions-title">Bem-vindo ao SEPA</h2>
+                    
+                    <div class="instructions-section">
+                        <h3>Como fazer login</h3>
+                        <ol class="instructions-list">
+                            <li>Informe seu e-mail cadastrado no campo "Email"</li>
+                            <li>Digite sua senha no campo "Senha"</li>
+                            <li>Marque "Mostrar senha" se quiser visualizar o que está digitando</li>
+                            <li>Clique no botão "Entrar" para acessar o sistema</li>
+                            <li>Caso tenha esquecido sua senha, clique em "Esqueceu senha?"</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="instructions-section">
+                        <h3>Como se cadastrar</h3>
+                        <ol class="instructions-list">
+                            <li>Clique em "Criar sua Conta" abaixo do botão de login</li>
+                            <li>Selecione seu tipo de usuário (Docente ou Administrador)</li>
+                            <li>Preencha todos os campos obrigatórios:
+                                <ul>
+                                    <li>Nome completo</li>
+                                    <li>E-mail válido</li>
+                                    <li>Telefone para contato</li>
+                                    <li>Senha segura</li>
+                                </ul>
+                            </li>
+                            <li>Marque "Mostrar senha" para verificar se digitou corretamente</li>
+                            <li>Clique em "Cadastrar" para finalizar</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="instructions-section">
+                        <h3>Recuperação de Senha</h3>
+                        <ol class="instructions-list">
+                            <li>Clique em "Esqueceu senha?" na tela de login</li>
+                            <li>Informe o e-mail cadastrado no sistema</li>
+                            <li>Clique em "Enviar Link de Recuperação"</li>
+                            <li>Verifique sua caixa de entrada (e spam) para encontrar o e-mail com as instruções</li>
+                            <li>Siga o link no e-mail para criar uma nova senha</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="dont-show-again">
+                        <input type="checkbox" id="dontShowAgain">
+                        <label for="dontShowAgain">Não mostrar esta mensagem novamente</label>
+                    </div>
+                    
+                    <button class="instructions-confirm-btn" onclick="closeInstructions()">Entendi, obrigado!</button>
+                </div>
+            </div>
+
+            <!-- Botão flutuante de ajuda -->
+            <button class="instructions-btn" onclick="openInstructions()" title="Instruções">
+                <i class="fa fa-question"></i>
+            </button>
 
 <script src="vendor/jquery/jquery-3.2.1.min.js"></script>
 <script src="vendor/bootstrap/js/popper.js"></script>
