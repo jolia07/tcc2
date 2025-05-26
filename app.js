@@ -152,7 +152,6 @@ function verificarAutenticacao(req, res, next) {
 
 
 //Rota para segundo telefone
-// Adicione esta rota no seu app.js
 app.post('/atualizar-telefone2', async (req, res) => {
     if (!req.session || !req.session.user || !req.session.user.id) {
         return res.status(401).json({ success: false, message: 'Usuário não autenticado' });

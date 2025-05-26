@@ -372,7 +372,7 @@ window.addEventListener('click', function(event) {
                alert('Cadastro realizado com sucesso! Faça login.');
                showLogin();
              } else {
-              alert('Erro ao cadastrar: ' + response.statusText);
+              alert('Usuário não autenticado como Administrador.');
             }
           })
          .catch(error => console.error('Erro:', error));

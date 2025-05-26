@@ -77,7 +77,7 @@ async function criarTabelas() {
     await pool.query(`
       INSERT INTO admin_permitidos (email) VALUES 
         ('cristovao.assuncao@fieb.org.br'),
-        ('julia.acarvalho@fieb.org.br'),
+        ('juliana.acarvalho@fieb.org.br'),
         ('sepa.suporte@gmail.com')
       ON CONFLICT (email) DO NOTHING;
     `);

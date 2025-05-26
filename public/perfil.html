@@ -62,17 +62,6 @@
                 </div>
             </div>
 
-            <div id="popupTelefone" class="popup" style="display: none;">
-                <h2>Adicionar/Editar Telefone Secundário</h2>
-                <input type="tel" id="telefone2Input" placeholder="(00) 00000-0000" pattern="[0-9]{10,11}" maxlength="11">
-                <div class="popup-actions">
-                    <button onclick="salvarTelefone2()" class="btn-primary">Salvar</button>
-                    <button class="btn-secondary" onclick="fecharPopup('popupTelefone')">Cancelar</button>
-                </div>
-            </div>
-
-            <!-- Troca de Senha -->
-
             <!-- Recuperação de Senha -->
             <div class="profile-section password-recovery">
                 <h3>Recuperar Senha</h3>
@@ -133,10 +122,6 @@
                 console.error('Erro ao carregar dados:', error);
                 alert('Erro ao carregar perfil.');
                 }
-            }
-
-            function definirTelefone2() {
-             document.getElementById("popupTelefone").style.display = "block";
             }
 
             function abrirPopupTelefone() {
