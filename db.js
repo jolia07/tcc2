@@ -65,8 +65,6 @@ async function criarTabelas() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS admin_permitidos (
         email VARCHAR(255) PRIMARY KEY,
-        token_ativacao VARCHAR(255),
-        token_expira TIMESTAMP,
         usuario_id INTEGER REFERENCES usuarios(id),
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ativo BOOLEAN DEFAULT TRUE
