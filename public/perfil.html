@@ -15,12 +15,23 @@
         </nav>
     </header>
 
-    <div id="popupTelefone" class="popup" style="display: none;">
-        <h2>Digite seu segundo telefone:</h2>
-        <input type="tel" id="telefone2Input" placeholder="Digite seu segundo telefone" pattern="[0-9]{10,11}">
+    <!-- Popup para Telefone 1 -->
+    <div id="popupTelefone1" class="popup" style="display: none;">
+        <h2>Editar Telefone Principal:</h2>
+        <input type="tel" id="telefone1Input" placeholder="Digite seu telefone principal" pattern="[0-9]{10,11}">
+        <div class="popup-actions">
+            <button onclick="salvarTelefone1()" class="btn-primary">Salvar</button>
+            <button class="btn-secondary" onclick="fecharPopup('popupTelefone1')">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Popup para Telefone 2 -->
+    <div id="popupTelefone2" class="popup" style="display: none;">
+        <h2>Editar Telefone Secundário:</h2>
+        <input type="tel" id="telefone2Input" placeholder="Digite seu telefone secundário" pattern="[0-9]{10,11}">
         <div class="popup-actions">
             <button onclick="salvarTelefone2()" class="btn-primary">Salvar</button>
-            <button class="btn-secondary" onclick="fecharPopup('popupTelefone')">Cancelar</button>
+            <button class="btn-secondary" onclick="fecharPopup('popupTelefone2')">Cancelar</button>
         </div>
     </div>
 
@@ -50,11 +61,12 @@
                 <div class="info-item">
                     <label>Telefone:</label>
                     <span id="userTelefone1">Não informado</span>
+                    <button onclick="abrirPopupTelefone1()" class="btn-secondary btn-small">Editar</button>
                 </div>
                 <div class="info-item">
                     <label>Telefone 2:</label>
                     <span id="userTelefone2">Não informado</span>
-                    <button onclick="abrirPopupTelefone()" class="btn-secondary btn-small">Adicionar</button>
+                    <button onclick="abrirPopupTelefone2()" class="btn-secondary btn-small">Editar</button>
                 </div>
                 <div class="info-item">
                     <label>Tipo:</label>
@@ -124,21 +136,61 @@
                 }
             }
 
-            function abrirPopupTelefone() {
-                // Preenche o campo com o telefone atual (se existir)
-                const telefoneAtual = document.getElementById('userTelefone2').textContent;
-                if (telefoneAtual && telefoneAtual !== 'Não informado') {
-                    document.getElementById('telefone2Input').value = telefoneAtual;
-                } else {
-                    document.getElementById('telefone2Input').value = '';
-                }
-                document.getElementById('popupTelefone').style.display = 'block';
+            // Funções para abrir os popups
+            function abrirPopupTelefone1() {
+                const telefoneAtual = document.getElementById('userTelefone1').textContent;
+                document.getElementById('telefone1Input').value = (telefoneAtual !== 'Não informado') ? telefoneAtual : '';
+                document.getElementById('popupTelefone1').style.display = 'block';
             }
 
+            function abrirPopupTelefone2() {
+                const telefoneAtual = document.getElementById('userTelefone2').textContent;
+                document.getElementById('telefone2Input').value = (telefoneAtual !== 'Não informado') ? telefoneAtual : '';
+                document.getElementById('popupTelefone2').style.display = 'block';
+            }
+
+            // Função para salvar o telefone 1
+            async function salvarTelefone1() {
+                const telefone1 = document.getElementById('telefone1Input').value.trim();
+                
+                if (!telefone1) {
+                    alert('Por favor, insira um número de telefone válido.');
+                    return;
+                }
+                
+                if (telefone1.length < 10 || telefone1.length > 11) {
+                    alert('O telefone deve ter 10 ou 11 dígitos (DDD + número).');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/atualizar-telefone1', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ telefone1 })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        document.getElementById('userTelefone1').textContent = telefone1;
+                        fecharPopup('popupTelefone1');
+                        alert('Telefone principal atualizado com sucesso!');
+                    } else {
+                        alert(data.message || 'Erro ao atualizar telefone.');
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao conectar com o servidor.');
+                }
+            }
+
+            // Função para salvar o telefone 2 (já existente, mantida igual)
             async function salvarTelefone2() {
                 const telefone2 = document.getElementById('telefone2Input').value.trim();
                 
-                // Validação básica do telefone
                 if (!telefone2) {
                     alert('Por favor, insira um número de telefone válido.');
                     return;
@@ -161,9 +213,8 @@
                     const data = await response.json();
                     
                     if (data.success) {
-                        // Atualiza a exibição
                         document.getElementById('userTelefone2').textContent = telefone2;
-                        fecharPopup('popupTelefone');
+                        fecharPopup('popupTelefone2');
                         alert('Telefone secundário atualizado com sucesso!');
                     } else {
                         alert(data.message || 'Erro ao atualizar telefone.');

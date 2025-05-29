@@ -150,6 +150,31 @@ function verificarAutenticacao(req, res, next) {
   }
 }
 
+// Rota para atualizar telefone1
+app.post('/atualizar-telefone1', async (req, res) => {
+  if (!req.session || !req.session.user || !req.session.user.id) {
+    return res.status(401).json({ success: false, message: 'Usuário não autenticado' });
+  }
+
+  try {
+      const { telefone1 } = req.body;
+      
+      // Validação adicional se necessário
+      if (!telefone1 || telefone1.length < 10) {
+          return res.status(400).json({ success: false, message: 'Telefone inválido' });
+      }
+
+      await pool.query(
+          'UPDATE usuarios SET telefone1 = $1 WHERE id = $2',
+          [telefone1, req.session.user.id]
+      );
+
+      res.json({ success: true, message: 'Telefone atualizado com sucesso' });
+  } catch (error) {
+      console.error('Erro ao atualizar telefone:', error);
+      res.status(500).json({ success: false, message: 'Erro ao atualizar telefone' });
+  }
+});
 
 //Rota para segundo telefone
 app.post('/atualizar-telefone2', async (req, res) => {
