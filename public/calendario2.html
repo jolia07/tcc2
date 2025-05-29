@@ -8,61 +8,13 @@
     <link rel="stylesheet" href="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
     <script src="https://cdn.dhtmlx.com/scheduler/edge/dhtmlxscheduler.js"></script>
-    <style>
-        .filtro-botoes {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        
-        .btn-filtro {
-            padding: 8px 15px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: normal;
-            transition: all 0.3s;
-        }
-        
-        .btn-filtro.ativo {
-            background-color: #4a89dc;
-            color: white;
-            border-color: #3a79cc;
-            font-weight: bold;
-        }
-        
-        .btn-filtro:hover {
-            background-color: #e0e0e0;
-        }
-        
-        .btn-filtro.ativo:hover {
-            background-color: #3a79cc;
-        }
-        
-        /* Estilos para o filtro de professor */
-        .filtro-professor {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            align-items: center;
-        }
-        
-        .filtro-professor select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            min-width: 200px;
-        }
-        
-        .filtro-professor label {
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body>
     <header class="top-bar">
         <div class="header-left">
+            <button class="sidebar-mobile-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
             <span class="sepa-title">SEPA - CALENDÁRIO ACADÊMICO</span>
         </div>
         <div class="header-right">
@@ -72,25 +24,43 @@
         </div>
     </header>
 
-    <div class="main-layout" style="display: flex; flex: 1;">
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <div class="main-layout">
         <div class="sidebar" id="sidebar">
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="calendario.html" data-tooltip="Tabela de Aulas"><i class="fas fa-table"></i><span class="menu-text">Tabela</span></a></li>
-                    <li><a href="calendario2.html" class="active" data-tooltip="Calendário"><i class="fas fa-calendar-alt"></i><span class="menu-text">Calendário</span></a></li>
-                    <li><a href="perfil.html" data-tooltip="Meu Perfil"><i class="fas fa-user"></i><span class="menu-text">Perfil</span></a></li>
-                    <li><a href="notificacoes.html" data-tooltip="Notificações"><i class="fas fa-bell"></i><span class="menu-text">Notificações</span></a></li>
+                    <li><a href="calendario.html" data-tooltip="Tabela de Aulas">
+                        <i class="fas fa-table"></i>
+                        <span class="menu-text">Tabela</span>
+                    </a></li>
+                    <li><a href="calendario2.html" class="active" data-tooltip="Calendário">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-text">Calendário</span>
+                    </a></li>
+                    <li><a href="perfil.html" data-tooltip="Meu Perfil">
+                        <i class="fas fa-user"></i>
+                        <span class="menu-text">Perfil</span>
+                    </a></li>
+                    <li><a href="notificacoes.html" data-tooltip="Notificações">
+                        <i class="fas fa-bell"></i>
+                        <span class="menu-text">Notificações</span>
+                    </a></li>
                 </ul>
                 <div class="sidebar-footer">
-                    <a onclick="sair()" href="#" data-tooltip="Sair"><i class="fas fa-sign-out-alt"></i><span class="menu-text">Sair</span></a>
+                    <a onclick="sair()" href="#" data-tooltip="Sair">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="menu-text">Sair</span>
+                    </a>
                 </div>
             </nav>
         </div>
 
-        <div class="main-container" style="flex: 1; display: flex; flex-direction: column;">
-            <div class="controles-calendario">
-                <!-- Substituindo o botão por um filtro de professor -->
-                <div class="filtro-professor">
+        <div class="main-container">
+            <!-- Filtros -->
+            <div class="filtro-topo">
+                <div class="filtro-grupo">
                     <label for="select-professor">Filtrar por Professor:</label>
                     <select id="select-professor">
                         <option value="TODOS">Todos os Professores</option>
@@ -99,18 +69,20 @@
                 </div>
             </div>
 
-            <!-- Scheduler -->
-            <div id="scheduler" style="width: 100%; height: 600px;"></div>
+            <!-- Scheduler Container -->
+            <div style="padding: 15px; flex: 1; display: flex; flex-direction: column;">
+                <div id="scheduler" style="width: 100%; height: 600px; min-height: 400px; border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow);"></div>
+            </div>
 
-            <div class="main-container">
-                <div id="profile-container">
-                    <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
-                    <div>
-                        <p id="userName"></p>
-                        <p id="userRole"></p>
-                    </div>
+            <!-- Profile Container -->
+            <div id="profile-container">
+                <img id="profilePic" src="img/default.png" alt="Foto de Perfil">
+                <div class="profile-info">
+                    <p id="userName"></p>
+                    <p id="userRole"></p>
                 </div>
             </div>
+        </div>
     </div>
 
     <script>
@@ -118,6 +90,23 @@
         let todosEventos = [];
         let filtroProfessor = "TODOS";
         let todosDocentes = new Set();
+        
+        // Funções para controle da sidebar mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('sidebar-mobile-open');
+            overlay.classList.toggle('sidebar-overlay-active');
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.remove('sidebar-mobile-open');
+            overlay.classList.remove('sidebar-overlay-active');
+        }
         
         // Inicialização do scheduler
         document.addEventListener("DOMContentLoaded", function() {
@@ -206,8 +195,24 @@
                 aplicarFiltros();
             });
             
+            // Fechar sidebar quando clicar em um link (mobile)
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+            
             // Carrega os dados iniciais
             carregarDadosUsuario();
+            
+            // Redimensionar scheduler quando a janela muda de tamanho
+            window.addEventListener('resize', function() {
+                setTimeout(() => {
+                    scheduler.setCurrentView();
+                }, 100);
+            });
         });
         
         // Função para aplicar os filtros aos eventos
@@ -228,7 +233,6 @@
             scheduler.parse(eventosFiltrados, "json");
         }
         
-        // Função para carregar dados do usuário
         // Função para carregar dados do usuário
         async function carregarDadosUsuario() {
             try {
@@ -251,7 +255,7 @@
                 
                 // Se o usuário for docente, esconde o filtro de professor
                 if (data.tipo === 'Docente') {
-                    document.querySelector('.filtro-professor').style.display = 'none';
+                    document.querySelector('.filtro-topo').style.display = 'none';
                 }
                 
                 // Carrega eventos após autenticação
@@ -285,7 +289,7 @@
                     color: ev.color || "#3174ad",
                     textColor: ev.textColor || "#FFFFFF",
                     tipo: ev.tipo || "AULA",
-                    docente: ev.docente || "" // Adicionamos a propriedade docente para facilitar o filtro
+                    docente: ev.docente || ""
                 }));
 
                 // 4) Formata registros importados
@@ -312,7 +316,7 @@
                         tipo: item.turno || "IMPORTADO",
                         color: "#228B22",
                         textColor: "#FFFFFF",
-                        docente: docente // Adicionamos a propriedade docente para facilitar o filtro
+                        docente: docente
                     };
                 });
 
