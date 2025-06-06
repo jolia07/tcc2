@@ -112,14 +112,6 @@
                         <i class="fa fa-envelope" aria-hidden="true"></i>
                     </span>
                 </div>
-
-                <div class="wrap-input100 validate-input" data-validate="Telefone é obrigatório">
-                    <input class="input100 input-telefone" type="text" name="telefone1" id="register-text" placeholder="Telefone" required>
-                    <span class="focus-input100"></span>
-                    <span class="symbol-input100">
-                        <i class="bi bi-telephone-fill" aria-hidden="true"></i>
-                    </span>
-                </div>
            
                 <div class="wrap-input100 validate-input" data-validate="Senha é obrigatória">
                     <input class="input100 input-senha" type="password" name="senha" id="register-password" placeholder="Senha" required>
@@ -204,7 +196,6 @@
                                 <ul>
                                     <li>Nome completo</li>
                                     <li>E-mail válido</li>
-                                    <li>Telefone para contato</li>
                                     <li>Senha segura</li>
                                 </ul>
                             </li>
@@ -349,23 +340,22 @@ window.addEventListener('click', function(event) {
            const nome = document.getElementById('name').value;
            const email = document.getElementById('register-email').value;
            const senha = document.getElementById('register-password').value;
-           const telefone1 = document.getElementById('register-text').value;
            const tipo = document.getElementById('tipo').value;
 
            
-          if (!nome || !email || !senha || !telefone1 || !tipo ) {
+          if (!nome || !email || !senha || !tipo ) {
            alert("Por favor, preencha todos os campos.");
            return;
           }
 
-          console.log('Dados enviados:', { nome, email, senha, telefone1 });
+          console.log('Dados enviados:', { nome, email, senha });
 
           fetch('/cadastro', {
            method: 'POST',
            headers: {
             'Content-Type': 'application/json',
            },
-           body: JSON.stringify({ nome, email, senha, telefone1, tipo }),
+           body: JSON.stringify({ nome, email, senha, tipo }),
           })
           .then(response => {
              if (response.ok) {

@@ -157,69 +157,91 @@ app.post('/atualizar-telefone1', async (req, res) => {
   }
 
   try {
-      const { telefone1 } = req.body;
-      
-      // Validação adicional se necessário
-      if (!telefone1 || telefone1.length < 10) {
-          return res.status(400).json({ success: false, message: 'Telefone inválido' });
-      }
+    const { telefone1 } = req.body;
+    
+    // Validação adicional se necessário
+    if (!telefone1 || telefone1.length < 10) {
+      return res.status(400).json({ success: false, message: 'Telefone inválido' });
+    }
 
+    // Verifica se já existe um registro de contato para o usuário
+    const contatoExistente = await pool.query(
+      'SELECT 1 FROM contato WHERE usuario_id = $1',
+      [req.session.user.id]
+    );
+
+    if (contatoExistente.rows.length === 0) {
+      // Se não existir, cria um novo registro
       await pool.query(
-          'UPDATE usuarios SET telefone1 = $1 WHERE id = $2',
-          [telefone1, req.session.user.id]
+        'INSERT INTO contato (usuario_id, telefone1) VALUES ($1, $2)',
+        [req.session.user.id, telefone1]
       );
+    } else {
+      // Se existir, atualiza
+      await pool.query(
+        'UPDATE contato SET telefone1 = $1 WHERE usuario_id = $2',
+        [telefone1, req.session.user.id]
+      );
+    }
 
-      res.json({ success: true, message: 'Telefone atualizado com sucesso' });
+    res.json({ success: true, message: 'Telefone atualizado com sucesso' });
   } catch (error) {
-      console.error('Erro ao atualizar telefone:', error);
-      res.status(500).json({ success: false, message: 'Erro ao atualizar telefone' });
+    console.error('Erro ao atualizar telefone:', error);
+    res.status(500).json({ success: false, message: 'Erro ao atualizar telefone' });
   }
 });
 
-//Rota para segundo telefone
+// Rota para segundo telefone
 app.post('/atualizar-telefone2', async (req, res) => {
-    if (!req.session || !req.session.user || !req.session.user.id) {
-        return res.status(401).json({ success: false, message: 'Usuário não autenticado' });
+  if (!req.session || !req.session.user || !req.session.user.id) {
+    return res.status(401).json({ success: false, message: 'Usuário não autenticado' });
+  }
+
+  const { telefone2 } = req.body;
+  
+  // Validação básica
+  if (!telefone2 || telefone2.length < 10 || telefone2.length > 11) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Telefone inválido. Deve ter 10 ou 11 dígitos.' 
+    });
+  }
+
+  try {
+    // Verifica se já existe um registro de contato para o usuário
+    const contatoExistente = await pool.query(
+      'SELECT 1 FROM contato WHERE usuario_id = $1',
+      [req.session.user.id]
+    );
+
+    if (contatoExistente.rows.length === 0) {
+      // Se não existir, cria um novo registro
+      await pool.query(
+        'INSERT INTO contato (usuario_id, telefone2) VALUES ($1, $2)',
+        [req.session.user.id, telefone2]
+      );
+    } else {
+      // Se existir, atualiza
+      const result = await pool.query(
+        'UPDATE contato SET telefone2 = $1 WHERE usuario_id = $2 RETURNING *',
+        [telefone2, req.session.user.id]
+      );
     }
 
-    const { telefone2 } = req.body;
+    // Atualiza na sessão
+    req.session.user.telefone2 = telefone2;
     
-    // Validação básica
-    if (!telefone2 || telefone2.length < 10 || telefone2.length > 11) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Telefone inválido. Deve ter 10 ou 11 dígitos.' 
-        });
-    }
-
-    try {
-        // Atualiza no banco de dados
-        const result = await pool.query(
-            'UPDATE usuarios SET telefone2 = $1 WHERE id = $2 RETURNING *',
-            [telefone2, req.session.user.id]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Usuário não encontrado' 
-            });
-        }
-
-        // Atualiza na sessão
-        req.session.user.telefone2 = telefone2;
-        
-        return res.json({ 
-            success: true, 
-            message: 'Telefone secundário atualizado com sucesso' 
-        });
-    } catch (error) {
-        console.error('Erro ao atualizar telefone:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Erro interno ao atualizar telefone' 
-        });
-    }
+    return res.json({ 
+      success: true, 
+      message: 'Telefone secundário atualizado com sucesso' 
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar telefone:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno ao atualizar telefone' 
+    });
+  }
 });
 
 
@@ -267,7 +289,7 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/cadastro', async (req, res) => {
-  const { nome, email, senha, telefone1, tipo = 'Docente' } = req.body;
+  const { nome, email, senha, tipo = 'Docente' } = req.body;
 
   try {
     // Se estiver tentando se cadastrar como admin, verifica se o email está na lista permitida
@@ -287,10 +309,10 @@ app.post('/cadastro', async (req, res) => {
 
     const senhaHash = await bcrypt.hash(senha, 10);
     const result = await pool.query(
-      `INSERT INTO usuarios (nome, email, senha, telefone1, tipo)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO usuarios (nome, email, senha, tipo)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, nome, email, tipo`,
-      [nome, email, senhaHash, telefone1, tipo]
+      [nome, email, senhaHash, tipo]
     );
 
     res.status(201).json({
@@ -529,7 +551,7 @@ app.get('/getUserData', verificarAutenticacao, async (req, res) => {
 
 
   try {
-    const {rows} = await pool.query('SELECT id, nome, email, telefone1, telefone2, profilePic, tipo FROM usuarios WHERE id = $1', [userId]);
+    const {rows} = await pool.query('SELECT id, nome, email, profilePic, tipo FROM usuarios WHERE id = $1', [userId]);
    
     if (rows.length === 0) {
       return res.status(404).json({ error: "Usuário não encontrado." });

@@ -22,13 +22,23 @@ async function criarTabelas() {
               nome VARCHAR(255) NOT NULL,
               email VARCHAR(255) UNIQUE NOT NULL,
               senha VARCHAR(255) NOT NULL,
-              telefone1 VARCHAR(20) NULL,
-              telefone2 VARCHAR(20) NULL,
               profilePic VARCHAR(255),
               tipo VARCHAR(15) CHECK (tipo IN ('Docente', 'Administrador')) NOT NULL
           );
     `);
     console.log("Tabela 'usuarios' pronta!");
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contato (
+        id SERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+        telefone1 VARCHAR(20),
+        telefone2 VARCHAR(20),
+        UNIQUE(usuario_id)
+      );
+    `);
+    console.log("Tabela 'contato' pronta!");
+
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reset_tokens (
