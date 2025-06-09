@@ -1105,11 +1105,12 @@ app.get('/exportar-excel-importado', async (req, res) => {
     }
 
      // Buscar dados do perfil do docente autenticado
-    const { rows: docentePerfil } = await pool.query(
-      `SELECT email, telefone1, telefone2 
-       FROM usuarios 
-       WHERE nome = $1`,
-      [docenteNome]
+     const { rows: docentePerfil } = await pool.query(
+        `SELECT u.email, c.telefone1, c.telefone2 
+        FROM usuarios u
+        LEFT JOIN contato c ON u.id = c.usuario_id  -- Assumindo que há uma chave de relacionamento
+        WHERE u.nome = $1`,
+        [docenteNome]
     );
 
     // Buscar dados do docente importado - ajustado para os campos reais da tabela
